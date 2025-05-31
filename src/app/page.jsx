@@ -1,30 +1,15 @@
-'use client';
+// app/page.js (landing page)
 
-import { useState, useEffect } from 'react';
-import Calendar from './components/calendar';
+import Link from 'next/link';
 
-
-
-function App() {
-
-  const [meals, setMeals] = useState({});
-
-//   useEffect(() => {
-//     axios.get('http://localhost:4000/workouts')
-//     .then(res => setMeals(res.data));
-//     console.log(meals);
-//   }, []);
-
-
-
-
+export default function Home() {
   return (
-    <>
-      <div className="calendar-container">
-        <Calendar />
+    <main>
+      <h1>Welcome to Burn-N-Byte!</h1>
+      <p>This is the main landing page.</p>
+      <div>
+      <Link href="/workoutCalendar"><button>Workout Calendar</button></Link>
       </div>
-    </>
-  )
+    </main>
+  );
 }
-
-export default App
