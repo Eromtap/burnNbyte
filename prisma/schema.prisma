@@ -13,9 +13,245 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User model - core user data
+model User {
+  id                String           @id @default(cuid())
+  email             String           @unique
+  name              String?
+  password          String // Hashed password
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  profile           UserProfile?
+  workouts          Workout[]
+  mealPlans         MealPlan[]
+  socialPosts       SocialPost[]
+  subscription      Subscription?
+  groceryOrders     GroceryOrder[]
+  likes             Like[]
+  comments          Comment[]
+  followers         Follow[]         @relation("following")
+  following         Follow[]         @relation("follower")
+}
+
+// UserProfile - fitness-specific user data
+model UserProfile {
+  id                String           @id @default(cuid())
+  userId            String           @unique
+  age               Int?
+  gender            String?
+  height            Float? // in cm
+  weight            Float? // in kg
+  activityLevel     String?
+  fitnessGoal       String?
+  dietaryPreferences String[]
+  workoutPreference String?
+  workoutDuration   Int?             @default(30) // in minutes
+  workoutFrequency  Int?             @default(3) // per week
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weightHistory     WeightHistory[]
+}
+
+// WeightHistory - track weight changes over time
+model WeightHistory {
+  id                String           @id @default(cuid())
+  profileId         String
+  weight            Float
+  date              DateTime         @default(now())
+  
+  // Relations
+  profile           UserProfile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// Workout - workout plans
 model Workout {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  date        DateTime
+  id                String           @id @default(uuid())
+  userId            String
+  name              String
+  description       String?
+  duration          Int              // in minutes
+  difficulty        String?
+  isCompleted       Boolean          @default(false)
+  date	            DateTime
+  completedAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises         WorkoutExercise[]
+}
+
+// Exercise - exercise database
+model Exercise {
+  id                String           @id @default(uuid())
+  name              String
+  description       String?
+  muscleGroup       String?
+  equipment         String?
+  difficulty        String?
+  instructions      String?
+  
+  // Relations
+  workoutExercises  WorkoutExercise[]
+}
+
+// WorkoutExercise - junction table for workouts and exercises
+model WorkoutExercise {
+  id                String           @id @default(uuid())
+  workoutId         String
+  exerciseId        String
+  sets              Int?
+  reps              String?
+  duration          Int?             // in seconds
+  rest              Int?             // in seconds
+  order             Int
+  
+  // Relations
+  workout           Workout          @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise          Exercise         @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  
+  @@unique([workoutId, exerciseId, order])
+}
+
+// MealPlan - nutrition plans
+model MealPlan {
+  id                String           @id @default(uuid())
+  userId            String
+  title             String
+  description       String?
+  totalCalories     Int?
+  date              DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals             Meal[]
+}
+
+// Meal - individual meals
+model Meal {
+  id                String           @id @default(uuid())
+  mealPlanId        String
+  name              String
+  type              String           // breakfast, lunch, dinner, snack
+  calories          Int?
+  protein           Float?           // in grams
+  carbs             Float?           // in grams
+  fat               Float?           // in grams
+  ingredients       String[]
+  recipe            String?
+  
+  // Relations
+  mealPlan          MealPlan         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+}
+
+// SocialPost - social media posts
+model SocialPost {
+  id                String           @id @default(uuid())
+  userId            String
+  content           String
+  imageUrl          String?
+  workoutId         String?
+  mealPlanId        String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes             Like[]
+  comments          Comment[]
+}
+
+// Like - post likes
+model Like {
+  id                String           @id @default(uuid())
+  userId            String
+  postId            String
+  createdAt         DateTime         @default(now())
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post              SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, postId])
+}
+
+// Comment - post comments
+model Comment {
+  id                String           @id @default(uuid())
+  userId            String
+  postId            String
+  content           String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post              SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+// Follow - user follows
+model Follow {
+  id                String           @id @default(uuid())
+  followerId        String
+  followingId       String
+  createdAt         DateTime         @default(now())
+  
+  // Relations
+  follower          User             @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following         User             @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  @@unique([followerId, followingId])
+}
+
+// Subscription - user subscription data
+model Subscription {
+  id                String           @id @default(uuid())
+  userId            String           @unique
+  tier              String           // free, basic, premium, elite
+  status            String           // active, canceled, past_due
+  startDate         DateTime         @default(now())
+  endDate           DateTime?
+  stripeCustomerId  String?
+  stripeSubscriptionId String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// GroceryOrder - grocery delivery orders
+model GroceryOrder {
+  id                String           @id @default(uuid())
+  userId            String
+  status            String           // pending, processing, delivered, canceled
+  total             Float
+  deliveryAddress   String?
+  deliveryDate      DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items             GroceryItem[]
+}
+
+// GroceryItem - items in grocery orders
+model GroceryItem {
+  id                String           @id @default(uuid())
+  orderId           String
+  name              String
+  quantity          Int
+  price             Float
+  
+  // Relations
+  order             GroceryOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
