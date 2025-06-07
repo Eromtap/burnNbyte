@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 export default function Home() {
   const [formData, setFormData] = useState({
-    userId: '',
+    userId: 'cmb74jcc70000vit093ob6lp3', //hardcoded userid
     name: '',
     description: '',
     duration: '',
@@ -47,7 +47,7 @@ export default function Home() {
 
       // Optionally reset form
       setFormData({
-        userId: '',
+        userId: 'cmb74jcc70000vit093ob6lp3', /// Hardcoded userid
         name: '',
         description: '',
         duration: '',
@@ -78,8 +78,7 @@ export default function Home() {
           type="text"
           name="userId"
           placeholder="User ID"
-          defaultValue="cmb74jcc70000vit093ob6lp3" // This if for testing
-          //value={formData.userId} Commented out to allow defaultValue.
+          value={formData.userId}
           onChange={handleChange}
           required
         />
@@ -127,7 +126,7 @@ export default function Home() {
 
 
 /* TODO: add login so we can have userId filled out. 
-   Using hardcoded default for now
+   Using hardcoded default for now. need to remove the hardcoded ones above
 
    Also, we likely want this on a different page so the form will
    likely be removed from the home page. This is testing
