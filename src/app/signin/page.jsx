@@ -1,6 +1,7 @@
 'use client';
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -29,6 +30,10 @@ export default function SignInPage() {
       <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
 
       <button type="submit">Sign In</button>
+      
+      <p>
+        Don't have an account? <Link href="/signup">Sign Up</Link>
+      </p>
     </form>
   );
 }
