@@ -13,6 +13,7 @@ const Calendar = ({ dataSource, calendarTitle }) => {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
+    console.log('📦 Calendar mounting with dataSource:', dataSource);
     const fetchData = async () => {
       try {
         const response = await fetch(dataSource);
