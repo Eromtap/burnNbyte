@@ -1,10 +1,11 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "./api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import Link from 'next/link';
-import WorkoutForm from "./components/WorkoutForm";
-import AuthStatus from "./components/AuthStatus";
+import WorkoutForm from "@/components/WorkoutForm";
+import AuthStatus from "@/components/AuthStatus";
 import { requireAuth } from "@/lib/auth";
+import ClientOnly from "@/components/ClientOnly";
 
 
 export default async function HomePage() {
@@ -21,7 +22,9 @@ export default async function HomePage() {
           <button>Workout Calendar</button>
         </Link>
       </div>
-      <WorkoutForm />
+      <ClientOnly>
+        <WorkoutForm />
+      </ClientOnly>
     </main>
   );
 }
