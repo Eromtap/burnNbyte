@@ -1,9 +1,9 @@
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
-import Calendar from "../components/Calendar";
-import AuthStatus from "../components/AuthStatus";
+import Calendar from "@/components/Calendar";
+import AuthStatus from "@/components/AuthStatus";
 import { requireAuth } from "@/lib/auth";
 
 export default async function WorkoutCalendar() {
