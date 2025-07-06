@@ -1,23 +1,20 @@
-
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/auth";
 import Calendar from "@/components/Calendar";
 import AuthStatus from "@/components/AuthStatus";
-import { requireAuth } from "@/lib/auth";
 
 export default async function WorkoutCalendar() {
-
   const session = await requireAuth();
 
   return (
     <>
       <AuthStatus />
-      <div className="calendar-container">
-        <Calendar 
-            dataSource="/api/workouts"
-            calendarTitle="Workout Calendar"/>
-      </div>
+      <Calendar
+        calendarTitle="My Health Calendar"
+        dataSources={[
+          { url: '/api/workouts', type: 'workout' },
+          { url: '/api/mealPlans', type: 'mealPlan' },
+        ]}
+      />
     </>
-  )
+  );
 }
