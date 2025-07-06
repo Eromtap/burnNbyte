@@ -39,16 +39,21 @@ model User {
 model UserProfile {
   id                String           @id @default(cuid())
   userId            String           @unique
-  age               Int?
+  firstName         String
+  lastName          String
+  birthday          DateTime?
   gender            String?
-  height            Float? // in cm
-  weight            Float? // in kg
+  heightFt	    Float? // in ft
+  heightIn          Float? // in in
+  weight            Float? // in lbs
   activityLevel     String?
   fitnessGoal       String?
   dietaryPreferences String[]
   workoutPreference String?
   workoutDuration   Int?             @default(30) // in minutes
   workoutFrequency  Int?             @default(3) // per week
+  allergies 	    String?
+  mealsPerDay       Int?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   
