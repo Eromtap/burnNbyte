@@ -2,22 +2,38 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // using next/navigation for App Router
 
 export default function SignInPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     const result = await signIn("credentials", {
-      redirect: true,
+      redirect: false, // disable auto-redirect
       email,
       password,
-      callbackUrl: "/", // change this if needed
     });
 
-    if (result.error) {
+    if (result?.error) {
       alert("Login failed: " + result.error);
+    } else if (result?.ok) {
+      // Fetch user profile to check if onboarding is needed
+      const profileRes = await fetch("/api/user/profile"); 
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        if (!profile || !profile.preferencesFilledOut) {
+          router.push("/onboarding/1");
+        } else {
+          router.push("/");
+        }
+      } else {
+        // fallback if API fails
+        router.push("/");
+      }
     }
   }
 
