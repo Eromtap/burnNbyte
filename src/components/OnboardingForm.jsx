@@ -25,7 +25,7 @@ export default function OnboardingForm() {
 
   useEffect(() => {
     const checkRedirect = async () => {
-      const res = await fetch('/api/check-onboarded'); // You'll need to create this endpoint
+      const res = await fetch('/api/user/profile'); // You'll need to create this endpoint
       const { onboarded } = await res.json();
       if (onboarded) router.push('/'); // Redirect away if already onboarded
     };
@@ -46,7 +46,7 @@ export default function OnboardingForm() {
     const nextStep = +step + 1;
 
     if (+step === 3) {
-      // Replace this with your real auth user ID
+      // TODO: Replace this with your real auth user ID
       const userId = 'mock-user-id';
 
       try {
