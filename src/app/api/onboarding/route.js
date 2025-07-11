@@ -72,7 +72,8 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error saving onboarding data:", error);
+    // console.error("Error saving onboarding data:", error);
+    console.error("Error saving onboarding data:", error, error?.meta);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
