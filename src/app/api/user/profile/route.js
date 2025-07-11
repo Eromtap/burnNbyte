@@ -12,7 +12,17 @@ export async function GET(req) {
     where: { email: session.user.email },
   });
 
+  if (!user) {
+    return new Response(JSON.stringify({ error: "User not found" }), { status: 404 });
+  }
+
+  const profile = await prisma.userProfile.findUnique({
+    where: {userId: user.id}
+  })
+
+
+
   return new Response(JSON.stringify({
-    preferencesFilledOut: Boolean(user?.preferences),
+    preferencesFilledOut: Boolean(profile),
   }));
 }
