@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import Calendar from "@/components/Calendar";
 import AuthStatus from "@/components/AuthStatus";
 
-export default async function WorkoutCalendar() {
+export default async function HealthCalendar() {
   const session = await requireAuth();
 
   return (
