@@ -1,30 +1,65 @@
-import prisma from '@/lib/prisma';
+// app/api/workouts/route.js
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { PrismaClient } from '@prisma/client';
 
-// Workout api
+const prisma = new PrismaClient();
+
+
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
   
-  const workouts = await prisma.workout.findMany();
+  const workouts = await prisma.workout.findMany({
+    where: {
+      userId: userId
+    }
+  });
 
   return Response.json(workouts);
 }
 
+export async function POST(req) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
 
-export async function POST(request){
-  const body = await request.json();
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-  const {userId, name, description, duration, difficulty, date} = body;
+  const body = await req.json();
+  console.log(body)
 
-  const workout = await prisma.workout.create({
-    data: {
-      userId,
-      name,
-      description,
-      duration,
-      difficulty,
-      date: new Date(date),
-    },
+
+  const toNumber = (v) => {
+    if (typeof v === 'number') return v;
+    const m = String(v ?? '').match(/\d+/);
+    return m ? Number(m[0]) : 0;
+  };
+
+  const data = {
+    userId, // <- from session, ignore any client-sent userId
+    name: body.name ?? 'Untitled Workout',
+    description: body.description ?? '',
+    // muscleGroup: body.muscleGroup ?? null,
+    // equipment: toArray(body.equipment),
+    difficulty: (body.difficulty ?? 'beginner').toLowerCase(),
+    duration: toNumber(body.duration),
+    // instructions: toArray(body.instructions),
+    isCompleted: Boolean(body.isCompleted ?? false),
+    date: body.date ?? new Date().toISOString(),
+  };
+
+  const created = await prisma.workout.create({ data });
+  return new Response(JSON.stringify(created), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
   });
-
-  return Response.json(workout, { status: 201 });  
 }
+
+
+// TODO: add columns to workout table for muscle group, equpment, instructions etc.
