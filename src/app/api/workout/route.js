@@ -41,7 +41,7 @@ Only return valid JSON. Do not include anything else. Do not include json '''
     });
 
     const content = completion.choices[0].message.content;
-    console.log(content)
+    // console.log(content)
     let parsed;
     try {
       parsed = JSON.parse(content);
