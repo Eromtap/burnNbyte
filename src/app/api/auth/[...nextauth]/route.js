@@ -17,29 +17,37 @@ export const authOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
         });
-
         if (!user) return null;
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
+        // IMPORTANT: return id as a STRING
         return {
-          id: user.id,
+          id: String(user.id),
           name: user.name,
           email: user.email,
         };
       },
     }),
   ],
-  pages: {
-    signIn: "/signin",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  pages: { signIn: "/signin" },
+  session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
+
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    async session({ session, token }) {
+      if (session?.user) {
+        session.user.id = token.id ?? token.sub ?? null;
+      }
+      return session;
+    },
+  },
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };
