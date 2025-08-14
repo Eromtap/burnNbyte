@@ -6,6 +6,8 @@ import WorkoutForm from "@/components/WorkoutForm";
 import AuthStatus from "@/components/AuthStatus";
 import { requireAuth } from "@/lib/auth";
 import ClientOnly from "@/components/ClientOnly";
+import TestExerciseButton from "@/components/TestExerciseButton";
+
 
 
 export default async function HomePage() {
@@ -25,6 +27,7 @@ export default async function HomePage() {
       <ClientOnly>
         <WorkoutForm />
       </ClientOnly>
+      <TestExerciseButton />
     </main>
   );
 }

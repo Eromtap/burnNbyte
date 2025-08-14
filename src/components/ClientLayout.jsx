@@ -2,9 +2,9 @@
 import { SessionProvider } from "next-auth/react";
 import { OnboardingProvider } from "@/lib/formState";
 
-export default function ClientLayout({ children }) {
+export default function ClientLayout({ children, session }) {
   return (
-    <SessionProvider>
+    <SessionProvider session={session}>
       <OnboardingProvider>
         {children}
       </OnboardingProvider>
