@@ -80,7 +80,9 @@ const Calendar = ({ dataSources, calendarTitle }) => {
             <h2 className="text-xl font-semibold">{selectedEvent.name}</h2>
             <p className="mt-2 text-gray-600">{selectedEvent.description}</p>
             <p className="mt-2 text-gray-600">{selectedEvent.date}</p>
-            <p className="mt-2 text-sm italic text-gray-500">{selectedEvent.type}</p>
+            <p className="mt-2 text-sm italic text-gray-500">{
+                  selectedEvent.type === 'workout' ? 'Workout' : 'Meal Plan'}
+            </p>
             <button
               onClick={() => setSelectedEvent(null)}
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
