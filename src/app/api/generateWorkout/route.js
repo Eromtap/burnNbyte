@@ -41,7 +41,6 @@ Only return valid JSON. Do not include anything else. Do not include json '''
     });
 
     const content = completion.choices[0].message.content;
-    // console.log(content)
     let parsed;
     try {
       parsed = JSON.parse(content);
@@ -59,3 +58,6 @@ Only return valid JSON. Do not include anything else. Do not include json '''
 
 
 // TODO: add exercise preferences and stuff
+// TODO: ChatGPT likes to sometimes return '''json...''' with the response
+// need to parse the string better for that eventuality as it breaks 
+// the workout generation
