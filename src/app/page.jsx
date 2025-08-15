@@ -1,12 +1,12 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
+// import { getServerSession } from "next-auth";
+// import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+// import { redirect } from "next/navigation";
+// import WorkoutForm from "@/components/WorkoutForm";
+// import ClientOnly from "@/components/ClientOnly";
 import Link from 'next/link';
-import WorkoutForm from "@/components/WorkoutForm";
 import AuthStatus from "@/components/AuthStatus";
 import { requireAuth } from "@/lib/auth";
-import ClientOnly from "@/components/ClientOnly";
-import TestExerciseButton from "@/components/TestExerciseButton";
+import GenerateWorkout from '@/components/GenerateWorkout';
 
 
 
@@ -24,10 +24,13 @@ export default async function HomePage() {
           <button>Calendar</button>
         </Link>
       </div>
-      <ClientOnly>
+      {/* <ClientOnly>
         <WorkoutForm />
-      </ClientOnly>
-      <TestExerciseButton />
+      </ClientOnly> */}
+      <GenerateWorkout />
     </main>
   );
 }
+
+// TODO: If everything works with imports commented out, delete them evenutally
+// TODO: remove workoutForm when verified not needed
