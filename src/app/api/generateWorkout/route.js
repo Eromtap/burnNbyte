@@ -168,5 +168,6 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
   }
 }
 
-
+// TODO: Prisma client is used wrong, will create multiple clients
+// need to fix that. Basically everywhere we use prisma needs to be fixed
 // TODO: get rid of commented code if nothing breaks
