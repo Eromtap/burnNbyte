@@ -70,7 +70,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 // import { authOptions } from "../auth/[...nextauth]/authOptions"; // <- adjust path if needed
 // import { prisma } from "@/lib/prisma";
-
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req) {
@@ -167,5 +168,6 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
   }
 }
 
-
+// TODO: Prisma client is used wrong, will create multiple clients
+// need to fix that. Basically everywhere we use prisma needs to be fixed
 // TODO: get rid of commented code if nothing breaks
