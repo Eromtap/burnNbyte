@@ -87,8 +87,8 @@ model Workout {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   muscleGroup       String?
-  instructions      String?
-  equipment         String?
+  instructions      String[]
+  equipment         String[]
   
   // Relations
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
