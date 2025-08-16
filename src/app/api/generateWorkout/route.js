@@ -106,7 +106,8 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
   "difficulty": "beginner" | "intermediate" | "advanced",
   "duration": "string or number (minutes)",
   "equipment": ["string", ...],
-  "instructions": ["string step", ...]
+  "instructions": ["string step", ...],
+  "muscleGroup": "string"
 }`
     };
 
@@ -119,7 +120,7 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
     });
 
     let content = completion.choices?.[0]?.message?.content ?? "";
-
+    console.log(content);
     // Fallback: strip accidental ```json fences if the model ever includes them
     if (content.trim().startsWith("```")) {
       content = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
@@ -152,9 +153,9 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
       isCompleted: false,
       date: new Date(),                                 // or store planned date if you have one
       // If your schema has these as Json:
-      // equipment: toArray(ai.equipment),
-      // instructions: toArray(ai.instructions),
-      // muscleGroup: ai.muscleGroup
+      equipment: toArray(ai.equipment),
+      instructions: toArray(ai.instructions),
+      muscleGroup: ai.muscleGroup
     };
 
     // IMPORTANT: pass only fields that exist in your Prisma model
