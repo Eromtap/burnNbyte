@@ -1,5 +1,5 @@
 'use client';
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // using next/navigation for App Router
