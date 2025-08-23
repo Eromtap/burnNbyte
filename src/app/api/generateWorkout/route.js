@@ -17,33 +17,46 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { goal, fitnessLevel = "beginner", duration = "60" } = body;
+    const { 
+      gender,
+      heightFt,
+      heightIn,
+      weight,
+      fitnessGoal, 
+      fitnessLevel = "beginner", 
+      workoutPreference = "mixed",
+      workoutDuration = "60",
+      workoutFrequency
+    } = body;
 
-    if (!goal) {
+    if (!fitnessGoal) {
       return NextResponse.json({ error: "Missing required field: goal" }, { status: 400 });
     }
 
-    // Ask only for fields your schema actually stores.
-    // If your Prisma model has JSON columns for equipment/instructions, keep them.
-    // Otherwise, remove those keys from both the prompt and the mapping below.
     const prompt = {
       role: "user",
       content:
         `Create a workout plan given:
-- goal: "${goal}"
-- fitness level: "${fitnessLevel}"
-- duration: ${duration} minutes
+      - gender: "${gender}"
+      - heightFt: "${heightFt}" feet
+      - heightIn: "${heightIn}" inches
+      - weight: "${weight}" pounds
+      - fitnessGoal: "${fitnessGoal}"
+      - fitness level: "${fitnessLevel}"
+      - workoutPreference: "${workoutPreference}"
+      - workoutDuration: ${workoutDuration} minutes
+      - workoutFrequency: "${workoutFrequency}" days per week
 
-Return ONLY a JSON object with these fields (no commentary, no code fences):
-{
-  "name": "string",
-  "description": "string",
-  "difficulty": "beginner" | "intermediate" | "advanced",
-  "duration": "string or number (minutes)",
-  "equipment": ["string", ...],
-  "instructions": ["string step", ...],
-  "muscleGroup": "string"
-}`
+      Return ONLY a JSON object with these fields (no commentary, no code fences):
+      {
+        "name": "string",
+        "description": "string",
+        "difficulty": "beginner" | "intermediate" | "advanced",
+        "duration": "string or number (minutes)",
+        "equipment": ["string", ...],
+        "instructions": ["string step", ...],
+        "muscleGroup": "string"
+      }`
     };
 
     // Use JSON mode for safer parsing
@@ -86,14 +99,12 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
       difficulty: String(ai.difficulty || "beginner").toLowerCase(),
       duration: toNumber(ai.duration),
       isCompleted: false,
-      date: new Date(),                                 // or store planned date if you have one
-      // If your schema has these as Json:
+      date: new Date(),                    
       equipment: toArray(ai.equipment),
       instructions: toArray(ai.instructions),
       muscleGroup: ai.muscleGroup
     };
 
-    // IMPORTANT: pass only fields that exist in your Prisma model
     const created = await prisma.workout.create({ data });
 
     // Return the saved record (so your UI can show it right away)
@@ -104,6 +115,6 @@ Return ONLY a JSON object with these fields (no commentary, no code fences):
   }
 }
 
-// TODO: Prisma client is used wrong, will create multiple clients
-// need to fix that. Basically everywhere we use prisma needs to be fixed
-// TODO: get rid of commented code if nothing breaks
+
+
+// TODO: pull in all preferences relative to workouts
