@@ -41,7 +41,7 @@ export const authOptions = {
       token.preferences = await prisma.userProfile.findUnique({
         where: { userId: user.id }
     });
-      console.log(token.preferences.fitnessGoal);
+      // console.log(token.preferences.fitnessGoal);
       return token;
     },
     async session({ session, token }) {
