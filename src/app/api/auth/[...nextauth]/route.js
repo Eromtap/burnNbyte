@@ -22,7 +22,6 @@ export const authOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        // IMPORTANT: return id as a STRING
         return {
           id: String(user.id),
           name: user.name,
@@ -34,25 +33,38 @@ export const authOptions = {
   pages: { signIn: "/signin" },
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
-
+  
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id,
-      token.preferences = await prisma.userProfile.findUnique({
-        where: { userId: user.id }
-    });
-      // console.log(token.preferences.fitnessGoal);
+      // establish a stable user id in the token
+      const userId = user?.id ?? token.id ?? token.sub ?? null;
+      if (userId) token.id = userId;
+
+      // ALWAYS re-hydrate preferences if we know the userId
+      if (userId) {
+        token.preferences = await prisma.userProfile.findUnique({
+          where: { userId: String(userId) },
+        });
+      } else {
+        token.preferences = null;
+      }
+
       return token;
     },
+
     async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.id ?? token.sub ?? null;
-        session.user.preferences = token.preferences ?? token.sub ?? null;
+        session.user.preferences = token.preferences ?? null;
       }
       return session;
     },
-
   },
+
+
+
+
+
 };
 
 const handler = NextAuth(authOptions);

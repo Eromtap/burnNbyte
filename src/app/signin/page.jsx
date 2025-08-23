@@ -12,28 +12,39 @@ export default function SignInPage() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const result = await signIn("credentials", {
-      redirect: false, // disable auto-redirect
-      email,
-      password,
-    });
+    // const result = await signIn("credentials", {
+    //   redirect: false, // disable auto-redirect
+    //   email,
+    //   password,
+    // });
 
+    // if (result?.error) {
+    //   alert("Login failed: " + result.error);
+    // } else if (result?.ok) {
+    //   // Fetch user profile to check if onboarding is needed
+    //   const profileRes = await fetch("/api/user/profile"); 
+    //   if (profileRes.ok) {
+    //     const profile = await profileRes.json();
+    //     if (!profile || !profile.preferencesFilledOut) {
+    //       router.push("/onboarding/1");
+    //     } else {
+    //       router.push("/");
+    //     }
+    //   } else {
+    //     // fallback if API fails
+    //     router.push("/");
+    //   }
+    // }
+
+
+
+
+    const result = await signIn("credentials", { redirect: false, email, password });
     if (result?.error) {
       alert("Login failed: " + result.error);
     } else if (result?.ok) {
-      // Fetch user profile to check if onboarding is needed
-      const profileRes = await fetch("/api/user/profile"); 
-      if (profileRes.ok) {
-        const profile = await profileRes.json();
-        if (!profile || !profile.preferencesFilledOut) {
-          router.push("/onboarding/1");
-        } else {
-          router.push("/");
-        }
-      } else {
-        // fallback if API fails
-        router.push("/");
-      }
+      // Let the server side (requireAuth + DB check) decide where to send the user
+      router.push("/");
     }
   }
 

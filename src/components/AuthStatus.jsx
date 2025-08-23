@@ -1,24 +1,27 @@
-
 'use client';
+
 import { useSession, signOut } from 'next-auth/react';
 
 export default function AuthStatus() {
   const { data: session, status } = useSession();
 
-  if (status === 'loading') return null;
+  if (status === 'loading') return <p>Loading…</p>;
+  if (!session) return <p>Not signed in</p>;
+
+  const prefs = session.user?.preferences ?? null;
+  const goal = prefs?.fitnessGoal ?? '—';
 
   return (
-    <div style={{ marginBottom: '1rem' }}>
-      {session ? (
-        <>
-          <p>Signed in as {session.user.name}</p>
-          <p>Prefs: {session.user.preferences.fitnessGoal}</p>
-          <button onClick={() => signOut()}>Sign out</button>
-        </>
-      ) : (
-        <p>Not signed in</p>
+    <>
+      <p>Signed in as {session.user.name}</p>
+      <p>Prefs: {goal}</p>
+      {!prefs && (
+        <p className="text-sm text-gray-500">
+          No preferences yet. <a href="/onboarding/1" className="underline">Complete onboarding</a>
+        </p>
       )}
-    </div>
+      <button onClick={() => signOut()}>Sign out</button>
+    </>
   );
 }
 
