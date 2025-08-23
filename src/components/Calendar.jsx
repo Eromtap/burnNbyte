@@ -93,8 +93,9 @@ const Calendar = ({ calendarTitle, dataSources }) => {
             <p className="mt-2 text-gray-600">Duration: {selectedEvent.duration} minutes.</p>
             <p className="mt-2 text-gray-600">Difficulty: {selectedEvent.difficulty}</p>
             <p className="mt-2 text-gray-600">Muscle Group: {selectedEvent.muscleGroup}</p>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600"></p>
             <p>-------------------------------------</p>
+            <div>
               Equipment:
               <ul className="mt-2 text-gray-600">
                 {Array.isArray(selectedEvent.equipment) &&
@@ -102,9 +103,9 @@ const Calendar = ({ calendarTitle, dataSources }) => {
                     <li key={index}>-- {line.trim()}</li>
                   ))}
               </ul>
-            </p>
+            </div>
             <p>-------------------------------------</p>
-            <p className="mt-2 text-gray-600">
+            <div>
               Instructions:
               <ul className="mt-2 text-gray-600">
                 {Array.isArray(selectedEvent.instructions) &&
@@ -112,7 +113,7 @@ const Calendar = ({ calendarTitle, dataSources }) => {
                     <li key={index}>-- {line.trim()}</li>
                   ))}
               </ul>
-            </p>
+            </div>
             <p className="mt-2 text-sm italic text-gray-500">{
                   selectedEvent.type === 'workout' ? 'Workout' : 'Meal Plan'}
             </p>

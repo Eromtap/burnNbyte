@@ -1,7 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useOnboarding } from '@/lib/formState';
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -19,42 +18,43 @@ const steps = {
 };
 
 export default function OnboardingForm() {
-
-  const { data: session } = useSession();
+  // pull update() from useSession
+  const { data: session, status, update } = useSession();
   const router = useRouter();
 
+  // Optional: prevent flicker while we don’t know session state
   useEffect(() => {
     const checkRedirect = async () => {
-      const res = await fetch('/api/user/profile'); // You'll need to create this endpoint
-      const { onboarded } = await res.json();
-      if (onboarded) router.push('/'); // Redirect away if already onboarded
+      const res = await fetch('/api/user/profile', { cache: 'no-store' });
+      const data = await res.json();
+      // align this with your API shape: preferencesFilledOut vs onboarded
+      const onboarded = data.onboarded ?? data.preferencesFilledOut ?? false;
+      if (onboarded) router.replace('/');
     };
+    if (status === 'authenticated') checkRedirect();
+  }, [status, router]);
 
-    if (session) checkRedirect();
-  }, [session]);
-  
   const { step } = useParams();
-  const StepComponent = steps[step];
+  const StepComponent = steps[step]; // OK if your dynamic route param is "1", "2", "3"
   const { formData, updateForm } = useOnboarding();
 
   const prev = () => {
-    const prevStep = Math.max(1, +step - 1);
+    const prevStep = Math.max(1, Number(step) - 1);
     router.push(`/onboarding/${prevStep}`);
   };
 
   const next = async () => {
-    const nextStep = +step + 1;
+    const nextStep = Number(step) + 1;
 
-    if (+step === 3) {
-      // TODO: Replace this with your real auth user ID
-      const userId = 'mock-user-id';
-
+    if (Number(step) === 3) {
       try {
+        // Prefer NOT sending userId (server should read from session),
+        // but if your API currently expects it, use session.user.id:
         const res = await fetch('/api/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId,
+            // userId: session?.user?.id, // <-- include only if your API requires it
             firstName: formData.firstName,
             lastName: formData.lastName,
             birthday: formData.birthday,
@@ -74,14 +74,15 @@ export default function OnboardingForm() {
         });
 
         const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Submission failed');
 
-        if (!res.ok) throw new Error(data.error || 'Submission failed');
-        console.log('✅ Profile saved:', data);
-        router.push('/'); // or your app home
+        // 🔑 Force the client session to re-fetch (runs your jwt() again)
+        await update();
+        router.replace('/');
+        router.refresh();
       } catch (err) {
         alert(err.message || 'Something went wrong saving your data.');
       }
-
       return;
     }
 
@@ -90,12 +91,16 @@ export default function OnboardingForm() {
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg">
-      {StepComponent && <StepComponent formData={formData} updateForm={updateForm} />}
+      {StepComponent ? (
+        <StepComponent formData={formData} updateForm={updateForm} />
+      ) : (
+        <p>Loading…</p>
+      )}
       <div className="flex justify-between mt-8">
         <button
           onClick={prev}
           className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded"
-          disabled={+step === 1}
+          disabled={Number(step) === 1}
         >
           Back
         </button>
@@ -103,9 +108,11 @@ export default function OnboardingForm() {
           onClick={next}
           className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded"
         >
-          {+step === 3 ? 'Finish' : 'Next'}
+          {Number(step) === 3 ? 'Finish' : 'Next'}
         </button>
       </div>
     </div>
   );
 }
+
+
