@@ -37,15 +37,21 @@ export const authOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) token.id = user.id,
+      token.preferences = await prisma.userProfile.findUnique({
+        where: { userId: user.id }
+    });
+      console.log(token.preferences.fitnessGoal);
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.id ?? token.sub ?? null;
+        session.user.preferences = token.preferences ?? token.sub ?? null;
       }
       return session;
     },
+
   },
 };
 

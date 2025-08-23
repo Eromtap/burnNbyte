@@ -8,3 +8,7 @@ export async function GET() {
 
   return Response.json(mealPlan);
 }
+
+
+
+// TODO: this needs to be meal, not meal plan. Like how workout table replaced excersize 

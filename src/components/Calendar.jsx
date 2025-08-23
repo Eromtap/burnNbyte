@@ -5,7 +5,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
-const Calendar = ({ dataSources, calendarTitle }) => {
+const Calendar = ({ calendarTitle, dataSources }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [events, setEvents] = useState([]);
 
@@ -17,11 +17,16 @@ const Calendar = ({ dataSources, calendarTitle }) => {
             const response = await fetch(url);
             const data = await response.json();
             return data.map((event) => ({
-              title: type, // we'll override display below
+              title: type,
               date: event.date.split("T")[0],
               extendedProps: {
-                description: event.description,
                 name: event.name,
+                description: event.description,
+                duration: event.duration,
+                difficulty: event.difficulty,
+                muscleGroup: event.muscleGroup,
+                equipment: event.equipment,
+                instructions: event.instructions,
                 type,
               },
             }));
@@ -42,6 +47,11 @@ const Calendar = ({ dataSources, calendarTitle }) => {
       name: info.event.extendedProps.name,
       description: info.event.extendedProps.description,
       date: info.event.startStr,
+      duration: info.event.extendedProps.duration,
+      difficulty: info.event.extendedProps.difficulty,
+      muscleGroup: info.event.extendedProps.muscleGroup,
+      equipment: info.event.extendedProps.equipment,
+      instructions: info.event.extendedProps.instructions
     });
   };
 
@@ -80,6 +90,29 @@ const Calendar = ({ dataSources, calendarTitle }) => {
             <h2 className="text-xl font-semibold">{selectedEvent.name}</h2>
             <p className="mt-2 text-gray-600">{selectedEvent.description}</p>
             <p className="mt-2 text-gray-600">{selectedEvent.date}</p>
+            <p className="mt-2 text-gray-600">Duration: {selectedEvent.duration} minutes.</p>
+            <p className="mt-2 text-gray-600">Difficulty: {selectedEvent.difficulty}</p>
+            <p className="mt-2 text-gray-600">Muscle Group: {selectedEvent.muscleGroup}</p>
+            <p className="mt-2 text-gray-600">
+            <p>-------------------------------------</p>
+              Equipment:
+              <ul className="mt-2 text-gray-600">
+                {Array.isArray(selectedEvent.equipment) &&
+                  selectedEvent.equipment.map((line, index) => (
+                    <li key={index}>-- {line.trim()}</li>
+                  ))}
+              </ul>
+            </p>
+            <p>-------------------------------------</p>
+            <p className="mt-2 text-gray-600">
+              Instructions:
+              <ul className="mt-2 text-gray-600">
+                {Array.isArray(selectedEvent.instructions) &&
+                  selectedEvent.instructions.map((line, index) => (
+                    <li key={index}>-- {line.trim()}</li>
+                  ))}
+              </ul>
+            </p>
             <p className="mt-2 text-sm italic text-gray-500">{
                   selectedEvent.type === 'workout' ? 'Workout' : 'Meal Plan'}
             </p>
@@ -97,3 +130,7 @@ const Calendar = ({ dataSources, calendarTitle }) => {
 };
 
 export default Calendar;
+
+
+// TODO: need to render workouts and meals differently. may need separate 
+// components. not sure yet

@@ -7,7 +7,8 @@ export default function GenerateWorkout() {
   const { data: session, status } = useSession();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  // const [saving, setSaving] = useState(false);
+
+  const userPrefs = session.user.preferences;
 
   async function handleClick() {
     setLoading(true);
@@ -19,9 +20,15 @@ export default function GenerateWorkout() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          goal: 'build leg muscle',
+          gender: userPrefs.gender,
+          heightFt: userPrefs.heightFt,
+          heightIn: userPrefs.heightIn,
+          weight: userPrefs.weight,
+          fitnessGoal: userPrefs.fitnessGoal,
           fitnessLevel: 'advanced',
-          duration: '60'
+          workoutPreference: userPrefs.workoutPreference,
+          workoutDuration: userPrefs.workoutDuration,
+          workoutFrequency: userPrefs.workoutFrequency,
         }),
       });
 
@@ -51,7 +58,6 @@ export default function GenerateWorkout() {
   );
 }
 
-// TODO: get rid of commented code if nothing breaks
 // TODO: get rid of hardcoded fitness level, goals etc.
-// TODO: pull in workout preferences from db and send them with prompt
-// will require changing the prompts to accomodate
+
+// TODO: pull in all preferences relative to workouts
