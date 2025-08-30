@@ -25,7 +25,7 @@ export default function GenerateWorkout() {
           heightIn: userPrefs.heightIn,
           weight: userPrefs.weight,
           fitnessGoal: userPrefs.fitnessGoal,
-          fitnessLevel: 'advanced',
+          fitnessLevel: 'begginer',
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
           workoutFrequency: userPrefs.workoutFrequency,
@@ -44,7 +44,7 @@ export default function GenerateWorkout() {
   return (
     <div>
       <button onClick={handleClick} disabled={loading}>
-        {loading ? 'Loading...' : 'Create Workout'}
+        {loading ? 'Loading...' : 'Create Workout Plan'}
       </button>
 
       {result && (
@@ -58,6 +58,8 @@ export default function GenerateWorkout() {
   );
 }
 
-// TODO: get rid of hardcoded fitness level, goals etc.
+// TODO: get rid of hardcoded fitness level. Needs added to DB.
 
 // TODO: pull in all preferences relative to workouts
+
+// TODO: Pass date range to api by adding date range selection of some sort
