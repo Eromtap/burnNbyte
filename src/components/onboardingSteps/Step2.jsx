@@ -14,6 +14,8 @@ export default function Step2({ formData, updateForm }) {
         <option value="">Workout Type</option>
         <option value="cardio">Cardio</option>
         <option value="strength">Strength</option>
+        <option value="pilates">Pilates</option>
+        <option value="calisthetics">Calisthetics</option>
         <option value="mixed">Mixed</option>
       </select>
       <input type="number" placeholder="Workout Duration (min)" className="input" value={formData.workoutDuration} onChange={(e) => updateForm({ workoutDuration: e.target.value })} />
