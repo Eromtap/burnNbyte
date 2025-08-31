@@ -94,24 +94,48 @@ export async function POST(req) {
       Array.isArray(v) ? v.filter(Boolean) :
       typeof v === "string" ? v.split(/,\s*/).filter(Boolean) : [];
 
+
+      const normalizedDate = (d) => {
+      const date = new Date(d ?? Date.now());
+      date.setUTCHours(0, 0, 0, 0);
+      return date;
+    };
+
     const created = await prisma.$transaction(
-      ai.workouts.map((workout) =>
-        prisma.workout.create({
-          data: {
-            userId: session.user.id,
-            name: workout.name || "Untitled Workout",
-            description: workout.description || "",
-            difficulty: String(workout.difficulty || "beginner").toLowerCase(),
-            duration: Number(workout.duration) || 60,
+      ai.workouts.map((w) =>
+        prisma.workout.upsert({
+          where: {
+            // requires @@unique([userId, date]) in your schema
+            userId_date: {
+              userId: session.user.id,
+              date: normalizedDate(w.date),
+            },
+          },
+          update: {
+            name: w.name || "Untitled Workout",
+            description: w.description || "",
+            difficulty: String(w.difficulty || "beginner").toLowerCase(),
+            duration: Number(w.duration) || 60,
             isCompleted: false,
-            date: workout.date ? new Date(workout.date) : new Date(),
-            equipment: Array.isArray(workout.equipment) ? workout.equipment : [],
-            instructions: Array.isArray(workout.instructions) ? workout.instructions : [],
-            muscleGroup: workout.muscleGroup || null,
+            equipment: Array.isArray(w.equipment) ? w.equipment : [],
+            instructions: Array.isArray(w.instructions) ? w.instructions : [],
+            muscleGroup: w.muscleGroup || null,
+          },
+          create: {
+            userId: session.user.id,
+            date: normalizedDate(w.date),
+            name: w.name || "Untitled Workout",
+            description: w.description || "",
+            difficulty: String(w.difficulty || "beginner").toLowerCase(),
+            duration: Number(w.duration) || 60,
+            isCompleted: false,
+            equipment: Array.isArray(w.equipment) ? w.equipment : [],
+            instructions: Array.isArray(w.instructions) ? w.instructions : [],
+            muscleGroup: w.muscleGroup || null,
           },
         })
       )
-    ); 
+    );
 
     // Return the saved record (so your UI can show it right away)
     return NextResponse.json(created, { status: 200 });
