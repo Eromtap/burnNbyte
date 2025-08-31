@@ -93,6 +93,10 @@ model Workout {
   // Relations
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises         WorkoutExercise[]
+
+
+  @@unique([userId, date])     // <-- Enforce one workout per user per date
+  @@index([userId, date])      // <-- Optional, speeds lookups
 }
 
 // Exercise - exercise database
