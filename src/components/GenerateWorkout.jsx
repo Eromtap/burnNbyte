@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 
 
-export default function GenerateWorkout() {
+export default function GenerateWorkout(periodStart, periodEnd) {
   const { data: session, status } = useSession();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,7 @@ export default function GenerateWorkout() {
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
           workoutFrequency: userPrefs.workoutFrequency,
+          workoutDays: userPrefs.workoutDays,
         }),
       });
 
@@ -40,7 +41,7 @@ export default function GenerateWorkout() {
       setLoading(false);
     }
   }
-
+  
   return (
     <div>
       <button onClick={handleClick} disabled={loading}>
@@ -61,5 +62,3 @@ export default function GenerateWorkout() {
 // TODO: get rid of hardcoded fitness level. Needs added to DB.
 
 // TODO: pull in all preferences relative to workouts
-
-// TODO: Pass date range to api by adding date range selection of some sort

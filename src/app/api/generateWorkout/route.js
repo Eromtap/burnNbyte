@@ -9,7 +9,45 @@ import prisma from "@/lib/prisma";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const WORKOUT_SCHEMA = {
+  name: "workouts",
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      workouts: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["name","description","difficulty","duration","equipment","instructions","muscleGroup","date"],
+          properties: {
+            name: { type: "string" },
+            description: { type: "string" },
+            difficulty: { enum: ["beginner","intermediate","advanced"] },
+            duration: { anyOf: [{ type: "integer" }, { type: "string" }] },
+            equipment: { type: "array", items: { type: "string" } },
+            instructions: { type: "array", items: { type: "string" } },
+            muscleGroup: { type: "string" },
+            date: { type: "string" } // ISO yyyy-mm-dd
+          }
+        }
+      }
+    },
+    required: ["workouts"]
+  },
+  strict: true,
+};
+
 export async function POST(req) {
+  const todayDate = new Date();
+  const today = todayDate.toLocaleDateString();
+  const plus7Date = new Date(todayDate);
+  plus7Date.setDate(plus7Date.getDate() + 7);
+  const todayPlus7 = plus7Date.toLocaleDateString();
+  
+
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -26,7 +64,8 @@ export async function POST(req) {
       fitnessLevel = "beginner", 
       workoutPreference = "mixed",
       workoutDuration = "60",
-      workoutFrequency
+      workoutDays,
+      dateRange = today + ' - ' + todayPlus7
     } = body;
 
     if (!fitnessGoal) {
@@ -36,7 +75,7 @@ export async function POST(req) {
     const prompt = {
       role: "user",
       content:
-        `Create a workout plan for each day in the date range given:
+        `Create a workout plan for each day specified in workoutDays in the date range given:
       - gender: "${gender}"
       - heightFt: "${heightFt}" feet
       - heightIn: "${heightIn}" inches
@@ -44,9 +83,9 @@ export async function POST(req) {
       - fitnessGoal: "${fitnessGoal}"
       - fitness level: "${fitnessLevel}"
       - workoutPreference: "${workoutPreference}"
-      - workoutDuration: ${workoutDuration} minutes
-      - workoutFrequency: "${workoutFrequency}" days per week
-      - dateRange: "2025-08-30 - 2025-09-05"
+      - workoutDuration: ${workoutDuration}
+      - workoutDays: ${workoutDays},
+      - dateRange: ${dateRange}
 
       Return ONLY a JSON object with these fields (no commentary, no code fences):
       {
@@ -57,15 +96,21 @@ export async function POST(req) {
         "equipment": ["string", ...],
         "instructions": ["string step", ...],
         "muscleGroup": "string"
-        "date" "date"
-      }`
+        "date": "date"
+      }
+        
+      Output requirements:
+      - Return a JSON object with a single key "workouts" containing an array of workouts.
+      - Each workout must include: name, description, difficulty, duration, equipment[], instructions[], muscleGroup, date (yyyy-mm-dd).
+      - If only one workout is generated, it still must be inside the "workouts" array.
+      - Do not include any extra keys or commentary.`
     };
-
+    console.log(prompt);
     // Use JSON mode for safer parsing
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [prompt],
-      response_format: { type: "json_object" },
+      response_format: { type: "json_schema", json_schema: WORKOUT_SCHEMA },
       temperature: 0.7,
     });
 
@@ -84,17 +129,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
     }
 
-    // --- sanitize & map to your Prisma schema ---
-    const toNumber = (v) => {
-      if (typeof v === "number") return v;
-      const m = String(v ?? "").match(/\d+/);
-      return m ? Number(m[0]) : 0;
-    };
-    const toArray = (v) =>
-      Array.isArray(v) ? v.filter(Boolean) :
-      typeof v === "string" ? v.split(/,\s*/).filter(Boolean) : [];
-
-
       const normalizedDate = (d) => {
       const date = new Date(d ?? Date.now());
       date.setUTCHours(0, 0, 0, 0);
@@ -105,7 +139,6 @@ export async function POST(req) {
       ai.workouts.map((w) =>
         prisma.workout.upsert({
           where: {
-            // requires @@unique([userId, date]) in your schema
             userId_date: {
               userId: session.user.id,
               date: normalizedDate(w.date),
@@ -137,7 +170,6 @@ export async function POST(req) {
       )
     );
 
-    // Return the saved record (so your UI can show it right away)
     return NextResponse.json(created, { status: 200 });
   } catch (error) {
     console.error("💥 generateWorkout error:", error);
@@ -148,8 +180,4 @@ export async function POST(req) {
 
 
 // TODO: pull in all preferences relative to workouts
-// TODO: Delete existing workout for a day if present then recreate.
-// currently it just adds another workout
 
-// TODO: Date range needs to be passed to this, not hardcoded
-// also, workouts per week probly needs to be a day of the week selector
