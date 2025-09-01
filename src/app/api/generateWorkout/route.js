@@ -108,7 +108,7 @@ export async function POST(req) {
     console.log(prompt);
     // Use JSON mode for safer parsing
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
       messages: [prompt],
       response_format: { type: "json_schema", json_schema: WORKOUT_SCHEMA },
       temperature: 0.7,
