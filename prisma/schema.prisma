@@ -13,6 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+enum DayOfWeek {
+  SUN
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+}
+
+
 // User model - core user data
 model User {
   id                String           @id @default(cuid())
@@ -35,32 +47,38 @@ model User {
   following         Follow[]         @relation("follower")
 }
 
-// UserProfile - fitness-specific user data
+
 model UserProfile {
-  id                String           @id @default(cuid())
-  userId            String           @unique
-  firstName         String
-  lastName          String
-  birthday          DateTime?
-  gender            String?
-  heightFt	    Float? // in ft
-  heightIn          Float? // in in
-  weight            Float? // in lbs
-  activityLevel     String?
-  fitnessGoal       String?
+  id                 String     @id @default(cuid())
+  userId             String     @unique
+  firstName          String
+  lastName           String
+  birthday           DateTime?
+  gender             String?
+  heightFt           Float?
+  heightIn           Float?
+  weight             Float?
+  activityLevel      String?
+  fitnessGoal        String?
   dietaryPreferences String[]
-  workoutPreference String?
-  workoutDuration   Int?             @default(30) // in minutes
-  workoutFrequency  Int?             @default(3) // per week
-  allergies 	    String?
-  mealsPerDay       Int?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  
-  // Relations
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  weightHistory     WeightHistory[]
+  workoutPreference  String?
+  workoutDuration    Int?       @default(30)   // minutes
+
+  // NEW: explicit days user plans to work out
+  workoutDays        DayOfWeek[] @default([])
+
+  // (Optional) keep the old field temporarily for backwards compatibility
+  workoutFrequency   Int?        @default(3)
+
+  allergies          String?
+  mealsPerDay        Int?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weightHistory      WeightHistory[]
 }
+
 
 // WeightHistory - track weight changes over time
 model WeightHistory {

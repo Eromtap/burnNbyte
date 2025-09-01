@@ -69,6 +69,7 @@ export default function OnboardingForm() {
             mealsPerDay: formData.mealsPerDay,
             workoutPreference: formData.workoutPreference,
             workoutDuration: formData.workoutDuration,
+            workoutDays: formData.workoutDays,
             workoutsPerWeek: formData.workoutsPerWeek,
           }),
         });

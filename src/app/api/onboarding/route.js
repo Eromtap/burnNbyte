@@ -27,47 +27,92 @@ export async function POST(req) {
     }
 
     // Upsert UserProfile with onboarding data
-    await prisma.userProfile.upsert({
-      where: { userId: user.id },
-      update: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        birthday: birthdayDate,
-        gender: data.gender,
-        heightFt: parseFloat(data.heightFt),
-        heightIn: parseFloat(data.heightIn),
-        weight: parseFloat(data.weight),
-        activityLevel: data.activityLevel,
-        fitnessGoal: data.fitnessGoal,
-        dietaryPreferences: data.dietaryPreferences,
-        workoutPreference: data.workoutPreference,
-        workoutDuration: parseInt(data.workoutDuration),
-        workoutFrequency: parseInt(data.workoutsPerWeek),
-        allergies: data.allergies,
-        mealsPerDay: parseInt(data.mealsPerDay),
-        // add other fields as needed
-      },
-      create: {
-        userId: user.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        birthday: birthdayDate,
-        gender: data.gender,
-        heightFt: data.heightFt ? parseFloat(data.heightFt) : null,
-        heightIn: data.heightIn ? parseFloat(data.heightIn) : null,
-        weight: parseFloat(data.weight),
-        activityLevel: data.activityLevel,
-        fitnessGoal: data.fitnessGoal,
-        dietaryPreferences: data.dietaryPreferences,
-        workoutPreference: data.workoutPreference,
-        workoutDuration: parseInt(data.workoutDuration),
-        workoutFrequency: parseInt(data.workoutsPerWeek),
-        allergies: data.allergies,
-        mealsPerDay: parseInt(data.mealsPerDay),
-        // add other fields as needed
-      },
-    });
+    // await prisma.userProfile.upsert({
+    //   where: { userId: user.id },
+    //   update: {
+    //     firstName: data.firstName,
+    //     lastName: data.lastName,
+    //     birthday: birthdayDate,
+    //     gender: data.gender,
+    //     heightFt: parseFloat(data.heightFt),
+    //     heightIn: parseFloat(data.heightIn),
+    //     weight: parseFloat(data.weight),
+    //     activityLevel: data.activityLevel,
+    //     fitnessGoal: data.fitnessGoal,
+    //     dietaryPreferences: data.dietaryPreferences,
+    //     workoutPreference: data.workoutPreference,
+    //     workoutDuration: parseInt(data.workoutDuration),
+    //     workoutFrequency: parseInt(data.workoutsPerWeek),
+    //     allergies: data.allergies,
+    //     mealsPerDay: parseInt(data.mealsPerDay),
+    //     // add other fields as needed
+    //   },
+    //   create: {
+    //     userId: user.id,
+    //     firstName: data.firstName,
+    //     lastName: data.lastName,
+    //     birthday: birthdayDate,
+    //     gender: data.gender,
+    //     heightFt: data.heightFt ? parseFloat(data.heightFt) : null,
+    //     heightIn: data.heightIn ? parseFloat(data.heightIn) : null,
+    //     weight: parseFloat(data.weight),
+    //     activityLevel: data.activityLevel,
+    //     fitnessGoal: data.fitnessGoal,
+    //     dietaryPreferences: data.dietaryPreferences,
+    //     workoutPreference: data.workoutPreference,
+    //     workoutDuration: parseInt(data.workoutDuration),
+    //     workoutFrequency: parseInt(data.workoutsPerWeek),
+    //     allergies: data.allergies,
+    //     mealsPerDay: parseInt(data.mealsPerDay),
+    //     // add other fields as needed
+    //   },
+    // });
+// normalize & validate the array (defensive)
+const ALLOWED = new Set(["SUN","MON","TUE","WED","THU","FRI","SAT"]);
+const workoutDays = Array.isArray(data.workoutDays)
+  ? data.workoutDays.filter(d => ALLOWED.has(d))
+  : [];
 
+await prisma.userProfile.upsert({
+  where: { userId: user.id },
+  update: {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    birthday: birthdayDate,
+    gender: data.gender,
+    heightFt: parseFloat(data.heightFt),
+    heightIn: parseFloat(data.heightIn),
+    weight: parseFloat(data.weight),
+    activityLevel: data.activityLevel,
+    fitnessGoal: data.fitnessGoal,
+    dietaryPreferences: data.dietaryPreferences,
+    workoutPreference: data.workoutPreference,
+    workoutDuration: parseInt(data.workoutDuration),
+    workoutDays: data.workoutDays,                 // <-- new array
+    // workoutFrequency: undefined, // (optional) stop touching old field
+    allergies: data.allergies,
+    mealsPerDay: parseInt(data.mealsPerDay),
+  },
+  create: {
+    userId: user.id,
+    firstName: data.firstName,
+    lastName: data.lastName,
+    birthday: birthdayDate,
+    gender: data.gender,
+    heightFt: data.heightFt ? parseFloat(data.heightFt) : null,
+    heightIn: data.heightIn ? parseFloat(data.heightIn) : null,
+    weight: parseFloat(data.weight),
+    activityLevel: data.activityLevel,
+    fitnessGoal: data.fitnessGoal,
+    dietaryPreferences: data.dietaryPreferences,
+    workoutPreference: data.workoutPreference,
+    workoutDuration: parseInt(data.workoutDuration),
+    workoutDays: data.workoutDays,                 // <-- new array
+    // workoutFrequency: undefined,
+    allergies: data.allergies,
+    mealsPerDay: parseInt(data.mealsPerDay),
+  },
+});
 
     return NextResponse.json({ success: true });
   } catch (error) {

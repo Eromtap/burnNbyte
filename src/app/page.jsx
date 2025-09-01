@@ -18,6 +18,8 @@ export default async function HomePage() {
 
   if (!profile) redirect("/onboarding/1");
 
+  let periodStart;
+  let periodEnd;
   return (
     <main>
       <AuthStatus />
@@ -27,7 +29,7 @@ export default async function HomePage() {
         <Link href="/healthCalendar">
           <button>Calendar</button>
         </Link>
-      </div>
+      </div>      
       <GenerateWorkout />
     </main>
   );
