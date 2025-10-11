@@ -1,64 +1,62 @@
-
 'use client';
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 
 export default function GenerateMealPlan() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
 
-  // Helper: get current week dates (Sunday → Saturday)
-  function getCurrentWeekDates() {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - dayOfWeek);
-    const weekDates = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(sunday);
-      d.setDate(sunday.getDate() + i);
-      weekDates.push(d.toISOString().split("T")[0]);
-    }
-    return weekDates;
-  }
+  const prefs = session?.user?.preferences || {};
 
-  async function handleCreateMealPlan() {
-    if (!session?.user?.id) {
-      setError("User not logged in");
-      return;
-    }
+  const todayISO = new Date().toISOString().slice(0,10);
+  const sevenDaysOutISO = (() => {
+    const d = new Date();
+    d.setDate(d.getDate()+6); // inclusive range -> 7 days total
+    return d.toISOString().slice(0,10);
+  })();
 
+  async function handleClick() {
     setLoading(true);
-    setError(null);
-
+    setResult(null);
     try {
-      const weekDates = getCurrentWeekDates();
-
-      const res = await fetch("/api/generateMealPlan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekDates }),
+      const res = await fetch('/api/generateMealPlan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gender: prefs.gender,
+          heightFt: prefs.heightFt,
+          heightIn: prefs.heightIn,
+          weight: prefs.weight,
+          fitnessGoal: prefs.fitnessGoal,
+          mealsPerDay: prefs.mealsPerDay || 3,
+          dietaryPreferences: prefs.dietaryPreferences || [],
+          allergies: prefs.allergies || [],
+          // EITHER pass a date range:
+          startDate: todayISO,
+          endDate: sevenDaysOutISO
+          // OR just pass numDays: 7
+        }),
       });
-
-      if (!res.ok) throw new Error(`Failed: ${res.status}`);
-
-      // We don’t need to store mealPlans for display anymore
-      await res.json();
-    } catch (err) {
-      console.error(err);
-      setError("Failed to generate meal plans");
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      setResult({ error: 'Failed to generate meal plan.', err: String(e) });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div style={{ marginTop: "1rem" }}>
-      <button onClick={handleCreateMealPlan} disabled={loading}>
-        {loading ? "Please wait, generating..." : "Create Meal Plans for This Week"}
+    <div>
+      <button onClick={handleClick} disabled={loading}>
+        {loading ? 'Generating…' : 'Create Meal Plans (Daily)'}
       </button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {result && (
+        <pre style={{ marginTop: '1rem', background: '#111', color: '#0f0', padding: '1rem' }}>
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }

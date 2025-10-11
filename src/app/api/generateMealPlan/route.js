@@ -1,130 +1,262 @@
-
-// app/api/generateMealPlan/route.js
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { requireAuth } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function POST(req) {
-  const session = await requireAuth();
-
-  try {
-    const body = await req.json();
-    const { gender, heightFt, heightIn, weight, fitnessGoal, dietaryPreferences = [], mealsPerDay, allergies } = body;
-
-    // Calculate this week's dates (Sunday → Saturday)
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - dayOfWeek);
-    sunday.setHours(0, 0, 0, 0);
-
-    const datesThisWeek = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(sunday);
-      d.setDate(sunday.getDate() + i);
-      datesThisWeek.push(d.toISOString().split("T")[0]);
-    }
-
-    const mealPlans = [];
-
-    for (const date of datesThisWeek) {
-      // Fetch the most recent meal plans from previous days to provide context
-      const recentPlans = await prisma.mealPlan.findMany({
-        where: {
-          userId: session.user.id,
-          date: { lt: new Date(date) }, // only previous days
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 7, // look back up to 7 previous plans
-        include: { meals: true },
-      });
-
-      const previousMealsSummary = recentPlans.map(plan =>
-        plan.meals.map(m => `${m.type}: ${m.name}`).join(", ")
-      ).join(" | ");
-
-      const prompt = {
-        role: "user",
-        content: `
-      Generate a meal plan for the day (${date}) for a person with these attributes:
-      - Gender: ${gender}
-      - Height: ${heightFt}ft ${heightIn}in
-      - Weight: ${weight} lbs
-      - Fitness Goal: ${fitnessGoal}
-      - Dietary Preferences: ${dietaryPreferences.join(", ")}
-      - Meals per day: ${mealsPerDay}
-      - allergies (avoid completely): ${allergies}
-
-      IMPORTANT:
-      - NEVER include any foods or ingredients listed in the allergies/dietary preferences.
-      - Try your hardest to give foods in the dietary preferences
-      - Reference previous meals to avoid repetition and increase variety:
-      ${previousMealsSummary || "none"}
-
-      Provide detailed instructions for each recipe and ensure all meals are safe, goal-appropriate, and varied.
-
-      Return ONLY a JSON object with these fields (no commentary, no code fences):
-      {
-        "title": "string",
-        "description": "string",
-        "totalCalories": integer,
-        "meals": [
-          {
-            "name": "string",
-            "type": "breakfast|lunch|dinner|snack",
-            "calories": integer,
-            "protein": number,
-            "carbs": number,
-            "fat": number,
-            "ingredients": ["string", ...],
-            "recipe": "string"
+const MEALPLAN_SCHEMA = {
+  name: "meal_plans",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["mealPlans"],
+    properties: {
+      mealPlans: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["date", "title", "description", "totalCalories", "meals"],
+          properties: {
+            date: { type: "string" }, // yyyy-mm-dd
+            title: { type: "string" },
+            description: { type: "string" },
+            totalCalories: { anyOf: [{ type: "integer" }, { type: "number" }] },
+            meals: {
+              type: "array",
+              minItems: 1,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: [
+                  "name",
+                  "type",
+                  "calories",
+                  "protein",
+                  "carbs",
+                  "fat",
+                  "ingredients",
+                  "recipe"
+                ],
+                properties: {
+                  name: { type: "string" },
+                  type: { enum: ["breakfast", "lunch", "dinner", "snack"] },
+                  calories: { anyOf: [{ type: "integer" }, { type: "number" }] },
+                  protein: { anyOf: [{ type: "integer" }, { type: "number" }] },
+                  carbs:   { anyOf: [{ type: "integer" }, { type: "number" }] },
+                  fat:     { anyOf: [{ type: "integer" }, { type: "number" }] },
+                  ingredients: { type: "array", items: { type: "string" } },
+                  recipe: { type: "string" }
+                }
+              }
+            }
           }
-        ]
+        }
       }
-      `
-      };
+    }
+  }
+};
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [prompt],
-        temperature: 0.8,
-      });
+function toISO(d) {
+  const x = new Date(d);
+  x.setUTCHours(0,0,0,0);
+  return x.toISOString().slice(0,10);
+}
+function normalizeDate(d) {
+  const x = new Date(d ?? Date.now());
+  x.setUTCHours(0,0,0,0);
+  return x;
+}
+function datesInclusive({ startDate, endDate, numDays }) {
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    start.setUTCHours(0,0,0,0);
+    end.setUTCHours(0,0,0,0);
+    const out = [];
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate()+1)) {
+      out.push(toISO(d));
+    }
+    return out;
+  }
+  // fallback: numDays from today
+  const days = Math.max(1, Math.min(31, Number(numDays || 7)));
+  const base = new Date();
+  base.setUTCHours(0,0,0,0);
+  const out = [];
+  for (let i=0;i<days;i++){
+    const d = new Date(base);
+    d.setUTCDate(base.getUTCDate()+i);
+    out.push(toISO(d));
+  }
+  return out;
+}
 
-      let content = completion.choices?.[0]?.message?.content ?? "{}";
-      try { content = JSON.parse(content); } catch { content = {}; }
-
-      // Save to database
-      const created = await prisma.mealPlan.create({
-        data: {
-          userId: session.user.id,
-          title: content.title || `Meal Plan ${date}`,
-          description: content.description || "",
-          totalCalories: content.totalCalories || null,
-          date: new Date(date),
-          meals: {
-            create: (content.meals || []).map(m => ({
-              name: m.name,
-              type: m.type,
-              calories: m.calories,
-              protein: m.protein,
-              carbs: m.carbs,
-              fat: m.fat,
-              ingredients: m.ingredients || [],
-              recipe: m.recipe || "",
-            })),
-          },
-        },
-      });
-
-      mealPlans.push(created);
+export async function POST(req) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.json(mealPlans, { status: 200 });
-  } catch (err) {
-    console.error("Failed to generate meal plans", err);
-    return NextResponse.json({ error: "Failed to generate meal plans" }, { status: 500 });
+    const body = await req.json();
+    const {
+      // user meta
+      gender,
+      heightFt,
+      heightIn,
+      weight,
+      fitnessGoal,
+      mealsPerDay = 3,
+      dietaryPreferences = [],
+      allergies = [],
+      // range controls: pass either (startDate+endDate) or numDays
+      startDate,         // "yyyy-mm-dd" optional
+      endDate,           // "yyyy-mm-dd" optional
+      numDays            // number of consecutive days starting today
+    } = body;
+
+    if (!fitnessGoal) {
+      return NextResponse.json({ error: "Missing required field: fitnessGoal" }, { status: 400 });
+    }
+
+    const targetDates = datesInclusive({ startDate, endDate, numDays });
+    if (!targetDates.length) {
+      return NextResponse.json({ error: "No dates to generate" }, { status: 400 });
+    }
+
+    const prompt = {
+      role: "user",
+      content: `
+You are a nutrition planner. Generate daily meal plans for ALL of these calendar dates (one plan per date):
+${JSON.stringify(targetDates)}
+
+User:
+- gender: ${JSON.stringify(gender ?? null)}
+- heightFt: ${JSON.stringify(heightFt ?? null)}
+- heightIn: ${JSON.stringify(heightIn ?? null)}
+- weight: ${JSON.stringify(weight ?? null)}
+- fitnessGoal: ${JSON.stringify(fitnessGoal)}
+- mealsPerDay: ${mealsPerDay}
+- dietaryPreferences (soft): ${JSON.stringify(dietaryPreferences)}
+- allergies/exclusions (HARD AVOID): ${JSON.stringify(allergies)}
+
+Rules:
+- For EVERY listed date, return EXACTLY ${mealsPerDay} meals.
+- Absolutely avoid any allergens.
+- Prefer dietaryPreferences without violating allergies.
+- Keep each recipe clear and practical in a single "recipe" string.
+- Dates MUST match the provided list and use ISO yyyy-mm-dd.
+- Respond ONLY with JSON that matches the provided schema (no prose, no fences).
+
+Output shape:
+{
+  "mealPlans": [
+    {
+      "date": "yyyy-mm-dd",
+      "title": "string",
+      "description": "string",
+      "totalCalories": 0,
+      "meals": [
+        {
+          "name": "string",
+          "type": "breakfast|lunch|dinner|snack",
+          "calories": 0,
+          "protein": 0,
+          "carbs": 0,
+          "fat": 0,
+          "ingredients": ["item (qty, unit)", "..."],
+          "recipe": "short clear steps in one string"
+        }
+      ]
+    }
+  ]
+}
+`.trim()
+    };
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [prompt],
+      response_format: { type: "json_schema", json_schema: MEALPLAN_SCHEMA },
+      temperature: 0.6
+    });
+
+    let content = completion.choices?.[0]?.message?.content ?? "";
+    if (!content) return NextResponse.json({ error: "Empty model response" }, { status: 502 });
+    if (content.trim().startsWith("```")) {
+      content = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    }
+
+    let ai;
+    try {
+      ai = JSON.parse(content);
+    } catch (e) {
+      console.error("❌ Failed to parse AI JSON:", content);
+      return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
+    }
+
+    // sanity: ensure we got 1 plan per requested date
+    if (!Array.isArray(ai.mealPlans) || ai.mealPlans.length !== targetDates.length) {
+      return NextResponse.json({ error: "Model returned unexpected number of days" }, { status: 502 });
+    }
+
+    const userId = session.user.id;
+
+    // Save exactly like workouts: upsert per date, then replace meals
+    const saved = await prisma.$transaction(
+      ai.mealPlans.map(async (p) => {
+        const plan = await prisma.mealPlan.upsert({
+          where: {
+            // requires @@unique([userId, date], name: "userId_date")
+            userId_date: {
+              userId,
+              date: normalizeDate(p.date)
+            }
+          },
+          update: {
+            title: p.title || `Meal Plan ${p.date}`,
+            description: p.description || "",
+            totalCalories: Number(p.totalCalories) || null
+          },
+          create: {
+            userId,
+            date: normalizeDate(p.date),
+            title: p.title || `Meal Plan ${p.date}`,
+            description: p.description || "",
+            totalCalories: Number(p.totalCalories) || null
+          }
+        });
+
+        await prisma.meal.deleteMany({ where: { mealPlanId: plan.id } });
+
+        const mealData = (p.meals || []).map((m) => ({
+          mealPlanId: plan.id,
+          name: m.name,
+          type: m.type, // "breakfast" | "lunch" | "dinner" | "snack"
+          calories: Number(m.calories) || null,
+          protein: Number(m.protein) || null,
+          carbs: Number(m.carbs) || null,
+          fat: Number(m.fat) || null,
+          ingredients: Array.isArray(m.ingredients) ? m.ingredients : [],
+          recipe: m.recipe || ""
+        }));
+
+        if (mealData.length) {
+          await prisma.meal.createMany({ data: mealData });
+        }
+
+        return plan;
+      })
+    );
+
+    return NextResponse.json({ ok: true, count: saved.length, dates: targetDates }, { status: 200 });
+  } catch (error) {
+    console.error("💥 generateMealPlan error:", error);
+    return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
   }
 }
