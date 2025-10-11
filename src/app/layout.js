@@ -23,7 +23,7 @@ export default async function RootLayout({ children }) {
   const session = await getServerSession(authOptions); // server session
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ClientLayout session={session}>{children}</ClientLayout>
       </body>

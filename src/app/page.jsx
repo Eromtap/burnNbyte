@@ -1,15 +1,15 @@
-
 // app/page.jsx (server component)
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next"; // ✅ correct import
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import AuthStatus from "@/components/AuthStatus";
 import GenerateWorkout from "@/components/GenerateWorkout";
+import GenerateMealPlan from "@/components/GenerateMealPlan";
 import Link from "next/link";
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions); // now defined
   if (!session) redirect("/signin");
 
   const profile = await prisma.userProfile.findUnique({
@@ -18,8 +18,6 @@ export default async function HomePage() {
 
   if (!profile) redirect("/onboarding/1");
 
-  let periodStart;
-  let periodEnd;
   return (
     <main>
       <AuthStatus />
@@ -29,8 +27,9 @@ export default async function HomePage() {
         <Link href="/healthCalendar">
           <button>Calendar</button>
         </Link>
-      </div>      
+      </div>
       <GenerateWorkout />
+      <GenerateMealPlan /> {/* Add this button for meal plans */}
     </main>
   );
 }

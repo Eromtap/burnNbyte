@@ -75,7 +75,8 @@ export async function POST(req) {
     const prompt = {
       role: "user",
       content:
-        `Create a workout plan for each day specified in workoutDays in the date range given:
+        `Create a workout plan for each day specified in workoutDays in the date range given. 
+        include a number of exercises that will fit in the alloted workout duration:
       - gender: "${gender}"
       - heightFt: "${heightFt}" feet
       - heightIn: "${heightIn}" inches
