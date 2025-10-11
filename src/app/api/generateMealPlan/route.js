@@ -207,12 +207,14 @@ Output shape:
 
     const userId = session.user.id;
 
-    // Save exactly like workouts: upsert per date, then replace meals
-    const saved = await prisma.$transaction(
-      ai.mealPlans.map(async (p) => {
-        const plan = await prisma.mealPlan.upsert({
+    // ✅ Interactive transaction to bundle multiple queries per day
+    const saved = await prisma.$transaction(async (tx) => {
+      const results = [];
+
+      for (const p of ai.mealPlans) {
+        const plan = await tx.mealPlan.upsert({
+          // requires @@unique([userId, date], name: "userId_date")
           where: {
-            // requires @@unique([userId, date], name: "userId_date")
             userId_date: {
               userId,
               date: normalizeDate(p.date)
@@ -232,7 +234,7 @@ Output shape:
           }
         });
 
-        await prisma.meal.deleteMany({ where: { mealPlanId: plan.id } });
+        await tx.meal.deleteMany({ where: { mealPlanId: plan.id } });
 
         const mealData = (p.meals || []).map((m) => ({
           mealPlanId: plan.id,
@@ -247,12 +249,14 @@ Output shape:
         }));
 
         if (mealData.length) {
-          await prisma.meal.createMany({ data: mealData });
+          await tx.meal.createMany({ data: mealData });
         }
 
-        return plan;
-      })
-    );
+        results.push(plan);
+      }
+
+      return results;
+    });
 
     return NextResponse.json({ ok: true, count: saved.length, dates: targetDates }, { status: 200 });
   } catch (error) {
