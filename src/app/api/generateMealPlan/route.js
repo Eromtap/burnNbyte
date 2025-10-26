@@ -207,39 +207,39 @@ Output shape:
 
     const userId = session.user.id;
 
-    // ✅ Interactive transaction to bundle multiple queries per day
+    // ✅ Interactive transaction without compound upsert (for older Prisma clients)
     const saved = await prisma.$transaction(async (tx) => {
       const results = [];
-
       for (const p of ai.mealPlans) {
-        const plan = await tx.mealPlan.upsert({
-          // requires @@unique([userId, date], name: "userId_date")
-          where: {
-            userId_date: {
-              userId,
-              date: normalizeDate(p.date)
+        const date = normalizeDate(p.date);
+        const existing = await tx.mealPlan.findFirst({ where: { userId, date } });
+        let plan;
+        if (existing) {
+          plan = await tx.mealPlan.update({
+            where: { id: existing.id },
+            data: {
+              title: p.title || `Meal Plan ${p.date}`,
+              description: p.description || "",
+              totalCalories: Number(p.totalCalories) || null
             }
-          },
-          update: {
-            title: p.title || `Meal Plan ${p.date}`,
-            description: p.description || "",
-            totalCalories: Number(p.totalCalories) || null
-          },
-          create: {
-            userId,
-            date: normalizeDate(p.date),
-            title: p.title || `Meal Plan ${p.date}`,
-            description: p.description || "",
-            totalCalories: Number(p.totalCalories) || null
-          }
-        });
-
-        await tx.meal.deleteMany({ where: { mealPlanId: plan.id } });
+          });
+          await tx.meal.deleteMany({ where: { mealPlanId: existing.id } });
+        } else {
+          plan = await tx.mealPlan.create({
+            data: {
+              userId,
+              date,
+              title: p.title || `Meal Plan ${p.date}`,
+              description: p.description || "",
+              totalCalories: Number(p.totalCalories) || null
+            }
+          });
+        }
 
         const mealData = (p.meals || []).map((m) => ({
           mealPlanId: plan.id,
           name: m.name,
-          type: m.type, // "breakfast" | "lunch" | "dinner" | "snack"
+          type: m.type,
           calories: Number(m.calories) || null,
           protein: Number(m.protein) || null,
           carbs: Number(m.carbs) || null,
@@ -251,10 +251,8 @@ Output shape:
         if (mealData.length) {
           await tx.meal.createMany({ data: mealData });
         }
-
         results.push(plan);
       }
-
       return results;
     });
 

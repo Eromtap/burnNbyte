@@ -32,30 +32,29 @@ export default function GenerateMealPlan() {
           mealsPerDay: prefs.mealsPerDay || 3,
           dietaryPreferences: prefs.dietaryPreferences || [],
           allergies: prefs.allergies || [],
-          // EITHER pass a date range:
           startDate: todayISO,
           endDate: sevenDaysOutISO
-          // OR just pass numDays: 7
         }),
       });
       const data = await res.json();
       setResult(data);
     } catch (e) {
-      setResult({ error: 'Failed to generate meal plan.', err: String(e) });
+      setResult({ error: 'Failed to generate meal plan.' });
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div>
-      <button onClick={handleClick} disabled={loading}>
+    <div className="stack">
+      <button className="btn btn-primary" onClick={handleClick} disabled={loading}>
         {loading ? 'Generating…' : 'Create Meal Plans (Daily)'}
       </button>
-      {result && (
-        <pre style={{ marginTop: '1rem', background: '#111', color: '#0f0', padding: '1rem' }}>
-          {JSON.stringify(result, null, 2)}
-        </pre>
+      {result?.ok && (
+        <div className="list-row"><span>Created meal plans</span><span className="muted">{result.count} day(s)</span></div>
+      )}
+      {result?.error && (
+        <div className="list-row"><span>Error</span><span className="muted">{String(result.error)}</span></div>
       )}
     </div>
   );

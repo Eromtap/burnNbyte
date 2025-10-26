@@ -46,7 +46,7 @@ export default function Step1({ formData, updateForm }) {
       />
       </label>
       {formData.birthday && (
-        <p className="text-sm text-gray-600"> Age: {age}</p>
+        <p className="text-sm muted"> Age: {age}</p>
       )}
 
       <select
