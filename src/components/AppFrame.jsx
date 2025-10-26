@@ -48,6 +48,8 @@ export default function AppFrame({ children }){
             <Link className={`drawer-link ${isActive('/healthCalendar') ? 'active' : ''}`} href="/healthCalendar" onClick={() => setDrawerOpen(false)}>Calendar</Link>
             <Link className={`drawer-link ${isActive('/workouts') ? 'active' : ''}`} href="/workouts" onClick={() => setDrawerOpen(false)}>Workouts</Link>
             <Link className={`drawer-link ${isActive('/meals') ? 'active' : ''}`} href="/meals" onClick={() => setDrawerOpen(false)}>Meals</Link>
+            <Link className={`drawer-link ${isActive('/pantry') ? 'active' : ''}`} href="/pantry" onClick={() => setDrawerOpen(false)}>Pantry</Link>
+            <Link className={`drawer-link ${isActive('/groceries') ? 'active' : ''}`} href="/groceries" onClick={() => setDrawerOpen(false)}>Groceries</Link>
             <Link className={`drawer-link ${isActive('/profile') ? 'active' : ''}`} href="/profile" onClick={() => setDrawerOpen(false)}>Profile</Link>
           </nav>
         </aside>

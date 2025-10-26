@@ -2,7 +2,6 @@ import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import GenerateWorkout from "@/components/GenerateWorkout";
-import Link from "next/link";
 import DateStrip from "@/components/DateStrip";
 
 function toYMDLocal(d){
@@ -31,11 +30,7 @@ export default async function WorkoutsPage({ searchParams }){
 
   const workout = await prisma.workout.findFirst({ where: { userId: session.user.id, date: baseUtc } });
 
-  const upcoming = await prisma.workout.findMany({
-    where: { userId: session.user.id, date: { gte: new Date() } },
-    orderBy: { date: 'asc' },
-    take: 14
-  });
+  // Removed Upcoming section
 
   return (
     <main>
@@ -74,22 +69,7 @@ export default async function WorkoutsPage({ searchParams }){
           )}
         </article>
 
-        <article className="card">
-          <header className="card-head">
-            <h3>Upcoming</h3>
-            <div className="sub">Next 14 saved workouts</div>
-          </header>
-          <ul className="list">
-            {upcoming.map(w => (
-              <li key={w.id} className="list-row">
-                <Link href={`/workouts?date=${toYMDLocal(new Date(w.date))}`} className="pill">{new Date(w.date).toDateString()}</Link>
-                <span>{w.name}</span>
-                <span className="muted">{w.duration} min</span>
-              </li>
-            ))}
-            {!upcoming.length && <li className="list-row"><span className="muted">No workouts saved yet.</span></li>}
-          </ul>
-        </article>
+        
       </div>
     </main>
   );

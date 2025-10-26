@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import MiniCalendar from "@/components/MiniCalendar";
 
 // Server component renders dashboard content; AppFrame wraps it globally
 
@@ -110,7 +111,15 @@ export default async function HomePage() {
           <header className="card-head">
             <h3>Calendar</h3>
           </header>
-          <Link href="/healthCalendar"><button className="btn btn-outline">Open Calendar</button></Link>
+          <div className="stack">
+            <MiniCalendar
+              dataSources={[
+                { url: '/api/workouts', type: 'workout' },
+                { url: '/api/mealPlans', type: 'mealPlan' },
+              ]}
+            />
+            <Link href="/healthCalendar"><button className="btn btn-outline">Open Calendar</button></Link>
+          </div>
         </article>
       </div>
     </main>
