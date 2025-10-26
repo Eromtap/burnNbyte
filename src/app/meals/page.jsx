@@ -28,12 +28,6 @@ export default async function MealsPage({ searchParams }){
 
   const mealPlan = await prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } });
 
-  const upcoming = await prisma.mealPlan.findMany({
-    where: { userId: session.user.id, date: { gte: new Date() } },
-    orderBy: { date: 'asc' },
-    take: 14
-  });
-
   const grouped = (mealPlan?.meals || []).reduce((acc,m)=>{
     const t = (m.type||'').toLowerCase();
     acc[t] = acc[t] || [];
@@ -51,6 +45,9 @@ export default async function MealsPage({ searchParams }){
             <div className="sub">Creates plans and saves to calendar</div>
           </header>
           <GenerateMealPlan />
+          <div className="list-row" style={{marginTop:8}}>
+            <a className="pill" href="/pantry" style={{marginLeft:8}}>Use Pantry Photo</a>
+          </div>
         </article>
 
         <article className="card">
@@ -97,21 +94,7 @@ export default async function MealsPage({ searchParams }){
           )}
         </article>
 
-        <article className="card">
-          <header className="card-head">
-            <h3>Upcoming</h3>
-            <div className="sub">Next 14 saved meal plans</div>
-          </header>
-          <ul className="list">
-            {upcoming.map(p => (
-              <li key={p.id} className="list-row">
-                <Link href={`/meals?date=${toYMDLocal(new Date(p.date))}`} className="pill">{new Date(p.date).toDateString()}</Link>
-                <span className="muted">{p.title || 'Meal Plan'}</span>
-              </li>
-            ))}
-            {!upcoming.length && <li className="list-row"><span className="muted">No meal plans saved yet.</span></li>}
-          </ul>
-        </article>
+        
       </div>
     </main>
   );

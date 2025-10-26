@@ -2,7 +2,7 @@
 import { SessionProvider } from "next-auth/react";
 import { OnboardingProvider } from "@/lib/formState";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import AppFrame from "@/components/AppFrame";
+import AppFrame from "./AppFrame";
 import { usePathname } from "next/navigation";
 
 export default function ClientLayout({ children, session }) {

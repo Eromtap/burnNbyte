@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 
 export default function GenerateMealPlan() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -20,6 +20,10 @@ export default function GenerateMealPlan() {
     setLoading(true);
     setResult(null);
     try {
+      // Refresh session to ensure latest preferences (e.g., updated allergies)
+      let fresh = null;
+      try { fresh = await update(); } catch {}
+      const prefs = fresh?.user?.preferences || session?.user?.preferences || {};
       const res = await fetch('/api/generateMealPlan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
