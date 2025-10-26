@@ -120,6 +120,13 @@ export async function POST(req) {
       numDays            // number of consecutive days starting today
     } = body;
 
+    // Normalize preferences that may arrive as comma-separated strings
+    const normArray = (v) => Array.isArray(v)
+      ? v
+      : (typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : []);
+    const prefsDiet = normArray(dietaryPreferences);
+    const prefsAllergies = normArray(allergies);
+
     if (!fitnessGoal) {
       return NextResponse.json({ error: "Missing required field: fitnessGoal" }, { status: 400 });
     }
@@ -142,12 +149,12 @@ User:
 - weight: ${JSON.stringify(weight ?? null)}
 - fitnessGoal: ${JSON.stringify(fitnessGoal)}
 - mealsPerDay: ${mealsPerDay}
-- dietaryPreferences (soft): ${JSON.stringify(dietaryPreferences)}
-- allergies/exclusions (HARD AVOID): ${JSON.stringify(allergies)}
+- dietaryPreferences (soft): ${JSON.stringify(prefsDiet)}
+- allergies/exclusions (HARD AVOID): ${JSON.stringify(prefsAllergies)}
 
 Rules:
 - For EVERY listed date, return EXACTLY ${mealsPerDay} meals.
-- Absolutely avoid any allergens.
+- Absolutely avoid any allergens. NEVER include any of: ${prefsAllergies.join(', ')}.
 - Prefer dietaryPreferences without violating allergies.
 - Keep each recipe clear and practical in a single "recipe" string.
 - Dates MUST match the provided list and use ISO yyyy-mm-dd.

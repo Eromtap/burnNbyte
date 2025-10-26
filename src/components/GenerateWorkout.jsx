@@ -1,17 +1,43 @@
 'use client';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function GenerateWorkout() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const userPrefs = session?.user?.preferences || {};
+
+  function toYMDLocal(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function parseLocalYMD(ymd){
+    const [y,m,d] = String(ymd||'').split('-').map(Number);
+    return new Date(y, (m||1)-1, d||1);
+  }
+
+  function dowCode(date){
+    const CODES = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    return CODES[date.getDay()];
+  }
 
   async function handleClick() {
     setLoading(true);
     setResult(null);
     try {
+      // Determine selected date from URL (defaults to today)
+      const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
+      const selectedISO = searchParams.get('date') || toYMDLocal(todayLocal);
+      const selectedDate = parseLocalYMD(selectedISO);
+      const selectedDow = dowCode(selectedDate);
+
       const res = await fetch('/api/generateWorkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,11 +50,20 @@ export default function GenerateWorkout() {
           fitnessLevel: userPrefs.fitnessLevel || 'beginner',
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
-          workoutDays: userPrefs.workoutDays,
+          // Generate ONLY for the selected date
+          workoutDays: [selectedDow],
+          dateRange: `${selectedISO} - ${selectedISO}`,
         }),
       });
       const data = await res.json();
-      setResult(Array.isArray(data) ? data : (data?.workouts || null));
+      // Refresh page data so the server-rendered Workout card shows the selected day
+      try { router.refresh(); } catch {}
+      // Show only the selected day's workout in the inline preview, if provided
+      const list = Array.isArray(data) ? data : (data?.workouts || []);
+      const filtered = list.filter(w => {
+        try { return toYMDLocal(new Date(w.date)) === selectedISO; } catch { return false; }
+      });
+      setResult(filtered);
     } catch (err) {
       setResult({ error: 'Failed to generate workout.' });
     } finally {
