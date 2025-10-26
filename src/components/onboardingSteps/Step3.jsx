@@ -6,10 +6,10 @@ export default function Step3({ formData, updateForm }) {
 
   return (
     <StepLayout stepNumber={3} totalSteps={3} title="Nutrition & Focus Areas">
-      <label className="block mb-2">Dietary Preferences:</label>
+      <label className="block mb-2 planner-head">Dietary Preferences:</label>
       <div className="flex flex-col gap-2 mb-6">
         {dietaryOptions.map((opt) => (
-          <label key={opt} className="block">
+          <label key={opt} className="block" style={{ color: 'var(--text)' }}>
             <input
               type="checkbox"
               checked={formData.dietaryPreferences.includes(opt)}
@@ -24,7 +24,7 @@ export default function Step3({ formData, updateForm }) {
           </label>
         ))}
       </div>
-      <label className="block">
+      <label className="block planner-head">
       Allergies:
       <input
         type="text"
@@ -34,7 +34,7 @@ export default function Step3({ formData, updateForm }) {
         onChange={(e) => updateForm({ allergies: e.target.value })}
       />
       </label>
-      <label className="block">
+      <label className="block planner-head">
         Meals Per Day:
         <input
           type="number"

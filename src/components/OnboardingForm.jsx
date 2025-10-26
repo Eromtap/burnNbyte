@@ -91,23 +91,23 @@ export default function OnboardingForm() {
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded-lg">
+    <div className="max-w-xl mx-auto mt-10 card">
       {StepComponent ? (
         <StepComponent formData={formData} updateForm={updateForm} />
       ) : (
-        <p>Loading…</p>
+        <p className="muted">Loading…</p>
       )}
       <div className="flex justify-between mt-8">
         <button
           onClick={prev}
-          className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded"
+          className="btn btn-secondary"
           disabled={Number(step) === 1}
         >
           Back
         </button>
         <button
           onClick={next}
-          className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded"
+          className="btn btn-primary"
         >
           {Number(step) === 3 ? 'Finish' : 'Next'}
         </button>

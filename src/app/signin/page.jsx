@@ -49,18 +49,24 @@ export default function SignInPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>Email</label>
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+    <main>
+      <div className="stack" style={{ maxWidth: 420, margin: '40px auto' }}>
+        <h1 className="brand" style={{ justifyContent: 'center', fontSize: 24 }}><span className="logo-dot"/> burnNbyte</h1>
+        <form onSubmit={handleSubmit} className="card form">
+          <label>
+            <span>Email</span>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          </label>
 
-      <label>Password</label>
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          <label>
+            <span>Password</span>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          </label>
 
-      <button type="submit">Sign In</button>
-      
-      <p>
-        Don't have an account? <Link href="/signup">Sign Up</Link>
-      </p>
-    </form>
+          <button type="submit" className="btn btn-primary">Sign In</button>
+          <div className="muted">Don't have an account? <Link href="/signup">Sign Up</Link></div>
+        </form>
+      </div>
+    </main>
   );
 }
