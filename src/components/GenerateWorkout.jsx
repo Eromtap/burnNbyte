@@ -2,19 +2,15 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 
-
-export default function GenerateWorkout(periodStart, periodEnd) {
-  const { data: session, status } = useSession();
+export default function GenerateWorkout() {
+  const { data: session } = useSession();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const userPrefs = session.user.preferences;
+  const userPrefs = session?.user?.preferences || {};
 
   async function handleClick() {
     setLoading(true);
     setResult(null);
-
-    console.log("userId:", session?.user?.id); // safe log
     try {
       const res = await fetch('/api/generateWorkout', {
         method: 'POST',
@@ -25,40 +21,51 @@ export default function GenerateWorkout(periodStart, periodEnd) {
           heightIn: userPrefs.heightIn,
           weight: userPrefs.weight,
           fitnessGoal: userPrefs.fitnessGoal,
-          fitnessLevel: 'begginer',
+          fitnessLevel: userPrefs.fitnessLevel || 'beginner',
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
-          workoutFrequency: userPrefs.workoutFrequency,
           workoutDays: userPrefs.workoutDays,
         }),
       });
-
       const data = await res.json();
-      setResult(data);
+      setResult(Array.isArray(data) ? data : (data?.workouts || null));
     } catch (err) {
-      setResult({ error: 'Failed to fetch workout.', err: String(err) });
+      setResult({ error: 'Failed to generate workout.' });
     } finally {
       setLoading(false);
     }
   }
-  
+
   return (
-    <div>
-      <button onClick={handleClick} disabled={loading}>
-        {loading ? 'Loading...' : 'Create Workout Plan'}
+    <div className="stack">
+      <button className="btn btn-primary" onClick={handleClick} disabled={loading}>
+        {loading ? 'Generating…' : 'Create Workout Plan'}
       </button>
 
-      {result && (
-        <>
-          <pre style={{ marginTop: '1rem', background: '#111', color: '#0f0', padding: '1rem' }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </>
+      {Array.isArray(result) && result.length > 0 && (
+        <div className="stack">
+          {result.map((w) => (
+            <article className="card" key={w.id || `${w.name}-${w.date}`}>
+              <header className="card-head">
+                <h3>{w.name || 'Workout'}</h3>
+                <div className="sub">{w.date ? new Date(w.date).toDateString() : ''}</div>
+              </header>
+              <div className="stack">
+                <div className="list-row"><span>Duration</span><span className="muted">{w.duration} min</span></div>
+                {w.muscleGroup && <div className="list-row"><span>Muscle</span><span className="muted">{w.muscleGroup}</span></div>}
+                {Array.isArray(w.instructions) && w.instructions.length > 0 && (
+                  <div>
+                    <div className="planner-head">Instructions</div>
+                    <ul className="list" style={{ marginTop: 8 }}>
+                      {w.instructions.map((s, i) => (<li key={i} className="list-row"><span>{s}</span></li>))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
       )}
     </div>
   );
 }
-
-// TODO: get rid of hardcoded fitness level. Needs added to DB.
-
-// TODO: pull in all preferences relative to workouts

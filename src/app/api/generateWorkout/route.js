@@ -136,40 +136,31 @@ export async function POST(req) {
       return date;
     };
 
-    const created = await prisma.$transaction(
-      ai.workouts.map((w) =>
-        prisma.workout.upsert({
-          where: {
-            userId_date: {
-              userId: session.user.id,
-              date: normalizedDate(w.date),
-            },
-          },
-          update: {
-            name: w.name || "Untitled Workout",
-            description: w.description || "",
-            difficulty: String(w.difficulty || "beginner").toLowerCase(),
-            duration: Number(w.duration) || 60,
-            isCompleted: false,
-            equipment: Array.isArray(w.equipment) ? w.equipment : [],
-            instructions: Array.isArray(w.instructions) ? w.instructions : [],
-            muscleGroup: w.muscleGroup || null,
-          },
-          create: {
-            userId: session.user.id,
-            date: normalizedDate(w.date),
-            name: w.name || "Untitled Workout",
-            description: w.description || "",
-            difficulty: String(w.difficulty || "beginner").toLowerCase(),
-            duration: Number(w.duration) || 60,
-            isCompleted: false,
-            equipment: Array.isArray(w.equipment) ? w.equipment : [],
-            instructions: Array.isArray(w.instructions) ? w.instructions : [],
-            muscleGroup: w.muscleGroup || null,
-          },
-        })
-      )
-    );
+    const created = await prisma.$transaction(async (tx) => {
+      const out = [];
+      for (const w of ai.workouts) {
+        const date = normalizedDate(w.date);
+        const existing = await tx.workout.findFirst({ where: { userId: session.user.id, date } });
+        let rec;
+        const dataCommon = {
+          name: w.name || "Untitled Workout",
+          description: w.description || "",
+          difficulty: String(w.difficulty || "beginner").toLowerCase(),
+          duration: Number(w.duration) || 60,
+          isCompleted: false,
+          equipment: Array.isArray(w.equipment) ? w.equipment : [],
+          instructions: Array.isArray(w.instructions) ? w.instructions : [],
+          muscleGroup: w.muscleGroup || null,
+        };
+        if (existing) {
+          rec = await tx.workout.update({ where: { id: existing.id }, data: dataCommon });
+        } else {
+          rec = await tx.workout.create({ data: { userId: session.user.id, date, ...dataCommon } });
+        }
+        out.push(rec);
+      }
+      return out;
+    });
 
     return NextResponse.json(created, { status: 200 });
   } catch (error) {

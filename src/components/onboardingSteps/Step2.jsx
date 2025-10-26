@@ -71,8 +71,8 @@ export default function Step2({ formData, updateForm }) {
 
       {/* New: Day-of-week picker */}
       <div className="mt-3">
-        <label className="block mb-1 font-medium">Workout Days</label>
-        <div className="grid grid-cols-7 gap-2">
+        <label className="planner-head" style={{ display: 'block', marginBottom: 4 }}>Workout Days</label>
+        <div className="days-grid">
           {ALL_DAYS.map((d) => {
             const active = workoutDays.includes(d);
             return (
@@ -80,8 +80,7 @@ export default function Step2({ formData, updateForm }) {
                 key={d}
                 type="button"
                 onClick={() => toggleDay(d)}
-                className={`rounded-md border px-2 py-2 text-sm
-                  ${active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300'}`}
+                className={`btn-chip ${active ? 'btn-chip-active' : ''}`}
                 aria-pressed={active}
               >
                 {DAY_LABEL[d]}
@@ -89,7 +88,7 @@ export default function Step2({ formData, updateForm }) {
             );
           })}
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs muted" style={{ marginTop: 6 }}>
           Selected: {workoutDays.length ? workoutDays.map(d => DAY_LABEL[d]).join(', ') : 'None'}
         </p>
       </div>

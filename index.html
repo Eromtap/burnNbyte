@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en" data-theme="tech-red">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>burnNbyte — Diet & Fitness</title>
+    <meta name="description" content="Track meals, workouts, and progress with a clean, tech-inspired design." />
+    <link rel="preconnect" href="" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <div class="header-main">
+          <h1 class="brand">
+            <span class="logo-dot"></span>
+            burnNbyte
+          </h1>
+          <div class="header-actions">
+            <button class="btn btn-ghost" id="themeToggle" aria-label="Toggle theme">
+              <span class="icon" aria-hidden>
+                <!-- Theme icon -->
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                  <path d="M12 3a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm7.071 2.929a1 1 0 0 1 0 1.414l-.707.707a1 1 0 0 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0ZM21 11a1 1 0 1 1 0 2h-1a1 1 0 1 1 0-2h1ZM5.05 5.636a1 1 0 0 1 1.414 0l.707.707A1 1 0 1 1 5.757 7.757l-.707-.707a1 1 0 0 1 0-1.414ZM4 11a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2h1Zm2.05 6.364a1 1 0 0 1 1.414 0l.707.707A1 1 0 1 1 6.757 20.5l-.707-.707a1 1 0 0 1 0-1.414ZM12 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1Zm7.071-2.071a1 1 0 0 1-1.414 1.414l-.707-.707A1 1 0 1 1 18.95 14.5l.707.707a1 1 0 0 1 0 1.414Z"/>
+                </svg>
+              </span>
+              <span class="label">Theme</span>
+            </button>
+            <button class="btn btn-ghost" id="settingsBtn" aria-label="Settings">
+              <span class="icon" aria-hidden>
+                <!-- Gear icon -->
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                  <path d="M19.14 12.936a7.966 7.966 0 0 0 .06-.936 7.966 7.966 0 0 0-.06-.936l2.037-1.58a.5.5 0 0 0 .12-.64l-1.93-3.34a.5.5 0 0 0-.6-.22l-2.4.96a7.952 7.952 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.86a.5.5 0 0 0-.5.42l-.36 2.54a7.952 7.952 0 0 0-1.62.94l-2.4-.96a.5.5 0 0 0-.6.22l-1.93 3.34a.5.5 0 0 0 .12.64l2.04 1.58c-.04.308-.06.62-.06.936s.02.628.06.936l-2.04 1.58a.5.5 0 0 0-.12.64l1.93 3.34a.5.5 0 0 0 .6.22l2.4-.96c.498.39 1.05.71 1.62.94l.36 2.54a.5.5 0 0 0 .5.42h3.86a.5.5 0 0 0 .5-.42l.36-2.54c.57-.23 1.122-.55 1.62-.94l2.4.96a.5.5 0 0 0 .6-.22l1.93-3.34a.5.5 0 0 0-.12-.64l-2.037-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
+                </svg>
+              </span>
+              <span class="label">Settings</span>
+            </button>
+          </div>
+        </div>
+        <div class="header-sub">
+          <div class="chip chip-success">On track</div>
+          <div class="chip">Goal: Recomp</div>
+          <div class="chip">Week 12</div>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <!-- Dashboard -->
+        <section class="page page-active" data-page="dashboard" aria-labelledby="dashTitle">
+          <h2 id="dashTitle" class="sr-only">Dashboard</h2>
+          <div class="grid">
+            <article class="card span-2">
+              <header class="card-head">
+                <h3>Today</h3>
+                <div class="sub">Mon • 8 Apr</div>
+              </header>
+              <div class="stats">
+                <div class="stat">
+                  <div class="stat-label">Calories</div>
+                  <div class="stat-value">1,420<span class="unit">/ 2,200</span></div>
+                  <div class="progress"><span style="width: 64%"></span></div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Protein</div>
+                  <div class="stat-value">92<span class="unit">g</span></div>
+                  <div class="progress"><span style="width: 48%"></span></div>
+                </div>
+                <div class="stat">
+                  <div class="stat-label">Water</div>
+                  <div class="stat-value">1.8<span class="unit">L</span></div>
+                  <div class="progress"><span style="width: 60%"></span></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="card">
+              <header class="card-head">
+                <h3>Meals</h3>
+                <div class="sub">Logged</div>
+              </header>
+              <ul class="list">
+                <li class="list-row">
+                  <span class="pill">08:10</span>
+                  <span>Overnight oats</span>
+                  <span class="muted">312 kcal</span>
+                </li>
+                <li class="list-row">
+                  <span class="pill">12:40</span>
+                  <span>Chicken salad</span>
+                  <span class="muted">510 kcal</span>
+                </li>
+                <li class="list-row">
+                  <span class="pill">16:30</span>
+                  <span>Greek yogurt</span>
+                  <span class="muted">180 kcal</span>
+                </li>
+              </ul>
+            </article>
+
+            <article class="card">
+              <header class="card-head">
+                <h3>Workout</h3>
+                <div class="sub">Upper body</div>
+              </header>
+              <ul class="list">
+                <li class="list-row">
+                  <span>Bench press</span>
+                  <span class="muted">5x5</span>
+                </li>
+                <li class="list-row">
+                  <span>Rows</span>
+                  <span class="muted">4x8</span>
+                </li>
+                <li class="list-row">
+                  <span>Face pulls</span>
+                  <span class="muted">3x15</span>
+                </li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Log -->
+        <section class="page" data-page="log" aria-labelledby="logTitle">
+          <h2 id="logTitle" class="sr-only">Log</h2>
+          <div class="stack">
+            <article class="card">
+              <header class="card-head">
+                <h3>Add Quick Entry</h3>
+                <div class="sub">Meal • Water • Workout</div>
+              </header>
+              <div class="quick-actions">
+                <button class="btn btn-primary" data-open="addModal">Add Meal</button>
+                <button class="btn btn-outline">Add Water</button>
+                <button class="btn btn-outline">Add Workout</button>
+              </div>
+            </article>
+
+            <article class="card">
+              <header class="card-head">
+                <h3>Recent</h3>
+                <div class="sub">Today</div>
+              </header>
+              <ul class="list">
+                <li class="list-row">
+                  <span class="pill">Meal</span>
+                  <span>Turkey wrap</span>
+                  <span class="muted">430 kcal</span>
+                </li>
+                <li class="list-row">
+                  <span class="pill">Water</span>
+                  <span>250 ml</span>
+                  <span class="muted">+</span>
+                </li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- Meals -->
+        <section class="page" data-page="meals" aria-labelledby="mealsTitle">
+          <h2 id="mealsTitle" class="sr-only">Meals</h2>
+          <div class="stack">
+            <article class="card">
+              <header class="card-head">
+                <h3>Planner</h3>
+                <div class="sub">Macros and suggestions</div>
+              </header>
+              <div class="planner">
+                <div class="planner-col">
+                  <div class="planner-head">Breakfast</div>
+                  <button class="btn btn-ghost">+ Add</button>
+                </div>
+                <div class="planner-col">
+                  <div class="planner-head">Lunch</div>
+                  <button class="btn btn-ghost">+ Add</button>
+                </div>
+                <div class="planner-col">
+                  <div class="planner-head">Dinner</div>
+                  <button class="btn btn-ghost">+ Add</button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Profile -->
+        <section class="page" data-page="profile" aria-labelledby="profileTitle">
+          <h2 id="profileTitle" class="sr-only">Profile</h2>
+          <div class="stack">
+            <article class="card">
+              <header class="card-head">
+                <h3>User</h3>
+                <div class="sub">Goals & Settings</div>
+              </header>
+              <div class="form">
+                <label>
+                  <span>Daily Calorie Goal</span>
+                  <input type="number" placeholder="2200" inputmode="numeric" />
+                </label>
+                <label>
+                  <span>Protein Target (g)</span>
+                  <input type="number" placeholder="160" inputmode="numeric" />
+                </label>
+                <label>
+                  <span>Units</span>
+                  <select>
+                    <option>Metric</option>
+                    <option>Imperial</option>
+                  </select>
+                </label>
+                <button class="btn btn-primary">Save</button>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <button class="fab" data-open="addModal" aria-label="Add entry">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden>
+          <path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V6a1 1 0 0 1 1-1Z"/>
+        </svg>
+      </button>
+
+      <nav class="tabbar" aria-label="Primary">
+        <button class="tab tab-active" data-go="dashboard">
+          <span class="icon" aria-hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M11 4a1 1 0 0 1 2 0v7a1 1 0 0 1-2 0V4Zm6.657 2.343a1 1 0 1 1 1.414 1.414l-4.95 4.95a1 1 0 0 1-1.414-1.414l4.95-4.95ZM4 11a1 1 0 0 1 1-1h7a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm6.343 4.95a1 1 0 0 1 1.414 0l4.95 4.95a1 1 0 0 1-1.414 1.414l-4.95-4.95a1 1 0 0 1 0-1.414Z"/></svg>
+          </span>
+          <span class="label">Dashboard</span>
+        </button>
+        <button class="tab" data-go="log">
+          <span class="icon" aria-hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M6 4a2 2 0 0 0-2 2v11.5A2.5 2.5 0 0 0 6.5 20H18a2 2 0 0 0 2-2V8.828a2 2 0 0 0-.586-1.414l-3.828-3.828A2 2 0 0 0 14.172 3H6Zm8 1.828a1 1 0 0 1 1.707-.707l3.172 3.172a1 1 0 0 1 .293.707V18a1 1 0 0 1-1 1H6.5a1.5 1.5 0 0 1-1.5-1.5V6a1 1 0 0 1 1-1h8Z"/></svg>
+          </span>
+          <span class="label">Log</span>
+        </button>
+        <button class="tab" data-go="meals">
+          <span class="icon" aria-hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M6 3a1 1 0 0 0-1 1v8a2 2 0 1 0 4 0V4a1 1 0 0 0-2 0v3H7V4a1 1 0 0 0-1-1Zm7 1a1 1 0 0 0-1 1v8a4 4 0 1 0 8 0V5a1 1 0 1 0-2 0v4h-1V5a1 1 0 1 0-2 0v4h-1V5a1 1 0 0 0-1-1Z"/></svg>
+          </span>
+          <span class="label">Meals</span>
+        </button>
+        <button class="tab" data-go="profile">
+          <span class="icon" aria-hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-7 8a7 7 0 0 1 14 0 1 1 0 0 1-1 1H6a1 1 0 0 1-1-1Z"/></svg>
+          </span>
+          <span class="label">Profile</span>
+        </button>
+      </nav>
+
+      <!-- Add Modal -->
+      <div class="modal" id="addModal" role="dialog" aria-modal="true" aria-labelledby="addModalTitle" aria-hidden="true">
+        <div class="modal-backdrop" data-close></div>
+        <div class="modal-dialog">
+          <header class="modal-head">
+            <h3 id="addModalTitle">Add Entry</h3>
+            <button class="btn btn-ghost" data-close aria-label="Close">✕</button>
+          </header>
+          <div class="modal-body">
+            <div class="quick-actions">
+              <button class="btn btn-primary">Meal</button>
+              <button class="btn btn-outline">Water</button>
+              <button class="btn btn-outline">Workout</button>
+            </div>
+            <label class="sr-only" for="quickNote">Note</label>
+            <input id="quickNote" class="input" placeholder="Optional note" />
+          </div>
+          <footer class="modal-foot">
+            <button class="btn btn-secondary" data-close>Cancel</button>
+            <button class="btn btn-primary">Save</button>
+          </footer>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/app.js"></script>
+  </body>
+  </html>
+

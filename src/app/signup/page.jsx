@@ -27,18 +27,28 @@ export default function SignUpPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <main>
+      <div className="stack" style={{ maxWidth: 420, margin: '40px auto' }}>
+        <h1 className="brand" style={{ justifyContent: 'center', fontSize: 24 }}><span className="logo-dot"/> burnNbyte</h1>
+        <form onSubmit={handleSubmit} className="card form">
+          <label>
+            <span>Name</span>
+            <input type="name" value={name} onChange={e => setName(e.target.value)} required />
+          </label>
+          
+          <label>
+            <span>Email</span>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          </label>
 
-      <label>Name</label>
-      <input type="name" value={name} onChange={e => setName(e.target.value)} required />
-      
-      <label>Email</label>
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <label>
+            <span>Password</span>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          </label>
 
-      <label>Password</label>
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-
-      <button type="submit">Sign Up</button>
-    </form>
+          <button type="submit" className="btn btn-primary">Sign Up</button>
+        </form>
+      </div>
+    </main>
   );
 }

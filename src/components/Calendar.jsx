@@ -90,18 +90,17 @@ const Calendar = ({ calendarTitle, dataSources }) => {
   const renderEventContent = (eventInfo) => {
     const type = eventInfo.event.extendedProps.type;
     const label = type === 'workout' ? 'Workout' : 'Meal Plan';
-    const bgColor = type === 'workout' ? 'bg-blue-500' : 'bg-gray-500';
-
     return (
-      <button
-        className={`text-white text-xs px-2 py-1 rounded ${bgColor} hover:opacity-90`}
+      <span
+        className="pill"
         onClick={(e) => {
           e.preventDefault();
           handleEventClick(eventInfo);
         }}
+        style={{ cursor: 'pointer' }}
       >
         {label}
-      </button>
+      </span>
     );
   };
 
@@ -116,8 +115,8 @@ const Calendar = ({ calendarTitle, dataSources }) => {
   };
 
   return (
-    <div className="min-h-screen">
-      <h2 className="text-2xl font-bold mb-4">{calendarTitle}</h2>
+    <div>
+      <h2 className="page-title" style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>{calendarTitle}</h2>
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
@@ -127,68 +126,61 @@ const Calendar = ({ calendarTitle, dataSources }) => {
       />
 
       {selectedEvent && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-2">
-              {selectedEvent.type === 'workout' ? selectedEvent.name : 'Meal Plan'}
-            </h2>
-            <p className="text-gray-600 mb-4">{selectedEvent.date}</p>
+        <div className="modal" aria-hidden="false" role="dialog" aria-modal="true" aria-labelledby="calModalTitle">
+          <div className="modal-backdrop" onClick={() => setSelectedEvent(null)} />
+          <div className="modal-dialog">
+            <header className="modal-head">
+              <h3 id="calModalTitle">{selectedEvent.type === 'workout' ? selectedEvent.name : 'Meal Plan'}</h3>
+              <button className="btn btn-ghost" onClick={() => setSelectedEvent(null)} aria-label="Close">✕</button>
+            </header>
+            <div className="modal-body">
+              <div className="muted">{selectedEvent.date}</div>
 
-            {selectedEvent.type === 'workout' && (
-              <>
-                <p>Duration: {selectedEvent.duration} minutes</p>
-                <p>Difficulty: {selectedEvent.difficulty}</p>
-                <p>Muscle Group: {selectedEvent.muscleGroup}</p>
-                <div className="mt-2">
-                  <strong>Equipment:</strong>
-                  <ul className="ml-4 list-disc">
-                    {Array.isArray(selectedEvent.equipment) &&
-                      selectedEvent.equipment.map((line, idx) => (
-                        <li key={idx}>{line.trim()}</li>
-                      ))}
-                  </ul>
+              {selectedEvent.type === 'workout' && (
+                <div className="stack" style={{ marginTop: 8 }}>
+                  <div className="list-row"><span>Duration</span><span className="muted">{selectedEvent.duration} minutes</span></div>
+                  {selectedEvent.difficulty && (<div className="list-row"><span>Difficulty</span><span className="muted">{selectedEvent.difficulty}</span></div>)}
+                  {selectedEvent.muscleGroup && (<div className="list-row"><span>Muscle</span><span className="muted">{selectedEvent.muscleGroup}</span></div>)}
+                  {Array.isArray(selectedEvent.equipment) && selectedEvent.equipment.length > 0 && (
+                    <div>
+                      <div className="planner-head">Equipment</div>
+                      <ul className="list" style={{ marginTop: 8 }}>
+                        {selectedEvent.equipment.map((line, idx) => (<li key={idx} className="list-row"><span>{line.trim()}</span></li>))}
+                      </ul>
+                    </div>
+                  )}
+                  {Array.isArray(selectedEvent.instructions) && selectedEvent.instructions.length > 0 && (
+                    <div>
+                      <div className="planner-head">Instructions</div>
+                      <ul className="list" style={{ marginTop: 8 }}>
+                        {selectedEvent.instructions.map((line, idx) => (<li key={idx} className="list-row"><span>{line.trim()}</span></li>))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                <div className="mt-2">
-                  <strong>Instructions:</strong>
-                  <ul className="ml-4 list-disc">
-                    {Array.isArray(selectedEvent.instructions) &&
-                      selectedEvent.instructions.map((line, idx) => (
-                        <li key={idx}>{line.trim()}</li>
-                      ))}
-                  </ul>
+              )}
+
+              {selectedEvent.type === 'mealPlan' && (
+                <div className="stack" style={{ marginTop: 8 }}>
+                  {Object.entries(groupMealsByType(selectedEvent.meals)).map(([type, meals]) => (
+                    <div key={type}>
+                      <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
+                      <ul className="list" style={{ marginTop: 8 }}>
+                        {meals.map((meal) => (
+                          <li key={meal.id} className="list-row">
+                            <span>{meal.name}</span>
+                            <span className="muted">{meal.calories ?? 'N/A'} cal</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
-              </>
-            )}
-
-            {selectedEvent.type === 'mealPlan' && (
-              <div className="mt-4">
-                {Object.entries(groupMealsByType(selectedEvent.meals)).map(([type, meals]) => (
-                  <div key={type} className="mb-4">
-                    <h3 className="font-semibold text-lg mb-1 capitalize border-b border-gray-300 pb-1">{type}</h3>
-                    {meals.map((meal) => (
-                      <div key={meal.id} className="mb-2 p-2 bg-gray-50 rounded">
-                        <p className="font-medium">{meal.name} ({meal.calories ?? 'N/A'} cal)</p>
-                        {meal.ingredients.length > 0 && (
-                          <ul className="ml-4 list-disc text-gray-700">
-                            {meal.ingredients.map((ing, idx) => (
-                              <li key={idx}>{ing}</li>
-                            ))}
-                          </ul>
-                        )}
-                        {meal.recipe && <p className="mt-1 text-sm italic">Recipe: {meal.recipe}</p>}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <button
-              onClick={() => setSelectedEvent(null)}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg"
-            >
-              Close
-            </button>
+              )}
+            </div>
+            <footer className="modal-foot">
+              <button className="btn btn-secondary" onClick={() => setSelectedEvent(null)}>Close</button>
+            </footer>
           </div>
         </div>
       )}
