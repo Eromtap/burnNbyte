@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function PantryCapture() {
+  const router = useRouter();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -144,9 +146,68 @@ export default function PantryCapture() {
                       <div className="list-row"><span style={{ whiteSpace: 'pre-wrap' }}>{m.recipe}</span></div>
                     </div>
                   )}
+                  <ApplyToPlan meal={m} onApplied={() => router.refresh()} />
                 </div>
               </article>
             ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function todayISO(){ const t = new Date(); t.setHours(0,0,0,0); const y=t.getFullYear(); const m=String(t.getMonth()+1).padStart(2,'0'); const d=String(t.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
+
+function ApplyToPlan({ meal, onApplied }){
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(todayISO());
+  const [type, setType] = useState((meal?.type || 'dinner').toLowerCase());
+  const [mode, setMode] = useState('replace');
+  const [rebalance, setRebalance] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function apply(){
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch('/api/mealPlans/apply', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ date, type, mode, meal }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to apply meal');
+      if (rebalance){
+        await fetch('/api/mealPlans/replace', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [{ date, types: [] }], rebalance: true }) });
+      }
+      setOpen(false);
+      if (onApplied) onApplied();
+    } catch(e){ setError(e.message || 'Failed'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="stack" style={{ marginTop: 8 }}>
+      <button className="btn btn-primary" onClick={()=> setOpen(o=>!o)}>{open ? 'Cancel' : 'Apply to Plan'}</button>
+      {open && (
+        <div className="stack" style={{ padding: 8, border: '1px solid color-mix(in oklab, var(--elev) 60%, transparent)', borderRadius: 8 }}>
+          <div className="list-row" style={{ gap: 8, alignItems:'center', flexWrap:'wrap' }}>
+            <label className="muted">Date</label>
+            <input type="date" value={date} onChange={e=> setDate(e.target.value)} />
+            <label className="muted">Meal</label>
+            <select value={type} onChange={e=> setType(e.target.value)}>
+              {['breakfast','lunch','dinner','snack'].map(t => (<option key={t} value={t}>{t}</option>))}
+            </select>
+            <label className="muted">Mode</label>
+            <select value={mode} onChange={e=> setMode(e.target.value)}>
+              <option value="replace">Replace same type</option>
+              <option value="add">Add as extra</option>
+            </select>
+          </div>
+          <label className="muted" style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <input type="checkbox" checked={rebalance} onChange={e=> setRebalance(e.target.checked)} />
+            Rebalance other meals for this day
+          </label>
+          {error && <div className="list-row"><span className="muted">{String(error)}</span></div>}
+          <div className="list-row" style={{ justifyContent:'flex-end' }}>
+            <button className="btn btn-primary" disabled={loading} onClick={apply}>{loading ? 'Applying…' : 'Apply'}</button>
           </div>
         </div>
       )}

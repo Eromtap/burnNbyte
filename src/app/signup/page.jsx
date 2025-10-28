@@ -29,7 +29,13 @@ export default function SignUpPage() {
   return (
     <main>
       <div className="stack" style={{ maxWidth: 420, margin: '40px auto' }}>
-        <h1 className="brand" style={{ justifyContent: 'center', fontSize: 24 }}><span className="logo-dot"/> burnNbyte</h1>
+        <h1 className="brand" style={{ justifyContent: 'center' }}>
+          <img
+            src="/logo.png"
+            alt="burnNbyte logo"
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+          />
+        </h1>
         <form onSubmit={handleSubmit} className="card form">
           <label>
             <span>Name</span>
