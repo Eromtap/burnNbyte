@@ -18,6 +18,15 @@ export default async function PantryPage() {
           </header>
           <PantryCapture />
         </article>
+
+        {false && (
+          <article className="card">
+            <header className="card-head">
+              <h3>Replace Meals from Pantry</h3>
+              <div className="sub">Moved to Meals tab</div>
+            </header>
+          </article>
+        )}
       </div>
     </main>
   );

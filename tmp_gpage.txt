@@ -1,10 +1,9 @@
-import { requireAuth } from '@/lib/auth';
+﻿import { requireAuth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import GroceryOptimizer from '@/components/GroceryOptimizer';
 import RawGroceryList from '@/components/RawGroceryList';
 import DateStrip from '@/components/DateStrip';
-import StoreReadyList from '@/components/StoreReadyList';
 
 function toYMDLocal(d){
   const y = d.getFullYear();
@@ -27,7 +26,7 @@ function toUTCDateFromLocalYMD(ymd){
   const [y,m,d] = ymd.split('-').map(Number);
   return new Date(Date.UTC(y, (m||1)-1, d||1));
 }
-function addDaysUTC(d, n){ const x = new Date(d); x.setUTCDate(x.getUTCDate()+n); return x; }
+function addDaysUTC(d, n) { const x = new Date(d); x.setUTCDate(x.getUTCDate() + n); return x; }
 
 export default async function GroceriesPage({ searchParams }) {
   const session = await requireAuth();
@@ -71,28 +70,46 @@ export default async function GroceriesPage({ searchParams }) {
   }
 
   const items = Array.from(map.values()).sort((a, b) => a.item.localeCompare(b.item));
-  const displayRangeLabel = `${startOfWeek.toLocaleDateString()} - ${addDaysUTC(start, 6).toLocaleDateString()}`;
+  const rangeLabel = `${start.toISOString().slice(0, 10)} â†’ ${end.toISOString().slice(0, 10)}`;
 
   return (
     <main>
       <div className="stack">
         <DateStrip basePath="/groceries" selectedISO={selectedISO} />
-        {cached && (<StoreReadyList items={cached.items} unitSystem={cached.unitSystem} updatedAt={cached.updatedAt} />)}
+        {cached && (
+          <article className="card">
+            <header className="card-head">
+              <h3>Store-ready List</h3>
+              <div className="sub">{cached.unitSystem} â€¢ updated {new Date(cached.updatedAt).toLocaleString()}</div>
+            </header>
+            {Array.isArray(cached.items) && cached.items.length > 0 ? (
+              <ul className="list" style={{ marginTop: 8 }}>
+                {cached.items.map((it, idx) => (
+                  <li key={idx} className="list-row">
+                    <span>{it.name}</span>
+                    <span className="muted">{it.quantity} {it.unit}{it.packageSize ? ` Â· ${it.packageSize}` : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="muted">No items saved for this week.</div>
+            )}
+          </article>
+        )}
 
         <article className="card">
           <header className="card-head">
             <h3>AI Optimization</h3>
             <div className="sub">Combine items and convert to store units</div>
           </header>
-          <GroceryOptimizer selectedISO={selectedISO} />
+          <GroceryOptimizer selectedISO={selectedISO} initial={cached ? { start, end, unitSystem: cached.unitSystem, items: cached.items, note: cached.note, cached: true } : null} />
         </article>
-
         <article className="card">
           <header className="card-head">
             <h3>Raw Ingredients</h3>
             <div className="sub">Direct from meal plans</div>
           </header>
-          <RawGroceryList items={items} rangeLabel={displayRangeLabel} />
+          <RawGroceryList items={items} rangeLabel={rangeLabel} />
         </article>
       </div>
     </main>

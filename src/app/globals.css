@@ -71,9 +71,15 @@ body{background:var(--bg);}
 
 .app-header{position:sticky;top:0;z-index:900;padding:14px 16px 10px;background:linear-gradient(180deg, color-mix(in oklab, var(--bg) 40%, transparent), transparent 80%)}
 .header-main{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.brand{display:flex;align-items:center;gap:10px;font-size:20px;letter-spacing:.3px;margin:0}
+.brand{display:flex;align-items:center;gap:12px;font-size:28px;letter-spacing:.3px;margin:0}
 .brand{color:var(--text)}
 .logo-dot{inline-size:10px;block-size:10px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff, var(--accent));box-shadow:0 0 16px var(--accent)}
+/* Optional: image-based logo next to brand */
+.logo-img{inline-size:28px;block-size:28px;object-fit:contain;border-radius:4px}
+/* Larger brand logo for app header */
+.logo-brand{inline-size:48px;block-size:48px;object-fit:contain;border-radius:6px}
+/* Drawer-sized logo */
+.logo-drawer{inline-size:36px;block-size:36px;object-fit:contain;border-radius:6px}
 .header-actions{display:flex;gap:6px}
 .header-sub{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 
@@ -106,6 +112,9 @@ body{background:var(--bg);}
 .drawer-nav{display:grid;padding:8px}
 .drawer-link{padding:10px 12px;border-radius:10px;color:var(--text);text-decoration:none}
 .drawer-link.active, .drawer-link:hover{background:color-mix(in oklab, var(--elev) 85%, transparent)}
+
+/* Drawer footer (logout area) */
+.drawer-foot{margin-top:auto;padding:8px;border-top:1px solid color-mix(in oklab, var(--elev) 60%, transparent);background:color-mix(in oklab, var(--surface) 95%, transparent)}
 
 /* Small chip buttons (for day selectors, etc.) */
 .btn-chip{display:inline-flex;align-items:center;justify-content:center;padding:4px 8px;border-radius:999px;border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);background:color-mix(in oklab, var(--surface) 85%, transparent);color:var(--text);font-size:12px;min-width:34px}
