@@ -1,5 +1,5 @@
-// app/page.jsx (server component)
-import { getServerSession } from "next-auth/next"; // ✅ correct import
+﻿// app/page.jsx (server component)
+import { getServerSession } from "next-auth/next"; // correct import
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -8,35 +8,51 @@ import MiniCalendar from "@/components/MiniCalendar";
 
 // Server component renders dashboard content; AppFrame wraps it globally
 
+function toYMDLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function toUTCDateFromLocalYMD(ymd) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
 export default async function HomePage() {
-  const session = await getServerSession(authOptions); // now defined
+  const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
 
   const profile = await prisma.userProfile.findUnique({
     where: { userId: String(session.user.id) },
   });
-
   if (!profile) redirect("/onboarding/1");
 
-  const today = new Date();
-  today.setUTCHours(0,0,0,0);
+  // Use local date converted to UTC midnight to match other tabs
+  const todayLocal = new Date();
+  todayLocal.setHours(0, 0, 0, 0);
+  const today = toUTCDateFromLocalYMD(toYMDLocal(todayLocal));
 
   const [workout, mealPlan] = await Promise.all([
     prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } })
   ]);
 
-  const grouped = (mealPlan?.meals || []).reduce((acc,m)=>{
-    const t=(m.type||'').toLowerCase();
-    acc[t]=acc[t]||[]; acc[t].push(m); return acc;
-  },{});
+  const grouped = (mealPlan?.meals || []).reduce((acc, m) => {
+    const t = (m.type || "").toLowerCase();
+    acc[t] = acc[t] || [];
+    acc[t].push(m);
+    return acc;
+  }, {});
 
-  // Quick calorie estimates
-  const mealCalories = mealPlan?.totalCalories ?? (mealPlan?.meals?.reduce((sum, m) => sum + (Number(m.calories) || 0), 0) || 0);
+  // Food calories from meals (matches Meals tab)
+  const mealCalories = (mealPlan?.meals?.reduce((sum, m) => sum + (Number(m.calories) || 0), 0) || 0);
+
+  // Estimated workout calories
   const weightLb = profile?.weight || null;
   const weightKg = weightLb ? weightLb * 0.453592 : null;
-  const diff = (workout?.difficulty || 'beginner').toLowerCase();
-  const met = diff === 'advanced' ? 8 : diff === 'intermediate' ? 6.5 : 5.0;
+  const diff = (workout?.difficulty || "beginner").toLowerCase();
+  const met = diff === "advanced" ? 8 : diff === "intermediate" ? 6.5 : 5.0;
   const durationH = (workout?.duration || 0) / 60;
   const workoutCalories = weightKg ? Math.round(met * weightKg * durationH) : null;
 
@@ -45,27 +61,27 @@ export default async function HomePage() {
       <div className="grid">
         <article className="card span-2">
           <header className="card-head">
-            <h3>Today’s Summary</h3>
+            <h3>Today's Summary</h3>
             <div className="sub">Estimated totals</div>
           </header>
           <div className="stats">
             <div className="stat">
               <div className="stat-label">Food Calories</div>
-              <div className="stat-value">{mealCalories || '—'}<span className="unit"> kcal</span></div>
+              <div className="stat-value">{mealCalories}<span className="unit"> kcal</span></div>
             </div>
             <div className="stat">
               <div className="stat-label">Workout Calories
-                <span className="pill" title="Estimate uses MET by difficulty (beginner≈5.0, intermediate≈6.5, advanced≈8.0) × weight(kg) × duration(hours)" style={{marginLeft:8}}>i</span>
+                <span className="pill" title="Estimate uses MET by difficulty and weight" style={{ marginLeft: 8 }}>i</span>
               </div>
-              <div className="stat-value">{workoutCalories ?? '—'}<span className="unit"> kcal</span></div>
+              <div className="stat-value">{workoutCalories ?? 0}<span className="unit"> kcal</span></div>
             </div>
           </div>
         </article>
 
         <article className="card span-2">
           <header className="card-head">
-            <h3>Today’s Workout</h3>
-            <div className="sub">{workout ? new Date(workout.date).toDateString() : 'No workout saved'}</div>
+            <h3>Today's Workout</h3>
+            <div className="sub">{workout ? new Date(workout.date).toDateString() : "No workout saved"}</div>
           </header>
           {!workout && (
             <div className="muted">No workout plan for today. Go to <Link href="/workouts" className="pill">Workouts</Link> to generate.</div>
@@ -81,25 +97,25 @@ export default async function HomePage() {
 
         <article className="card span-2">
           <header className="card-head">
-            <h3>Today’s Meal Plan</h3>
-            <div className="sub">{mealPlan ? new Date(mealPlan.date).toDateString() : 'No meal plan saved'}</div>
+            <h3>Today's Meal Plan</h3>
+            <div className="sub">{mealPlan ? new Date(mealPlan.date).toDateString() : "No meal plan saved"}</div>
           </header>
           {!mealPlan && (
             <div className="muted">No meal plan for today. Go to <Link href="/meals" className="pill">Meals</Link> to generate.</div>
           )}
           {mealPlan && (
             <div className="stack">
-              {['breakfast','lunch','dinner','snack'].map((type)=>(
+              {["breakfast", "lunch", "dinner", "snack"].map((type) => (
                 <div key={type} className="planner-col">
-                  <div className="planner-head" style={{textTransform:'capitalize'}}>{type}</div>
+                  <div className="planner-head" style={{ textTransform: "capitalize" }}>{type}</div>
                   <div>
-                    {(grouped[type]||[]).map(m => (
-                      <div key={m.id} className="list-row" style={{marginTop:8}}>
+                    {(grouped[type] || []).map((m) => (
+                      <div key={m.id} className="list-row" style={{ marginTop: 8 }}>
                         <span>{m.name}</span>
-                        <span className="muted">{m.calories ?? '—'} kcal</span>
+                        <span className="muted">{m.calories ?? 0} kcal</span>
                       </div>
                     ))}
-                    {!(grouped[type]||[]).length && <div className="muted">No {type} planned.</div>}
+                    {!((grouped[type] || []).length) && <div className="muted">No {type} planned.</div>}
                   </div>
                 </div>
               ))}

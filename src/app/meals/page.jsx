@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import GenerateMealPlan from "@/components/GenerateMealPlan";
 import Link from "next/link";
 import DateStrip from "@/components/DateStrip";
+import MealsReplacerSingle from "@/components/MealsReplacerSingle";
 
 function toYMDLocal(d){
   const y = d.getFullYear();
@@ -93,8 +94,14 @@ export default async function MealsPage({ searchParams }){
             </div>
           )}
         </article>
-
         
+        <article className="card">
+          <header className="card-head">
+            <h3>Replace Meal for Day</h3>
+            <div className="sub">Pick one meal to swap for this day</div>
+          </header>
+          <MealsReplacerSingle selectedISO={selectedISO} />
+        </article>
       </div>
     </main>
   );

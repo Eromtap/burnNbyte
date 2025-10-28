@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
+import { signOut } from 'next-auth/react';
 
 export default function AppFrame({ children }){
   const pathname = usePathname();
@@ -19,8 +20,7 @@ export default function AppFrame({ children }){
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Z"/></svg>
           </button>
           <h1 className="brand">
-            <span className="logo-dot" />
-            burnNbyte
+            <img src="/logo.png" alt="burnNbyte logo" className="logo-brand"/>
           </h1>
           <div className="header-actions">
             <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggle}>
@@ -40,7 +40,7 @@ export default function AppFrame({ children }){
         <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />
         <aside className="drawer-panel" role="dialog" aria-modal="true" aria-label="Navigation">
           <div className="drawer-head">
-            <div className="brand" style={{fontSize:18}}><span className="logo-dot"/> burnNbyte</div>
+            <div className="brand"><img src="/logo.png" alt="burnNbyte logo" className="logo-drawer"/></div>
             <button className="btn btn-ghost" onClick={() => setDrawerOpen(false)} aria-label="Close">✕</button>
           </div>
           <nav className="drawer-nav">
@@ -52,6 +52,18 @@ export default function AppFrame({ children }){
             <Link className={`drawer-link ${isActive('/groceries') ? 'active' : ''}`} href="/groceries" onClick={() => setDrawerOpen(false)}>Groceries</Link>
             <Link className={`drawer-link ${isActive('/profile') ? 'active' : ''}`} href="/profile" onClick={() => setDrawerOpen(false)}>Profile</Link>
           </nav>
+          <div className="drawer-foot">
+            <button
+              className="btn btn-outline"
+              style={{ width: '100%' }}
+              onClick={() => {
+                setDrawerOpen(false);
+                signOut({ callbackUrl: '/signin' });
+              }}
+            >
+              <span className="label">Log out</span>
+            </button>
+          </div>
         </aside>
       </div>
 

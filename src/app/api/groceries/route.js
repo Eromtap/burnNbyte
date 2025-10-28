@@ -16,6 +16,25 @@ function addDaysUTC(d, n) {
   return x;
 }
 
+function toUTCDateFromLocalYMD(ymd){
+  const [y,m,d] = String(ymd||'').split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(Date.UTC(y, (m||1)-1, d||1));
+}
+function parseYMDLocal(ymd){
+  const [y,m,d] = String(ymd||'').split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, (m||1)-1, d||1);
+}
+function startOfWeekLocal(d){
+  if (!d) return null;
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  const dow = x.getDay();
+  x.setDate(x.getDate() - dow);
+  return x;
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -63,7 +82,16 @@ export async function POST(req) {
 
     const body = (await req.json().catch(() => ({}))) || {};
     const unitSystem = body.unitSystem === 'metric' ? 'metric' : 'imperial';
-    const start = startOfTodayUTC();
+    const forceRefresh = Boolean(body.refresh);
+    // Support week selection via local YYYY-MM-DD date
+    let start;
+    if (body.date) {
+      const sel = parseYMDLocal(String(body.date));
+      const sow = startOfWeekLocal(sel);
+      start = toUTCDateFromLocalYMD(`${sow.getFullYear()}-${String(sow.getMonth()+1).padStart(2,'0')}-${String(sow.getDate()).padStart(2,'0')}`);
+    } else {
+      start = startOfTodayUTC();
+    }
     const end = addDaysUTC(start, 6);
 
     const plans = await prisma.mealPlan.findMany({
@@ -84,7 +112,53 @@ export async function POST(req) {
     }
 
     if (!rawLines.length) {
-      return NextResponse.json({ items: [], note: 'No ingredients found' }, { status: 200 });
+      // Cache empty result as well to avoid repeated calls
+      try {
+        await prisma.grocerySummary.upsert({
+          where: {
+            userId_start_end_unitSystem: {
+              userId: session.user.id,
+              start,
+              end,
+              unitSystem,
+            },
+          },
+          update: { items: [], note: 'No ingredients found' },
+          create: { userId: session.user.id, start, end, unitSystem, items: [], note: 'No ingredients found' },
+        });
+      } catch (e) {
+        console.warn('Failed to upsert empty grocery summary cache', e?.message || e);
+      }
+      return NextResponse.json({ start, end, unitSystem, items: [], note: 'No ingredients found', cached: false }, { status: 200 });
+    }
+
+    // If not forcing refresh, check for a cached grocery summary first
+    if (!forceRefresh) {
+      try {
+        const cached = await prisma.grocerySummary.findUnique({
+          where: {
+            userId_start_end_unitSystem: {
+              userId: session.user.id,
+              start,
+              end,
+              unitSystem,
+            },
+          },
+        });
+        if (cached) {
+          return NextResponse.json({
+            start,
+            end,
+            unitSystem,
+            items: cached.items ?? [],
+            note: cached.note ?? 'cached',
+            cached: true,
+          });
+        }
+      } catch (e) {
+        // fall through to regeneration on any DB error
+        console.warn('Grocery summary cache lookup failed; regenerating', e?.message || e);
+      }
     }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -141,7 +215,35 @@ export async function POST(req) {
       return NextResponse.json({ items: [], note: 'Failed to parse AI response' }, { status: 502 });
     }
 
-    return NextResponse.json({ start, end, unitSystem, ...out });
+    // Persist or update the cached summary
+    try {
+      await prisma.grocerySummary.upsert({
+        where: {
+          userId_start_end_unitSystem: {
+            userId: session.user.id,
+            start,
+            end,
+            unitSystem,
+          },
+        },
+        update: {
+          items: out.items ?? [],
+          note: out.note ?? null,
+        },
+        create: {
+          userId: session.user.id,
+          start,
+          end,
+          unitSystem,
+          items: out.items ?? [],
+          note: out.note ?? null,
+        },
+      });
+    } catch (e) {
+      console.warn('Failed to upsert grocery summary cache', e?.message || e);
+    }
+
+    return NextResponse.json({ start, end, unitSystem, ...out, cached: false });
   } catch (err) {
     console.error('groceries POST failed', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
