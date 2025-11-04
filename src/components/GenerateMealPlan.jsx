@@ -1,19 +1,30 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 export default function GenerateMealPlan() {
+  const router = useRouter();
   const { data: session, update } = useSession();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
   const prefs = session?.user?.preferences || {};
 
-  const todayISO = new Date().toISOString().slice(0,10);
+  function toYMDLocal(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  const todayISO = (() => {
+    const d = new Date();
+    return toYMDLocal(d); // local-date based (not UTC)
+  })();
   const sevenDaysOutISO = (() => {
     const d = new Date();
     d.setDate(d.getDate()+6); // inclusive range -> 7 days total
-    return d.toISOString().slice(0,10);
+    return toYMDLocal(d); // local-date based (not UTC)
   })();
 
   async function handleClick() {
@@ -42,6 +53,10 @@ export default function GenerateMealPlan() {
       });
       const data = await res.json();
       setResult(data);
+      if (res.ok) {
+        // Refresh the current route so server data (meal plan) re-renders
+        try { router.refresh(); } catch {}
+      }
     } catch (e) {
       setResult({ error: 'Failed to generate meal plan.' });
     } finally {

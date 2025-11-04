@@ -17,7 +17,7 @@ export function OnboardingProvider({ children }) {
     fitnessGoal: "",
     dietaryPreferences: [],
     allergies: "",
-    mealsPerDay: "",
+    mealsPerDay: 3,
     workoutPreference: "",
     workoutDuration: "",
     workoutsPerWeek: "",
