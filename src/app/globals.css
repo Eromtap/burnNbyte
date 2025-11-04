@@ -56,10 +56,18 @@ html[data-theme="tech-red"]{
 html[data-theme="slate"]{
   --radius:16px; --radius-sm:10px; --radius-lg:22px;
   --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  --bg:#0e1116; --surface:#12161f; --elev:#141a24; --text:#ffffff; --muted:#cad5e0;
-  --accent:#3ea6ff; --accent-2:#7dc3ff; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
-  --grid: transparent;
-  --shadow: 0 6px 18px rgba(0,0,0,.35);
+  /* Light mode palette */
+  --bg:#f7f9fc;           /* page background */
+  --surface:#ffffff;       /* cards/surfaces */
+  --elev:#eef2f7;         /* elevated UI chrome */
+  --text:#0b1220;         /* primary text */
+  --muted:#667085;        /* secondary text */
+  /* Keep brand accent in red family for continuity */
+  --accent:#ff2740;
+  --accent-2:#ff6b81;
+  --ok:#16a34a; --warn:#d97706; --danger:#ef4444;
+  --grid: color-mix(in oklab, var(--elev) 35%, transparent);
+  --shadow: 0 8px 24px rgba(2,6,23,0.08);
   --blur: none;
 }
 
@@ -208,7 +216,7 @@ select{color:var(--text)}
 .fc .fc-toolbar-title{font-size:18px;font-weight:700}
 .fc-theme-standard .fc-scrollgrid{border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
 .fc-theme-standard td, .fc-theme-standard th{border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
-.fc .fc-day-today{background:#2a2a2a}
+.fc .fc-day-today{background:color-mix(in oklab, var(--elev) 70%, transparent)}
 .fc .fc-daygrid-event{background:linear-gradient(90deg, var(--accent), var(--accent-2));border:1px solid color-mix(in oklab, var(--accent) 60%, transparent);color:#fff;border-radius:10px;padding:2px 6px}
 .fc .fc-button{background:color-mix(in oklab, var(--surface) 85%, transparent);border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);color:var(--text);border-radius:10px}
 .fc .fc-button-primary:disabled{background:color-mix(in oklab, var(--surface) 85%, transparent);border-color:color-mix(in oklab, var(--elev) 60%, transparent);opacity:.6}
