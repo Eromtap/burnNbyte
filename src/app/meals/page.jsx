@@ -16,6 +16,12 @@ function toUTCDateFromLocalYMD(ymd){
   const [y,m,d] = ymd.split('-').map(Number);
   return new Date(Date.UTC(y, (m||1)-1, d||1));
 }
+function formatUTCDateForDisplay(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return local.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+}
 
 export default async function MealsPage({ searchParams }){
   const session = await requireAuth();
@@ -56,7 +62,7 @@ export default async function MealsPage({ searchParams }){
         <article className="card">
           <header className="card-head">
             <h3>Meal Plan</h3>
-            <div className="sub">{mealPlan ? new Date(mealPlan.date).toDateString() : 'No plan on this day'}</div>
+            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date) : 'No plan on this day'}</div>
           </header>
           {!mealPlan && <div className="muted">No meal plan for today. Use the button above to generate.</div>}
           {mealPlan && (
