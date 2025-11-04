@@ -24,7 +24,9 @@ export default async function MealsPage({ searchParams }){
   if (!profile) redirect('/onboarding/1');
 
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
-  const selectedISO = searchParams?.date ? String(searchParams.date) : toYMDLocal(todayLocal);
+  const params = await searchParams; // Next.js async searchParams (may be URLSearchParams)
+  const paramDate = typeof params?.get === 'function' ? params.get('date') : params?.date;
+  const selectedISO = paramDate ? String(paramDate) : toYMDLocal(todayLocal);
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const mealPlan = await prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } });

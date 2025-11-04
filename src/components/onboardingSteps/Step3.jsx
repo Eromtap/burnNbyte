@@ -2,42 +2,34 @@
 import StepLayout from './StepLayout';
 
 export default function Step3({ formData, updateForm }) {
-  const dietaryOptions = ["Vegan", "Keto", "Vegetarian", "Gluten-Free"];
-
   return (
     <StepLayout stepNumber={3} totalSteps={3} title="Nutrition & Focus Areas">
-      <label className="block mb-2 planner-head">Dietary Preferences:</label>
-      <div className="prefs-grid mb-6">
-        {dietaryOptions.map((opt) => (
-          <label
-            key={opt}
-            className="pref-border"
-            style={{ color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <input
-              type="checkbox"
-              checked={formData.dietaryPreferences.includes(opt)}
-              onChange={(e) => {
-                const newPrefs = e.target.checked
-                  ? [...formData.dietaryPreferences, opt]
-                  : formData.dietaryPreferences.filter((d) => d !== opt);
-                updateForm({ dietaryPreferences: newPrefs });
-              }}
-            />
-            {opt}
-          </label>
-        ))}
-      </div>
       <label className="block planner-head">
-      Allergies:
-      <input
-        type="text"
-        placeholder="e.g. peanuts, dairy"
-        className="input mt-1"
-        value={formData.allergies}
-        onChange={(e) => updateForm({ allergies: e.target.value })}
-      />
+        <span>Dietary Preferences (comma separated)</span>
+        <input
+          type="text"
+          className="input mt-1"
+          placeholder="keto, pescatarian"
+          value={Array.isArray(formData.dietaryPreferences) ? formData.dietaryPreferences.join(', ') : ''}
+          onChange={(e) => {
+            const csv = e.target.value;
+            const arr = csv.split(',').map(s => s.trim()).filter(Boolean);
+            updateForm({ dietaryPreferences: arr });
+          }}
+        />
       </label>
+
+      <label className="block planner-head">
+        Allergies:
+        <input
+          type="text"
+          placeholder="e.g. peanuts, dairy"
+          className="input mt-1"
+          value={formData.allergies}
+          onChange={(e) => updateForm({ allergies: e.target.value })}
+        />
+      </label>
+
       <label className="block planner-head">
         Meals Per Day:
         <input
@@ -46,8 +38,10 @@ export default function Step3({ formData, updateForm }) {
           className="input mt-1"
           value={formData.mealsPerDay}
           onChange={(e) => updateForm({ mealsPerDay: e.target.value })}
+          min="1"
+          required
         />
-      </label>   
-</StepLayout>
+      </label>
+    </StepLayout>
   );
 }

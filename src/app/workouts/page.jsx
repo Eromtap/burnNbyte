@@ -25,7 +25,9 @@ export default async function WorkoutsPage({ searchParams }){
   if (!profile) redirect('/onboarding/1');
 
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
-  const selectedISO = searchParams?.date ? String(searchParams.date) : toYMDLocal(todayLocal);
+  const params = await searchParams; // async-compatible searchParams (may be URLSearchParams)
+  const paramDate = typeof params?.get === 'function' ? params.get('date') : params?.date;
+  const selectedISO = paramDate ? String(paramDate) : toYMDLocal(todayLocal);
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const workout = await prisma.workout.findFirst({ where: { userId: session.user.id, date: baseUtc } });
