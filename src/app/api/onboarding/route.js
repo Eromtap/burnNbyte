@@ -15,9 +15,14 @@ export async function POST(req) {
   try {
     const data = await req.json();
 
-    // Find user by email in Prisma
+    const userId = session.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: "User ID missing from session" }, { status: 400 });
+    }
+
+    // Find user by ID in Prisma
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { id: String(userId) },
     });
 
     const birthdayDate = data.birthday ? new Date(data.birthday) : null;

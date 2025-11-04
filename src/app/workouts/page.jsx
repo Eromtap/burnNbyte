@@ -19,13 +19,27 @@ function toUTCDateFromLocalYMD(ymd){
   return new Date(Date.UTC(y, (m||1)-1, d||1));
 }
 
-export default async function WorkoutsPage({ searchParams }){
+export default async function WorkoutsPage({ searchParams: searchParamsPromise }){
+  const searchParams = await searchParamsPromise;
+  const resolveDateParam = () => {
+    if (!searchParams) return undefined;
+    if (typeof searchParams.get === 'function') {
+      return searchParams.get('date') || undefined;
+    }
+    const raw = searchParams?.date;
+    if (Array.isArray(raw)) return raw[0];
+    return raw;
+  };
+
   const session = await requireAuth();
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect('/onboarding/1');
 
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
-  const selectedISO = searchParams?.date ? String(searchParams.date) : toYMDLocal(todayLocal);
+  const dateParam = resolveDateParam();
+  const selectedISO = dateParam ? String(dateParam) : toYMDLocal(todayLocal);
+  const selectedLocalDate = parseYMDLocal(selectedISO);
+  const selectedLabel = selectedLocalDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const workout = await prisma.workout.findFirst({ where: { userId: session.user.id, date: baseUtc } });
@@ -47,7 +61,7 @@ export default async function WorkoutsPage({ searchParams }){
         <article className="card">
           <header className="card-head">
             <h3>Workout</h3>
-            <div className="sub">{workout ? new Date(workout.date).toDateString() : 'No workout on this day'}</div>
+            <div className="sub">{workout ? selectedLabel : 'No workout on this day'}</div>
           </header>
           {!workout && <div className="muted">No workout for today. Use the button above to generate.</div>}
           {workout && (

@@ -10,6 +10,10 @@ export default function GenerateWorkout() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const userPrefs = session?.user?.preferences || {};
+  const todayLocal = new Date();
+  todayLocal.setHours(0,0,0,0);
+  const selectedISO = searchParams.get('date') || toYMDLocal(todayLocal);
+  const selectedLabel = new Date(`${selectedISO}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   function toYMDLocal(d){
     const y = d.getFullYear();
@@ -33,10 +37,23 @@ export default function GenerateWorkout() {
     setResult(null);
     try {
       // Determine selected date from URL (defaults to today)
-      const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
-      const selectedISO = searchParams.get('date') || toYMDLocal(todayLocal);
       const selectedDate = parseLocalYMD(selectedISO);
       const selectedDow = dowCode(selectedDate);
+
+      const preferredDays = Array.isArray(userPrefs.workoutDays) ? userPrefs.workoutDays : [];
+      const nextSevenDates = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(todayLocal);
+        d.setDate(todayLocal.getDate() + i);
+        const dow = dowCode(d);
+        if (!preferredDays.length || preferredDays.includes(dow)) {
+          nextSevenDates.push(toYMDLocal(d));
+        }
+      }
+      if (!nextSevenDates.length) {
+        // Fallback to selected day so the API still receives at least one date
+        nextSevenDates.push(selectedISO);
+      }
 
       const res = await fetch('/api/generateWorkout', {
         method: 'POST',
@@ -50,18 +67,21 @@ export default function GenerateWorkout() {
           fitnessLevel: userPrefs.fitnessLevel || 'beginner',
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
-          // Generate ONLY for the selected date
-          workoutDays: [selectedDow],
-          dateRange: `${selectedISO} - ${selectedISO}`,
+          workoutDays: preferredDays.length ? preferredDays : [selectedDow],
+          dateRange: `${toYMDLocal(todayLocal)} - ${toYMDLocal(new Date(todayLocal.getTime() + 6*24*60*60*1000))}`,
+          dates: nextSevenDates,
         }),
       });
       const data = await res.json();
       // Refresh page data so the server-rendered Workout card shows the selected day
       try { router.refresh(); } catch {}
-      // Show only the selected day's workout in the inline preview, if provided
       const list = Array.isArray(data) ? data : (data?.workouts || []);
-      const filtered = list.filter(w => {
-        try { return toYMDLocal(new Date(w.date)) === selectedISO; } catch { return false; }
+      const filtered = list.filter((w) => {
+        try {
+          return toYMDLocal(new Date(w.date)) === selectedISO;
+        } catch {
+          return false;
+        }
       });
       setResult(filtered);
     } catch (err) {
@@ -77,13 +97,19 @@ export default function GenerateWorkout() {
         {loading ? 'Generating…' : 'Create Workout Plan'}
       </button>
 
+      {result?.error && (
+        <div className="alert alert-error">
+          {result.error}
+        </div>
+      )}
+
       {Array.isArray(result) && result.length > 0 && (
         <div className="stack">
           {result.map((w) => (
             <article className="card" key={w.id || `${w.name}-${w.date}`}>
               <header className="card-head">
                 <h3>{w.name || 'Workout'}</h3>
-                <div className="sub">{w.date ? new Date(w.date).toDateString() : ''}</div>
+                <div className="sub">{selectedLabel}</div>
               </header>
               <div className="stack">
                 <div className="list-row"><span>Duration</span><span className="muted">{w.duration} min</span></div>

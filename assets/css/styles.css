@@ -1,6 +1,6 @@
 /*
   burnNbyte — Tech-inspired, mobile-first UI
-  Themes: tech-red (black/red), slate (cool neutral)
+  Themes: tech-red (black/red), slate (light mode)
 */
 
 /* CSS Reset (minimal) */
@@ -37,10 +37,17 @@ button,input,select{font:inherit}
 
 /* Alternate theme: slate (clean, neutral) */
 html[data-theme="slate"]{
-  --bg:#0e1116; --surface:#12161f; --elev:#141a24;
-  --text:#e6edf3; --muted:#9fb1c3; --accent:#3ea6ff; --accent-2:#7dc3ff;
-  --grid: color-mix(in oklab, var(--accent) 12%, transparent);
-  --shadow: 0 10px 30px color-mix(in oklab, var(--accent) 10%, transparent);
+  /* Light mode palette */
+  --bg:#f7f9fc;        /* page background */
+  --surface:#ffffff;    /* cards/surfaces */
+  --elev:#eef2f7;      /* elevated UI chrome */
+  --text:#0b1220;      /* primary text */
+  --muted:#667085;     /* secondary text */
+  /* Brand accent remains red for continuity */
+  --accent:#ff2740;
+  --accent-2:#ff6b81;
+  --grid: color-mix(in oklab, var(--elev) 35%, transparent);
+  --shadow: 0 8px 24px rgba(2,6,23,0.08);
 }
 
 /* Base */
