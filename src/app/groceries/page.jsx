@@ -35,7 +35,9 @@ export default async function GroceriesPage({ searchParams }) {
   if (!profile) redirect('/onboarding/1');
 
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
-  const selectedISO = searchParams?.date ? String(searchParams.date) : toYMDLocal(todayLocal);
+  const params = await searchParams; // async-compatible searchParams (may be URLSearchParams)
+  const paramDate = typeof params?.get === 'function' ? params.get('date') : params?.date;
+  const selectedISO = paramDate ? String(paramDate) : toYMDLocal(todayLocal);
   const selectedLocal = parseYMDLocal(selectedISO);
   const startOfWeek = startOfWeekLocal(selectedLocal);
   const start = toUTCDateFromLocalYMD(toYMDLocal(startOfWeek));
@@ -98,4 +100,3 @@ export default async function GroceriesPage({ searchParams }) {
     </main>
   );
 }
-

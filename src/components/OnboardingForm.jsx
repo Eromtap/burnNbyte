@@ -90,6 +90,13 @@ export default function OnboardingForm() {
     router.push(`/onboarding/${nextStep}`);
   };
 
+  const onSubmitNext = async (e) => {
+    e.preventDefault();
+    const current = Number(step);
+    // Custom validations for non-native groups (none required now)
+    await next();
+  };
+
   return (
     <main>
       <div className="stack">
@@ -98,7 +105,7 @@ export default function OnboardingForm() {
             <h3>Profile Setup</h3>
             <div className="sub">Step {Number(step)} of 3</div>
           </header>
-          <div className="form">
+          <form className="form" onSubmit={onSubmitNext}>
             {StepComponent ? (
               <StepComponent formData={formData} updateForm={updateForm} />
             ) : (
@@ -106,20 +113,18 @@ export default function OnboardingForm() {
             )}
             <div className="flex justify-between mt-8">
               <button
+                type="button"
                 onClick={prev}
                 className="btn btn-secondary"
                 disabled={Number(step) === 1}
               >
                 Back
               </button>
-              <button
-                onClick={next}
-                className="btn btn-primary"
-              >
+              <button type="submit" className="btn btn-primary">
                 {Number(step) === 3 ? 'Finish' : 'Next'}
               </button>
             </div>
-          </div>
+          </form>
         </article>
       </div>
     </main>
