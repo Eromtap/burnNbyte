@@ -7,9 +7,13 @@ export default function Step3({ formData, updateForm }) {
   return (
     <StepLayout stepNumber={3} totalSteps={3} title="Nutrition & Focus Areas">
       <label className="block mb-2 planner-head">Dietary Preferences:</label>
-      <div className="flex flex-col gap-2 mb-6">
+      <div className="prefs-grid mb-6">
         {dietaryOptions.map((opt) => (
-          <label key={opt} className="block" style={{ color: 'var(--text)' }}>
+          <label
+            key={opt}
+            className="pref-border"
+            style={{ color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
             <input
               type="checkbox"
               checked={formData.dietaryPreferences.includes(opt)}
