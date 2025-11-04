@@ -27,6 +27,7 @@ export default function Step1({ formData, updateForm }) {
             className="input"
             value={formData.firstName}
             onChange={(e) => updateForm({ firstName: e.target.value })}
+            required
           />
         </label>
         <label style={{ flex: 1 }}>
@@ -36,6 +37,7 @@ export default function Step1({ formData, updateForm }) {
             className="input"
             value={formData.lastName}
             onChange={(e) => updateForm({ lastName: e.target.value })}
+            required
           />
         </label>
       </div>
@@ -47,6 +49,7 @@ export default function Step1({ formData, updateForm }) {
           className="input"
           value={formData.birthday ? formData.birthday : ""}
           onChange={(e) => updateForm({ birthday: e.target.value })}
+          required
         />
       </label>
       {formData.birthday && (
@@ -59,6 +62,7 @@ export default function Step1({ formData, updateForm }) {
           className="input"
           value={formData.gender}
           onChange={(e) => updateForm({ gender: e.target.value })}
+          required
         >
           <option value="">Select</option>
           <option value="male">Male</option>
@@ -76,6 +80,7 @@ export default function Step1({ formData, updateForm }) {
             placeholder="ft"
             value={formData.heightFt}
             onChange={(e) => updateForm({ heightFt: e.target.value })}
+            required
           />
           <input
             type="number"
@@ -83,6 +88,7 @@ export default function Step1({ formData, updateForm }) {
             placeholder="in"
             value={formData.heightIn}
             onChange={(e) => updateForm({ heightIn: e.target.value })}
+            required
           />
         </div>
       </label>
@@ -94,6 +100,8 @@ export default function Step1({ formData, updateForm }) {
           className="input"
           value={formData.weight}
           onChange={(e) => updateForm({ weight: e.target.value })}
+          min="1"
+          required
         />
       </label>
 
@@ -103,6 +111,7 @@ export default function Step1({ formData, updateForm }) {
           className="input"
           value={formData.activityLevel}
           onChange={(e) => updateForm({ activityLevel: e.target.value })}
+          required
         >
           <option value="">Select</option>
           <option value="sedentary">sedentary</option>

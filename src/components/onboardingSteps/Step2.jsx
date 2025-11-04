@@ -47,7 +47,7 @@ export default function Step2({ formData, updateForm }) {
     <StepLayout stepNumber={2} totalSteps={3} title="Fitness Goals">
       <label>
         <span>Fitness Goal</span>
-        <select className="input" value={formData.fitnessGoal || ""} onChange={(e) => updateForm({ fitnessGoal: e.target.value })}>
+        <select className="input" value={formData.fitnessGoal || ""} onChange={(e) => updateForm({ fitnessGoal: e.target.value })} required>
           <option value="">Select</option>
           <option value="lose_weight">Lose Weight</option>
           <option value="gain_muscle">Gain Muscle</option>
@@ -57,7 +57,7 @@ export default function Step2({ formData, updateForm }) {
 
       <label>
         <span>Workout Type</span>
-        <select className="input" value={formData.workoutPreference || ""} onChange={(e) => updateForm({ workoutPreference: e.target.value })}>
+        <select className="input" value={formData.workoutPreference || ""} onChange={(e) => updateForm({ workoutPreference: e.target.value })} required>
           <option value="">Select</option>
           <option value="cardio">Cardio</option>
           <option value="strength">Strength</option>
@@ -74,6 +74,8 @@ export default function Step2({ formData, updateForm }) {
           className="input"
           value={formData.workoutDuration ?? ""}
           onChange={(e) => updateForm({ workoutDuration: e.target.value })}
+          min="1"
+          required
         />
       </label>
 
