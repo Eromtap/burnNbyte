@@ -80,8 +80,13 @@ const Calendar = ({ calendarTitle, dataSources }) => {
 }, [dataSources]);
 
   const handleEventClick = (info) => {
+    const type = info.event.extendedProps.type;
+    if (type === 'workout') {
+      window.location.href = `/workouts?date=${info.event.startStr}`;
+      return;
+    }
     setSelectedEvent({
-      type: info.event.extendedProps.type,
+      type,
       ...info.event.extendedProps,
       date: info.event.startStr,
     });
@@ -189,4 +194,3 @@ const Calendar = ({ calendarTitle, dataSources }) => {
 };
 
 export default Calendar;
-
