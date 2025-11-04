@@ -55,7 +55,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { 
+    const {
       gender,
       heightFt,
       heightIn,
@@ -65,18 +65,40 @@ export async function POST(req) {
       workoutPreference = "mixed",
       workoutDuration = "60",
       workoutDays,
-      dateRange = today + ' - ' + todayPlus7
+      dateRange = today + ' - ' + todayPlus7,
+      dates = []
     } = body;
 
     if (!fitnessGoal) {
       return NextResponse.json({ error: "Missing required field: goal" }, { status: 400 });
     }
 
+    const targetDates = Array.isArray(dates)
+      ? dates
+          .map((d) => {
+            try {
+              const normalized = new Date(d);
+              if (Number.isNaN(normalized.getTime())) return null;
+              const y = normalized.getUTCFullYear();
+              const m = String(normalized.getUTCMonth() + 1).padStart(2, "0");
+              const day = String(normalized.getUTCDate()).padStart(2, "0");
+              return `${y}-${m}-${day}`;
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean)
+      : [];
+
+    if (!targetDates.length) {
+      return NextResponse.json({ error: "No target dates supplied" }, { status: 400 });
+    }
+
     const prompt = {
       role: "user",
       content:
-        `Create a workout plan for each day specified in workoutDays in the date range given. 
-        include a number of exercises that will fit in the alloted workout duration:
+        `Create a workout plan for each calendar date listed. Return one workout entry per date in the same order they are provided. Only generate workouts on those dates and set the "date" field exactly to the yyyy-mm-dd string supplied.
+        Include enough exercises to fill the allotted workout duration.
       - gender: "${gender}"
       - heightFt: "${heightFt}" feet
       - heightIn: "${heightIn}" inches
@@ -85,8 +107,8 @@ export async function POST(req) {
       - fitness level: "${fitnessLevel}"
       - workoutPreference: "${workoutPreference}"
       - workoutDuration: ${workoutDuration}
-      - workoutDays: ${workoutDays},
-      - dateRange: ${dateRange}
+      - preferred workoutDays: ${JSON.stringify(workoutDays)}
+      - targetDates: ${JSON.stringify(targetDates)}
 
       Return ONLY a JSON object with these fields (no commentary, no code fences):
       {
@@ -99,9 +121,11 @@ export async function POST(req) {
         "muscleGroup": "string"
         "date": "date"
       }
-        
+
       Output requirements:
       - Return a JSON object with a single key "workouts" containing an array of workouts.
+      - The array length must match the number of target dates provided.
+      - Each workout's "date" must be one of the supplied target dates.
       - Each workout must include: name, description, difficulty, duration, equipment[], instructions[], muscleGroup, date (yyyy-mm-dd).
       - If only one workout is generated, it still must be inside the "workouts" array.
       - Do not include any extra keys or commentary.`
@@ -130,16 +154,33 @@ export async function POST(req) {
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
     }
 
-      const normalizedDate = (d) => {
-      const date = new Date(d ?? Date.now());
+    const normalizedDate = (d) => {
+      if (!d) return null;
+      const date = new Date(d);
+      if (Number.isNaN(date.getTime())) return null;
       date.setUTCHours(0, 0, 0, 0);
       return date;
     };
 
+    const fallbackDates = targetDates
+      .map((d) => normalizedDate(d))
+      .filter(Boolean);
+
     const created = await prisma.$transaction(async (tx) => {
       const out = [];
       for (const w of ai.workouts) {
-        const date = normalizedDate(w.date);
+        let date = normalizedDate(w.date);
+        if (!date) {
+          date = fallbackDates.shift() ?? normalizedDate(Date.now());
+        } else {
+          const iso = date.toISOString().slice(0, 10);
+          const idx = targetDates.indexOf(iso);
+          if (idx !== -1) {
+            fallbackDates.splice(idx, 1);
+          }
+        }
+        if (!date) continue; // skip unparseable entries
+
         const existing = await tx.workout.findFirst({ where: { userId: session.user.id, date } });
         let rec;
         const dataCommon = {
@@ -172,4 +213,3 @@ export async function POST(req) {
 
 
 // TODO: pull in all preferences relative to workouts
-
