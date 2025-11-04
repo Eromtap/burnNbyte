@@ -19,6 +19,13 @@ function toUTCDateFromLocalYMD(ymd) {
   return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
 }
 
+function formatUTCDateForDisplay(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  const local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return local.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+}
+
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
@@ -81,7 +88,7 @@ export default async function HomePage() {
         <article className="card span-2">
           <header className="card-head">
             <h3>Today's Workout</h3>
-            <div className="sub">{workout ? new Date(workout.date).toDateString() : "No workout saved"}</div>
+            <div className="sub">{workout ? formatUTCDateForDisplay(workout.date) : "No workout saved"}</div>
           </header>
           {!workout && (
             <div className="muted">No workout plan for today. Go to <Link href="/workouts" className="pill">Workouts</Link> to generate.</div>
@@ -98,7 +105,7 @@ export default async function HomePage() {
         <article className="card span-2">
           <header className="card-head">
             <h3>Today's Meal Plan</h3>
-            <div className="sub">{mealPlan ? new Date(mealPlan.date).toDateString() : "No meal plan saved"}</div>
+            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date) : "No meal plan saved"}</div>
           </header>
           {!mealPlan && (
             <div className="muted">No meal plan for today. Go to <Link href="/meals" className="pill">Meals</Link> to generate.</div>
