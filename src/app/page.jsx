@@ -3,30 +3,61 @@ import { getServerSession } from "next-auth/next"; // correct import
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import MiniCalendar from "@/components/MiniCalendar";
 
 // Server component renders dashboard content; AppFrame wraps it globally
 
-function toYMDLocal(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
 }
 
-function formatUTCDateForDisplay(date) {
+function toYMDInTimeZone(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
+}
+
+function formatUTCDateForDisplay(date, timeZone) {
   if (!date) return "";
-  const d = new Date(date);
-  const local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  return local.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+  const dt = new Date(date);
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone,
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(dt);
+}
+
+function resolveTimeZone(candidate) {
+  try {
+    if (candidate) {
+      new Intl.DateTimeFormat(undefined, { timeZone: candidate }).format(new Date());
+      return candidate;
+    }
+  } catch (_err) {
+    // fall through to UTC
+  }
+  return "UTC";
 }
 
 export default async function HomePage() {
+  const headerStore = headers();
+  const timeZoneCandidate =
+    headerStore.get("x-vercel-ip-timezone") ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    "UTC";
+  const timeZone = resolveTimeZone(timeZoneCandidate);
+
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
 
@@ -36,9 +67,8 @@ export default async function HomePage() {
   if (!profile) redirect("/onboarding/1");
 
   // Use local date converted to UTC midnight to match other tabs
-  const todayLocal = new Date();
-  todayLocal.setHours(0, 0, 0, 0);
-  const today = toUTCDateFromLocalYMD(toYMDLocal(todayLocal));
+  const todayISO = toYMDInTimeZone(new Date(), timeZone);
+  const today = toUTCDateFromLocalYMD(todayISO);
 
   const [workout, mealPlan] = await Promise.all([
     prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
@@ -88,7 +118,7 @@ export default async function HomePage() {
         <article className="card span-2">
           <header className="card-head">
             <h3>Today's Workout</h3>
-            <div className="sub">{workout ? formatUTCDateForDisplay(workout.date) : "No workout saved"}</div>
+            <div className="sub">{workout ? formatUTCDateForDisplay(workout.date, timeZone) : "No workout saved"}</div>
           </header>
           {!workout && (
             <div className="muted">No workout plan for today. Go to <Link href="/workouts" className="pill">Workouts</Link> to generate.</div>
@@ -105,7 +135,7 @@ export default async function HomePage() {
         <article className="card span-2">
           <header className="card-head">
             <h3>Today's Meal Plan</h3>
-            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date) : "No meal plan saved"}</div>
+            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date, timeZone) : "No meal plan saved"}</div>
           </header>
           {!mealPlan && (
             <div className="muted">No meal plan for today. Go to <Link href="/meals" className="pill">Meals</Link> to generate.</div>
