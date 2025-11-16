@@ -1,38 +1,68 @@
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import GenerateMealPlan from "@/components/GenerateMealPlan";
 import Link from "next/link";
 import DateStrip from "@/components/DateStrip";
 import MealsReplacerSingle from "@/components/MealsReplacerSingle";
 
-function toYMDLocal(d){
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
 function toUTCDateFromLocalYMD(ymd){
   const [y,m,d] = ymd.split('-').map(Number);
   return new Date(Date.UTC(y, (m||1)-1, d||1));
 }
-function formatUTCDateForDisplay(date) {
+function toYMDInTimeZone(date, timeZone){
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const year = parts.find(p => p.type === 'year')?.value ?? '0000';
+  const month = parts.find(p => p.type === 'month')?.value ?? '01';
+  const day = parts.find(p => p.type === 'day')?.value ?? '01';
+  return `${year}-${month}-${day}`;
+}
+function formatUTCDateForDisplay(date, timeZone) {
   if (!date) return '';
-  const d = new Date(date);
-  const local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  return local.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  const dt = new Date(date);
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone,
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  }).format(dt);
+}
+
+function resolveTimeZone(candidate){
+  try {
+    if (candidate) {
+      new Intl.DateTimeFormat(undefined, { timeZone: candidate }).format(new Date());
+      return candidate;
+    }
+  } catch (_err) {
+    // ignore, fall back to UTC
+  }
+  return 'UTC';
 }
 
 export default async function MealsPage({ searchParams }){
+  const headerStore = headers();
+  const timeZoneCandidate =
+    headerStore.get('x-vercel-ip-timezone') ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    'UTC';
+  const timeZone = resolveTimeZone(timeZoneCandidate);
+
   const session = await requireAuth();
   // Optional onboarding check to match home page
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect('/onboarding/1');
 
-  const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
+  const todayISO = toYMDInTimeZone(new Date(), timeZone);
   const params = await searchParams; // Next.js async searchParams (may be URLSearchParams)
   const paramDate = typeof params?.get === 'function' ? params.get('date') : params?.date;
-  const selectedISO = paramDate ? String(paramDate) : toYMDLocal(todayLocal);
+  const selectedISO = paramDate ? String(paramDate) : todayISO;
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const mealPlan = await prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } });
@@ -62,7 +92,7 @@ export default async function MealsPage({ searchParams }){
         <article className="card">
           <header className="card-head">
             <h3>Meal Plan</h3>
-            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date) : 'No plan on this day'}</div>
+            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date, timeZone) : 'No plan on this day'}</div>
           </header>
           {!mealPlan && <div className="muted">No meal plan for today. Use the button above to generate.</div>}
           {mealPlan && (
