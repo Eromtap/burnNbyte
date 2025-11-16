@@ -56,7 +56,7 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
     return raw;
   };
 
-  const headerStore = headers();
+  const headerStore = await headers();
   const timeZoneCandidate =
     headerStore.get('x-vercel-ip-timezone') ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -70,7 +70,6 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
   const dateParam = resolveDateParam();
   const selectedISO = dateParam ? String(dateParam) : todayISO;
-  const selectedLabel = formatYMDForDisplay(selectedISO, timeZone);
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const workout = await prisma.workout.findFirst({ where: { userId: session.user.id, date: baseUtc } });
@@ -92,7 +91,7 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
         <article className="card">
           <header className="card-head">
             <h3>Workout</h3>
-            <div className="sub">{workout ? selectedLabel : 'No workout on this day'}</div>
+            <div className="sub">{workout ? selectedISO : 'No workout on this day'}</div>
           </header>
           {!workout && <div className="muted">No workout for today. Use the button above to generate.</div>}
           {workout && (

@@ -47,7 +47,7 @@ function resolveTimeZone(candidate){
 }
 
 export default async function MealsPage({ searchParams }){
-  const headerStore = headers();
+  const headerStore = await headers();
   const timeZoneCandidate =
     headerStore.get('x-vercel-ip-timezone') ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -92,7 +92,7 @@ export default async function MealsPage({ searchParams }){
         <article className="card">
           <header className="card-head">
             <h3>Meal Plan</h3>
-            <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date, timeZone) : 'No plan on this day'}</div>
+            <div className="sub">{mealPlan ? selectedISO : 'No plan on this day'}</div>
           </header>
           {!mealPlan && <div className="muted">No meal plan for today. Use the button above to generate.</div>}
           {mealPlan && (

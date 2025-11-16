@@ -51,7 +51,7 @@ function resolveTimeZone(candidate) {
 }
 
 export default async function HomePage() {
-  const headerStore = headers();
+  const headerStore = await headers();
   const timeZoneCandidate =
     headerStore.get("x-vercel-ip-timezone") ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
