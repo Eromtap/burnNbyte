@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import MiniCalendar from "@/components/MiniCalendar";
+import { sumMealMacros, formatMacro } from "@/lib/macros";
 
 // Server component renders dashboard content; AppFrame wraps it globally
 
@@ -74,6 +75,7 @@ export default async function HomePage() {
     prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } })
   ]);
+  const mealMacros = sumMealMacros(mealPlan?.meals || []);
 
   const grouped = (mealPlan?.meals || []).reduce((acc, m) => {
     const t = (m.type || "").toLowerCase();
@@ -83,7 +85,7 @@ export default async function HomePage() {
   }, {});
 
   // Food calories from meals (matches Meals tab)
-  const mealCalories = (mealPlan?.meals?.reduce((sum, m) => sum + (Number(m.calories) || 0), 0) || 0);
+  const mealCalories = mealMacros.calories;
 
   // Estimated workout calories
   const weightLb = profile?.weight || null;
@@ -112,6 +114,12 @@ export default async function HomePage() {
               </div>
               <div className="stat-value">{workoutCalories ?? 0}<span className="unit"> kcal</span></div>
             </div>
+          </div>
+          <div className="list-row" style={{ marginTop: 12 }}>
+            <span>Meal Macros (est.)</span>
+            <span className="muted">
+              {mealCalories} kcal | {formatMacro(mealMacros.protein)}g Protein | {formatMacro(mealMacros.carbs)}g Carbs | {formatMacro(mealMacros.fat)}g Fat
+            </span>
           </div>
         </article>
 
@@ -142,6 +150,12 @@ export default async function HomePage() {
           )}
           {mealPlan && (
             <div className="stack">
+              <div className="list-row" style={{ marginBottom: 12 }}>
+                <span>Daily totals</span>
+                <span className="muted">
+                  {mealCalories} kcal | {formatMacro(mealMacros.protein)}g Protein | {formatMacro(mealMacros.carbs)}g Carbs | {formatMacro(mealMacros.fat)}g Fat
+                </span>
+              </div>
               {["breakfast", "lunch", "dinner", "snack"].map((type) => (
                 <div key={type} className="planner-col">
                   <div className="planner-head" style={{ textTransform: "capitalize" }}>{type}</div>
@@ -149,7 +163,9 @@ export default async function HomePage() {
                     {(grouped[type] || []).map((m) => (
                       <div key={m.id} className="list-row" style={{ marginTop: 8 }}>
                         <span>{m.name}</span>
-                        <span className="muted">{m.calories ?? 0} kcal</span>
+                        <span className="muted">
+                          {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                        </span>
                       </div>
                     ))}
                     {!((grouped[type] || []).length) && <div className="muted">No {type} planned.</div>}
