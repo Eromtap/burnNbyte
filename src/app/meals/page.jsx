@@ -6,6 +6,7 @@ import GenerateMealPlan from "@/components/GenerateMealPlan";
 import DateStrip from "@/components/DateStrip";
 import MealsReplacerSingle from "@/components/MealsReplacerSingle";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
+import MealPhotoReplace from "@/components/MealPhotoReplace";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -150,6 +151,14 @@ export default async function MealsPage({ searchParams }){
             <div className="sub">Pick one meal to swap for this day</div>
           </header>
           <MealsReplacerSingle selectedISO={selectedISO} />
+        </article>
+
+        <article className="card">
+          <header className="card-head">
+            <h3>Replace with Meal Photo</h3>
+            <div className="sub">Upload a meal photo to estimate macros and swap it into this day</div>
+          </header>
+          <MealPhotoReplace selectedISO={selectedISO} />
         </article>
       </div>
     </main>
