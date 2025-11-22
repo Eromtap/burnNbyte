@@ -102,8 +102,9 @@ body{background:var(--bg);}
 .stack{display:grid;gap:12px}
 
 /* Date strip */
-.date-strip{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.date-strip-scroll{display:flex;gap:8px;overflow-x:auto;padding:6px 2px}
+.date-strip{display:block;margin-bottom:8px}
+.date-strip-scroll{display:flex;gap:8px;overflow-x:auto;padding:6px 2px;width:100%;min-width:0;scrollbar-width:none}
+.date-strip-scroll::-webkit-scrollbar{display:none}
 .date-pill{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;padding:8px 10px;border-radius:12px;border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);background:color-mix(in oklab, var(--surface) 85%, transparent);color:var(--text);text-decoration:none}
 .date-pill .dow{font-size:12px;color:var(--muted)}
 .date-pill .dom{font-size:16px;font-weight:700;color:var(--text)}
@@ -132,9 +133,14 @@ body{background:var(--bg);}
 .days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 
 .card{background:var(--surface);border:1px solid color-mix(in oklab, var(--elev) 55%, transparent);border-radius:14px;box-shadow:var(--shadow);padding:14px}
-.card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap}
+.card-head>*{min-width:0}
 .card h3{font-size:20px;font-weight:700;letter-spacing:.2px;color:var(--text);margin:0}
-.card .sub{font-size:13px;color:color-mix(in oklab, var(--text) 65%, var(--muted))}
+.card .sub{font-size:13px;color:color-mix(in oklab, var(--text) 65%, var(--muted));text-align:right}
+@media (max-width: 640px){
+  .card-head{flex-direction:column}
+  .card .sub{text-align:left}
+}
 
 .stats{display:grid;grid-template-columns:1fr;gap:10px}
 .stat-label{font-size:12px;color:var(--muted)}
@@ -145,7 +151,8 @@ body{background:var(--bg);}
 .progress>span{display:block;block-size:100%;background:linear-gradient(90deg, var(--accent), var(--accent-2));box-shadow:0 0 12px color-mix(in oklab, var(--accent) 60%, transparent)}
 
 .list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.list-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:color-mix(in oklab, var(--elev) 88%, transparent);border:1px solid color-mix(in oklab, var(--elev) 65%, transparent);border-radius:12px}
+.list-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:color-mix(in oklab, var(--elev) 88%, transparent);border:1px solid color-mix(in oklab, var(--elev) 65%, transparent);border-radius:12px;flex-wrap:wrap}
+.list-row>*{min-width:0}
 .list-row span{color:var(--text)}
 .pill{padding:2px 8px;border-radius:999px;background:color-mix(in oklab, var(--accent) 12%, transparent);color:var(--text);font-size:12px}
 .muted{color:var(--muted)}
@@ -167,6 +174,13 @@ select{color:var(--text)}
 .pref-border{border:1px solid color-mix(in oklab, var(--accent) 16%, transparent);border-radius:10px;padding:10px;background:color-mix(in oklab, var(--elev) 85%, transparent)}
 /* Grid for dietary preferences: 4 columns */
 .prefs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.pref-card{border:1px solid color-mix(in oklab, var(--elev) 65%, transparent);border-radius:12px;padding:10px 12px;background:color-mix(in oklab, var(--surface) 90%, transparent);text-align:left;min-height:80px;display:flex;flex-direction:column;gap:4px;transition:border-color .2s ease, background .2s ease, color .2s ease;color:var(--text);cursor:pointer;width:100%}
+.pref-card span{font-weight:600;font-size:14px}
+.pref-card small{font-size:12px;color:color-mix(in oklab, var(--text) 70%, transparent)}
+.pref-card-active{border-color:color-mix(in oklab, var(--accent) 55%, transparent);background:color-mix(in oklab, var(--accent) 15%, var(--surface));color:var(--text)}
+.selected-prefs{display:flex;flex-wrap:wrap;gap:8px}
+.pref-pill{display:inline-flex;align-items:center;gap:6px;background:color-mix(in oklab, var(--surface) 85%, transparent);border-radius:999px;padding:4px 10px;font-size:12px;border:1px solid color-mix(in oklab, var(--elev) 70%, transparent)}
+.pref-pill button{background:none;border:0;font-size:14px;line-height:1;color:inherit;cursor:pointer;padding:0 0 0 2px}
 @media (min-width: 720px){
   .prefs-grid{grid-template-columns:repeat(4,1fr)}
 }

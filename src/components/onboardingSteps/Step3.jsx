@@ -1,23 +1,94 @@
 'use client';
+import { useState } from 'react';
 import StepLayout from './StepLayout';
+import { DIETARY_PREFERENCES, labelForDietaryPreference } from '@/constants/dietaryPreferences';
 
 export default function Step3({ formData, updateForm }) {
+  const [customPref, setCustomPref] = useState('');
+  const preferences = Array.isArray(formData.dietaryPreferences) ? formData.dietaryPreferences : [];
+
+  const togglePreference = (value) => {
+    const exists = preferences.includes(value);
+    const next = exists ? preferences.filter((pref) => pref !== value) : [...preferences, value];
+    updateForm({ dietaryPreferences: next });
+  };
+
+  const removePreference = (value) => {
+    updateForm({ dietaryPreferences: preferences.filter((pref) => pref !== value) });
+  };
+
+  const addCustomPreference = () => {
+    const cleaned = customPref.trim();
+    if (!cleaned) return;
+    if (preferences.includes(cleaned)) {
+      setCustomPref('');
+      return;
+    }
+    updateForm({ dietaryPreferences: [...preferences, cleaned] });
+    setCustomPref('');
+  };
+
+  const onCustomKey = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addCustomPreference();
+    }
+  };
+
   return (
     <StepLayout stepNumber={3} totalSteps={3} title="Nutrition & Focus Areas">
-      <label className="block planner-head">
-        <span>Dietary Preferences (comma separated)</span>
-        <input
-          type="text"
-          className="input mt-1"
-          placeholder="keto, pescatarian"
-          value={Array.isArray(formData.dietaryPreferences) ? formData.dietaryPreferences.join(', ') : ''}
-          onChange={(e) => {
-            const csv = e.target.value;
-            const arr = csv.split(',').map(s => s.trim()).filter(Boolean);
-            updateForm({ dietaryPreferences: arr });
-          }}
-        />
-      </label>
+      <div className="block planner-head">
+        <div className="flex justify-between items-center">
+          <span>Dietary Preferences</span>
+          <span className="text-xs muted">Pick anything you love</span>
+        </div>
+        <div className="prefs-grid mt-2">
+          {DIETARY_PREFERENCES.map((pref) => {
+            const active = preferences.includes(pref.id);
+            return (
+              <button
+                key={pref.id}
+                type="button"
+                className={`pref-card ${active ? 'pref-card-active' : ''}`}
+                onClick={() => togglePreference(pref.id)}
+              >
+                <span>{pref.label}</span>
+                <small>{pref.description}</small>
+              </button>
+            );
+          })}
+        </div>
+        <label className="block mt-3">
+          <span className="text-sm">Custom preferences</span>
+          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <input
+              type="text"
+              className="input"
+              style={{ flex: 1 }}
+              placeholder="Add custom preference (press Enter)"
+              value={customPref}
+              onChange={(e) => setCustomPref(e.target.value)}
+              onKeyDown={onCustomKey}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addCustomPreference}>
+              Add
+            </button>
+          </div>
+        </label>
+        {preferences.length > 0 && (
+          <div className="selected-prefs mt-3">
+            {preferences.map((pref) => (
+              <span key={pref} className="pref-pill">
+                {labelForDietaryPreference(pref)}
+                <button type="button" onClick={() => removePreference(pref)} aria-label={`Remove ${pref}`}>
+                  &times;
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        {preferences.length === 0 && <p className="text-xs muted mt-2">Leave blank if you are open to anything.</p>}
+      </div>
 
       <label className="block planner-head">
         Allergies:
@@ -25,7 +96,7 @@ export default function Step3({ formData, updateForm }) {
           type="text"
           placeholder="e.g. peanuts, dairy"
           className="input mt-1"
-          value={formData.allergies}
+          value={formData.allergies || ''}
           onChange={(e) => updateForm({ allergies: e.target.value })}
         />
       </label>
