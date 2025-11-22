@@ -159,7 +159,8 @@ body{background:var(--bg);}
 
 /* Planner */
 .planner{display:grid;grid-template-columns:1fr;gap:10px}
-.planner-col{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);background:color-mix(in oklab, var(--elev) 90%, transparent)}
+.planner-col{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;border-radius:12px;border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);background:color-mix(in oklab, var(--elev) 90%, transparent);width:100%}
+.planner-col-row{flex-direction:row;align-items:center;justify-content:space-between}
 .planner-head{font-weight:700;color:var(--text)}
 
 /* Forms */
