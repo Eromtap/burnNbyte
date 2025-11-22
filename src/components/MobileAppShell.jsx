@@ -225,10 +225,9 @@ function CardList({ title, subtitle, items, pill }){
 
 function PlannerCol({ label }){
   return (
-    <div className="planner-col">
+    <div className="planner-col planner-col-row">
       <div className="planner-head">{label}</div>
       <button className="btn btn-ghost">+ Add</button>
     </div>
   );
 }
-
