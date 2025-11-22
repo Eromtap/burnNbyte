@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import OpenAI from "openai";
+import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,7 @@ export async function POST(req) {
     // Pull preferences
     const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
     const dietaryPreferences = Array.isArray(profile?.dietaryPreferences) ? profile.dietaryPreferences : [];
+    const dietaryPrefFriendly = describeDietaryPreferences(dietaryPreferences);
     // allergies stored as string in schema; split to array defensively
     const allergies = typeof profile?.allergies === "string"
       ? profile.allergies.split(",").map(s=>s.trim()).filter(Boolean)
@@ -103,7 +105,7 @@ export async function POST(req) {
           `Analyze the pantry photo and list recognizable edible items (ingredients).`,
           `Then propose ${days} meals that primarily use those items and respect these constraints:`,
           `- fitnessGoal: ${JSON.stringify(fitnessGoal)}`,
-          `- dietaryPreferences (soft): ${JSON.stringify(dietaryPreferences)}`,
+          `- dietaryPreferences (soft): ${JSON.stringify(dietaryPrefFriendly.length ? dietaryPrefFriendly : dietaryPreferences)}`,
           `- allergies (HARD AVOID): ${JSON.stringify(allergies)}`,
           `- units: ${unitSystem}`,
           "Respond ONLY with JSON that matches the provided schema; no prose."

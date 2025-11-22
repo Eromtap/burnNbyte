@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import OpenAI from 'openai';
+import { describeDietaryPreferences } from '@/constants/dietaryPreferences';
 
 function toUTC(ymd){
   const [y,m,d] = String(ymd||'').split('-').map(Number);
@@ -25,6 +26,8 @@ export async function POST(req){
       fitnessGoal: profile?.fitnessGoal || null,
       mealsPerDay: profile?.mealsPerDay || 4,
     };
+    const dietPrompt = describeDietaryPreferences(prefs.dietaryPreferences);
+    const dietForPrompt = dietPrompt.length ? dietPrompt : prefs.dietaryPreferences;
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -72,7 +75,7 @@ export async function POST(req){
         // Regenerate full day using generateMealPlan-like behavior with single date
         const prompt = {
           role: 'user',
-          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(prefs.dietaryPreferences)}, allergies=${JSON.stringify(prefs.allergies)}. Output JSON { meals:[...] } with the required meal fields; no prose.`,
+          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(dietForPrompt)}, allergies=${JSON.stringify(prefs.allergies)}. Lean into the preferences wherever possible. Output JSON { meals:[...] } with the required meal fields; no prose.`,
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.6 });
         let content = completion.choices?.[0]?.message?.content ?? '';
@@ -91,7 +94,7 @@ export async function POST(req){
         const fixed = (plan?.meals||[]).filter(m=> !types?.includes(m.type)).map(m=>({ name:m.name, type:m.type, calories:m.calories, protein:m.protein, carbs:m.carbs, fat:m.fat }));
         const prompt = {
           role: 'user',
-          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(prefs.dietaryPreferences)}, allergies=${JSON.stringify(prefs.allergies)}. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type.`
+          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(dietForPrompt)}, allergies=${JSON.stringify(prefs.allergies)}. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type.`
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.5 });
         let content = completion.choices?.[0]?.message?.content ?? '';

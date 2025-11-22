@@ -1,7 +1,9 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
+import { DIETARY_PREFERENCES, labelForDietaryPreference } from '@/constants/dietaryPreferences';
 
 const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const BUILT_IN_PREFS = new Set(DIETARY_PREFERENCES.map(p => p.id));
 
 export default function ProfileForm({ initial }){
   const [form, setForm] = useState({
@@ -19,11 +21,28 @@ export default function ProfileForm({ initial }){
     mealsPerDay: initial.mealsPerDay ?? 3,
   });
   const [saving, setSaving] = useState(false);
+  const [customPref, setCustomPref] = useState('');
   const [msg, setMsg] = useState(null);
-
   function updateField(key, val){ setForm(f => ({...f, [key]: val})); }
   function toggleDay(day){ setForm(f => ({...f, workoutDays: f.workoutDays.includes(day) ? f.workoutDays.filter(d=>d!==day) : [...f.workoutDays, day]})); }
   function updateCSV(key, csv){ updateField(key, csv.split(',').map(s=>s.trim()).filter(Boolean)); }
+  function toggleDietPreference(value){
+    updateField('dietaryPreferences', form.dietaryPreferences.includes(value)
+      ? form.dietaryPreferences.filter(v => v !== value)
+      : [...form.dietaryPreferences, value]);
+  }
+  function removeDietPreference(value){
+    updateField('dietaryPreferences', form.dietaryPreferences.filter(v => v !== value));
+  }
+  function addCustomDietPreference(){
+    const cleaned = customPref.trim();
+    if(!cleaned || form.dietaryPreferences.includes(cleaned)) {
+      setCustomPref('');
+      return;
+    }
+    updateField('dietaryPreferences', [...form.dietaryPreferences, cleaned]);
+    setCustomPref('');
+  }
 
   async function onSubmit(e){
     e.preventDefault(); setSaving(true); setMsg(null);
@@ -83,10 +102,60 @@ export default function ProfileForm({ initial }){
         </select>
       </label>
 
-      <label>
-        <span>Dietary Preferences (comma separated)</span>
-        <input value={form.dietaryPreferences.join(', ')} onChange={e=>updateCSV('dietaryPreferences', e.target.value)} placeholder="keto, pescatarian" />
-      </label>
+      <div>
+        <div className="planner-head">
+          <span>Dietary Preferences</span>
+        </div>
+        <p className="text-xs muted" style={{ marginTop: 4 }}>Select as many as you like from the list below.</p>
+        <div className="prefs-grid mt-2">
+          {DIETARY_PREFERENCES.map(pref => {
+            const active = form.dietaryPreferences.includes(pref.id);
+            return (
+              <button
+                key={pref.id}
+                type="button"
+                className={`pref-card ${active ? 'pref-card-active' : ''}`}
+                onClick={()=>toggleDietPreference(pref.id)}
+              >
+                <span>{pref.label}</span>
+                <small>{pref.description}</small>
+              </button>
+            );
+          })}
+        </div>
+        <label className="block mt-4">
+          <span className="planner-head">Custom Preferences</span>
+          <p className="text-xs muted">Type any cuisines or foods you want us to lean into.</p>
+          <div style={{display:'flex', gap:12, marginTop:8}}>
+            <input
+              type="text"
+              className="input"
+              style={{flex:1}}
+              placeholder="e.g. Mediterranean, high-protein bowls"
+              value={customPref}
+              onChange={e=>setCustomPref(e.target.value)}
+              onKeyDown={e => {
+                if(e.key === 'Enter'){
+                  e.preventDefault();
+                  addCustomDietPreference();
+                }
+              }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addCustomDietPreference}>Add</button>
+          </div>
+          {form.dietaryPreferences.some(pref => !BUILT_IN_PREFS.has(pref)) && (
+            <div className="selected-prefs mt-3">
+              {form.dietaryPreferences.filter(pref => !BUILT_IN_PREFS.has(pref)).map(pref => (
+                <span key={pref} className="pref-pill">
+                  {labelForDietaryPreference(pref)}
+                  <button type="button" onClick={()=>removeDietPreference(pref)} aria-label={`Remove ${pref}`}>&times;</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </label>
+        {form.dietaryPreferences.length === 0 && <p className="text-xs muted mt-2">Leave empty if you have no dietary preferences.</p>}
+      </div>
 
       <label>
         <span>Allergies (comma separated)</span>
@@ -126,4 +195,3 @@ export default function ProfileForm({ initial }){
     </form>
   );
 }
-
