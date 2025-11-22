@@ -158,7 +158,7 @@ Rules:
 - For EVERY listed date, return EXACTLY ${mealsPerDay} meals.
 - Absolutely avoid any allergens. NEVER include any of: ${prefsAllergies.join(', ')}.
 - Prefer dietaryPreferences without violating allergies and try to spotlight at least one of them in each day's plan.
-- Keep each recipe clear and practical in a single "recipe" string.
+- Each recipe must be a single string of 3-6 numbered steps (e.g., "1. Preheat skillet...") separated by line breaks so a beginner can follow prep through serving.
 - Dates MUST match the provided list and use ISO yyyy-mm-dd.
 - Respond ONLY with JSON that matches the provided schema (no prose, no fences).
 
@@ -179,7 +179,7 @@ Output shape:
           "carbs": 0,
           "fat": 0,
           "ingredients": ["item (qty, unit)", "..."],
-          "recipe": "short clear steps in one string"
+          "recipe": "1. Preheat oven to 400 F.\\n2. Toss veggies with olive oil and roast 18 min.\\n3. Plate with quinoa and drizzle yogurt sauce."
         }
       ]
     }

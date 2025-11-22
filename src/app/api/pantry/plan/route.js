@@ -108,6 +108,7 @@ export async function POST(req) {
           `- dietaryPreferences (soft): ${JSON.stringify(dietaryPrefFriendly.length ? dietaryPrefFriendly : dietaryPreferences)}`,
           `- allergies (HARD AVOID): ${JSON.stringify(allergies)}`,
           `- units: ${unitSystem}`,
+          `- recipe instructions: provide a single string of 3-6 numbered steps so the cook can follow prep, cooking, and serving without guesswork`,
           "Respond ONLY with JSON that matches the provided schema; no prose."
         ].join("\n") },
         ...dataUrls.map((u) => ({ type: "image_url", image_url: { url: u } }))

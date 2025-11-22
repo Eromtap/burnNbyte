@@ -75,7 +75,7 @@ export async function POST(req){
         // Regenerate full day using generateMealPlan-like behavior with single date
         const prompt = {
           role: 'user',
-          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(dietForPrompt)}, allergies=${JSON.stringify(prefs.allergies)}. Lean into the preferences wherever possible. Output JSON { meals:[...] } with the required meal fields; no prose.`,
+          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(dietForPrompt)}, allergies=${JSON.stringify(prefs.allergies)}. Lean into the preferences wherever possible. Output JSON { meals:[...] } with the required meal fields; no prose. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook has clear guidance.`,
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.6 });
         let content = completion.choices?.[0]?.message?.content ?? '';
@@ -94,7 +94,7 @@ export async function POST(req){
         const fixed = (plan?.meals||[]).filter(m=> !types?.includes(m.type)).map(m=>({ name:m.name, type:m.type, calories:m.calories, protein:m.protein, carbs:m.carbs, fat:m.fat }));
         const prompt = {
           role: 'user',
-          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(dietForPrompt)}, allergies=${JSON.stringify(prefs.allergies)}. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type.`
+          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoal=${JSON.stringify(prefs.fitnessGoal)}, preferences=${JSON.stringify(dietForPrompt)}, allergies=${JSON.stringify(prefs.allergies)}. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook can follow each meal.`
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.5 });
         let content = completion.choices?.[0]?.message?.content ?? '';
@@ -119,4 +119,3 @@ export async function POST(req){
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
-
