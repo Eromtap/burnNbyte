@@ -102,8 +102,9 @@ body{background:var(--bg);}
 .stack{display:grid;gap:12px}
 
 /* Date strip */
-.date-strip{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.date-strip-scroll{display:flex;gap:8px;overflow-x:auto;padding:6px 2px}
+.date-strip{display:block;margin-bottom:8px}
+.date-strip-scroll{display:flex;gap:8px;overflow-x:auto;padding:6px 2px;width:100%;min-width:0;scrollbar-width:none}
+.date-strip-scroll::-webkit-scrollbar{display:none}
 .date-pill{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;padding:8px 10px;border-radius:12px;border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);background:color-mix(in oklab, var(--surface) 85%, transparent);color:var(--text);text-decoration:none}
 .date-pill .dow{font-size:12px;color:var(--muted)}
 .date-pill .dom{font-size:16px;font-weight:700;color:var(--text)}
