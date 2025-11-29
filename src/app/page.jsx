@@ -156,22 +156,30 @@ export default async function HomePage() {
                   {mealCalories} kcal | {formatMacro(mealMacros.protein)}g Protein | {formatMacro(mealMacros.carbs)}g Carbs | {formatMacro(mealMacros.fat)}g Fat
                 </span>
               </div>
-              {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                <div key={type} className="planner-col">
-                  <div className="planner-head" style={{ textTransform: "capitalize" }}>{type}</div>
-                  <div>
-                    {(grouped[type] || []).map((m) => (
-                      <div key={m.id} className="list-row" style={{ marginTop: 8 }}>
-                        <span>{m.name}</span>
-                        <span className="muted">
-                          {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
-                        </span>
-                      </div>
-                    ))}
-                    {!((grouped[type] || []).length) && <div className="muted">No {type} planned.</div>}
+              <div className="meal-links">
+                {["breakfast", "lunch", "dinner", "snack"].map((type) => (
+                  <div key={type} className="planner-col">
+                    <Link
+                      className="btn btn-primary meal-link"
+                      style={{ textTransform: "capitalize" }}
+                      href={`/meals/${type}?date=${todayISO}`}
+                    >
+                      {type}
+                    </Link>
+                    <div>
+                      {(grouped[type] || []).map((m) => (
+                        <div key={m.id} className="list-row" style={{ marginTop: 8 }}>
+                          <span>{m.name}</span>
+                          <span className="muted">
+                            {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                          </span>
+                        </div>
+                      ))}
+                      {!((grouped[type] || []).length) && <div className="muted">No {type} planned.</div>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </article>

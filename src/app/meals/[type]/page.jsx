@@ -1,0 +1,117 @@
+import { requireAuth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import Link from "next/link";
+import { formatMacro } from "@/lib/macros";
+
+function toUTCDateFromLocalYMD(ymd) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
+function toYMDInTimeZone(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((p) => p.type === "year")?.value ?? "0000";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
+}
+
+function resolveTimeZone(candidate) {
+  try {
+    if (candidate) {
+      new Intl.DateTimeFormat(undefined, { timeZone: candidate }).format(new Date());
+      return candidate;
+    }
+  } catch (_err) {
+    // ignore, fall back to UTC
+  }
+  return "UTC";
+}
+
+const ALLOWED_TYPES = ["breakfast", "lunch", "dinner", "snack"];
+
+export default async function MealTypePage({ params, searchParams }) {
+  const rawType = (params?.type || "").toLowerCase();
+  if (!ALLOWED_TYPES.includes(rawType)) {
+    redirect("/meals");
+  }
+
+  const headerStore = await headers();
+  const timeZoneCandidate =
+    headerStore.get("x-vercel-ip-timezone") ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone ||
+    "UTC";
+  const timeZone = resolveTimeZone(timeZoneCandidate);
+
+  const session = await requireAuth();
+  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  if (!profile) redirect("/onboarding/1");
+
+  const todayISO = toYMDInTimeZone(new Date(), timeZone);
+  const paramDate = typeof searchParams?.get === "function" ? searchParams.get("date") : searchParams?.date;
+  const selectedISO = paramDate ? String(paramDate) : todayISO;
+  const baseUtc = toUTCDateFromLocalYMD(selectedISO);
+
+  const mealPlan = await prisma.mealPlan.findFirst({
+    where: { userId: session.user.id, date: baseUtc },
+    include: { meals: true },
+  });
+
+  const meals = (mealPlan?.meals || []).filter(
+    (m) => (m.type || "").toLowerCase() === rawType
+  );
+
+  return (
+    <main>
+      <div className="stack">
+        <article className="card">
+          <header className="card-head">
+            <h3 style={{ textTransform: "capitalize" }}>{rawType}</h3>
+            <div className="sub">{selectedISO}</div>
+          </header>
+          {!mealPlan && <div className="muted">No meal plan for this day. Go to <Link href={`/meals?date=${selectedISO}`} className="pill">Meals</Link> to generate.</div>}
+          {mealPlan && meals.length === 0 && (
+            <div className="muted">No {rawType} planned for this day.</div>
+          )}
+          {mealPlan && meals.length > 0 && (
+            <div className="stack">
+              {meals.map((m) => (
+                <article key={m.id} className="card">
+                  <header className="card-head">
+                    <h3>{m.name}</h3>
+                    <div className="sub">
+                      {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                    </div>
+                  </header>
+                  <div className="stack">
+                    {Array.isArray(m.ingredients) && m.ingredients.length > 0 && (
+                      <div>
+                        <div className="planner-head">Ingredients</div>
+                        <ul className="list" style={{ marginTop: 8 }}>
+                          {m.ingredients.map((ing, i) => (<li key={i} className="list-row"><span>{ing}</span></li>))}
+                        </ul>
+                      </div>
+                    )}
+                    {m.recipe && (
+                      <div>
+                        <div className="planner-head">Recipe</div>
+                        <div className="list-row"><span style={{ whiteSpace: "pre-wrap" }}>{m.recipe}</span></div>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </article>
+      </div>
+    </main>
+  );
+}
