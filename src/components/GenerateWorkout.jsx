@@ -93,7 +93,7 @@ export default function GenerateWorkout() {
 
   return (
     <div className="stack">
-      <button className="btn btn-primary" onClick={handleClick} disabled={loading}>
+      <button className="btn btn-primary btn-full" onClick={handleClick} disabled={loading}>
         {loading ? 'Generating…' : 'Create Workout Plan'}
       </button>
 

@@ -66,7 +66,7 @@ export default function GenerateMealPlan() {
 
   return (
     <div className="stack">
-      <button className="btn btn-primary" onClick={handleClick} disabled={loading}>
+      <button className="btn btn-primary btn-full" onClick={handleClick} disabled={loading}>
         {loading ? 'Generating…' : 'Create Meal Plans (Daily)'}
       </button>
       {result?.ok && (
