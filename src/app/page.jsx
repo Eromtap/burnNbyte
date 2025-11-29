@@ -97,7 +97,8 @@ export default async function HomePage() {
 
   return (
     <main>
-      <div className="grid">
+      <div className="dashboard-shell">
+        <div className="dashboard-grid">
         <article className="card span-2">
           <header className="card-head">
             <h3>Today's Summary</h3>
@@ -122,7 +123,6 @@ export default async function HomePage() {
             </span>
           </div>
         </article>
-
         <article className="card span-2">
           <header className="card-head">
             <h3>Today's Workout</h3>
@@ -176,7 +176,7 @@ export default async function HomePage() {
           )}
         </article>
 
-        <article className="card">
+        {/* <article className="card">
           <header className="card-head">
             <h3>Calendar</h3>
           </header>
@@ -189,7 +189,8 @@ export default async function HomePage() {
             />
             <Link href="/healthCalendar"><button className="btn btn-outline">Open Calendar</button></Link>
           </div>
-        </article>
+        </article> */}
+        </div>
       </div>
     </main>
   );
