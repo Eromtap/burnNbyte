@@ -46,6 +46,7 @@ export default function GenerateMealPlan() {
           fitnessGoal: prefs.fitnessGoal,
           mealsPerDay: prefs.mealsPerDay || 3,
           dietaryPreferences: prefs.dietaryPreferences || [],
+          dislikedFoods: prefs.dislikedFoods || [],
           allergies: prefs.allergies || [],
           startDate: todayISO,
           endDate: sevenDaysOutISO

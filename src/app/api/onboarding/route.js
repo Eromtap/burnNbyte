@@ -89,11 +89,16 @@ export async function POST(req) {
       : [];
 
     // Normalize dietaryPreferences to an array of strings
-    const dietaryPreferences = Array.isArray(data.dietaryPreferences)
-      ? data.dietaryPreferences
-      : (typeof data.dietaryPreferences === 'string'
-          ? data.dietaryPreferences.split(',').map(s => s.trim()).filter(Boolean)
-          : []);
+    const normalizeList = (val) => {
+      if (Array.isArray(val)) return val.map((v) => v?.toString().trim()).filter(Boolean);
+      if (typeof val === 'string') return val.split(',').map((s) => s.trim()).filter(Boolean);
+      return [];
+    };
+
+    const dietaryPreferences = normalizeList(data.dietaryPreferences);
+
+    // Normalize dislikedFoods to an array of strings
+    const dislikedFoods = normalizeList(data.dislikedFoods);
 
     // Normalize allergies to a single string column (comma-separated) per schema
     const allergies = Array.isArray(data.allergies)
@@ -110,6 +115,7 @@ export async function POST(req) {
       activityLevel: data.activityLevel,
       fitnessGoal: data.fitnessGoal,
       dietaryPreferences,
+      dislikedFoods,
       workoutPreference: data.workoutPreference,
       workoutDuration: toIntOrNull(data.workoutDuration),
       workoutDays,
@@ -140,6 +146,7 @@ export async function POST(req) {
       activityLevel: data.activityLevel,
       fitnessGoal: data.fitnessGoal,
       dietaryPreferences,
+      dislikedFoods,
       workoutPreference: data.workoutPreference,
       workoutDuration: toIntOrNull(data.workoutDuration),
       workoutDays,
@@ -156,13 +163,13 @@ export async function POST(req) {
       }
     }
 
-    await prisma.userProfile.upsert({
+    const saved = await prisma.userProfile.upsert({
       where: { userId: user.id },
       update: updateData,
       create: createData,
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, profile: saved });
   } catch (error) {
     // console.error("Error saving onboarding data:", error);
     console.error("Error saving onboarding data:", error, error?.meta);

@@ -16,6 +16,7 @@ export function OnboardingProvider({ children }) {
     activityLevel: "",
     fitnessGoal: "",
     dietaryPreferences: [],
+    dislikedFoods: [],
     allergies: "",
     mealsPerDay: 3,
     workoutPreference: "",

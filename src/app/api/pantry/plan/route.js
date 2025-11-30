@@ -35,6 +35,7 @@ export async function POST(req) {
     // Pull preferences
     const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
     const dietaryPreferences = Array.isArray(profile?.dietaryPreferences) ? profile.dietaryPreferences : [];
+    const dislikedFoods = Array.isArray(profile?.dislikedFoods) ? profile.dislikedFoods : [];
     const dietaryPrefFriendly = describeDietaryPreferences(dietaryPreferences);
     // allergies stored as string in schema; split to array defensively
     const allergies = typeof profile?.allergies === "string"
@@ -106,6 +107,7 @@ export async function POST(req) {
           `Then propose ${days} meals that primarily use those items and respect these constraints:`,
           `- fitnessGoal: ${JSON.stringify(fitnessGoal)}`,
           `- dietaryPreferences (soft): ${JSON.stringify(dietaryPrefFriendly.length ? dietaryPrefFriendly : dietaryPreferences)}`,
+          `- dislikedFoods (soft avoid): ${JSON.stringify(dislikedFoods)}`,
           `- allergies (HARD AVOID): ${JSON.stringify(allergies)}`,
           `- units: ${unitSystem}`,
           `- recipe instructions: provide a single string of 3-6 numbered steps so the cook can follow prep, cooking, and serving without guesswork`,
