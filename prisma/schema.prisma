@@ -59,6 +59,7 @@ model UserProfile {
   activityLevel      String?
   fitnessGoal        String?
   dietaryPreferences String[]
+  dislikedFoods      String[] @default([])
   workoutPreference  String?
   workoutDuration    Int?      @default(30) // minutes
 

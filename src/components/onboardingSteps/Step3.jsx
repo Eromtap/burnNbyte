@@ -5,7 +5,9 @@ import { DIETARY_PREFERENCES, labelForDietaryPreference } from '@/constants/diet
 
 export default function Step3({ formData, updateForm }) {
   const [customPref, setCustomPref] = useState('');
+  const [customDislike, setCustomDislike] = useState('');
   const preferences = Array.isArray(formData.dietaryPreferences) ? formData.dietaryPreferences : [];
+  const dislikes = Array.isArray(formData.dislikedFoods) ? formData.dislikedFoods : [];
 
   const togglePreference = (value) => {
     const exists = preferences.includes(value);
@@ -32,6 +34,26 @@ export default function Step3({ formData, updateForm }) {
     if (event.key === 'Enter') {
       event.preventDefault();
       addCustomPreference();
+    }
+  };
+
+  const addDislike = () => {
+    const cleaned = customDislike.trim();
+    if (!cleaned) return;
+    if (dislikes.includes(cleaned)) {
+      setCustomDislike('');
+      return;
+    }
+    updateForm({ dislikedFoods: [...dislikes, cleaned] });
+    setCustomDislike('');
+  };
+  const removeDislike = (value) => {
+    updateForm({ dislikedFoods: dislikes.filter((d) => d !== value) });
+  };
+  const onDislikeKey = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addDislike();
     }
   };
 
@@ -88,6 +110,33 @@ export default function Step3({ formData, updateForm }) {
           </div>
         )}
         {preferences.length === 0 && <p className="text-xs muted mt-2">Leave blank if you are open to anything.</p>}
+      </div>
+
+      <div className="block planner-head mt-4">
+        <span>Foods you dislike</span>
+        <p className="text-xs muted">Optional: list items you prefer to avoid (soft avoid).</p>
+        <div className="mt-2" style={{ display: 'flex', gap: 12 }}>
+          <input
+            type="text"
+            className="input"
+            style={{ flex: 1 }}
+            placeholder="e.g. olives, cottage cheese, mushrooms"
+            value={customDislike}
+            onChange={(e) => setCustomDislike(e.target.value)}
+            onKeyDown={onDislikeKey}
+          />
+          <button type="button" className="btn btn-secondary" onClick={addDislike}>Add</button>
+        </div>
+        {dislikes.length > 0 && (
+          <div className="selected-prefs mt-3">
+            {dislikes.map((item) => (
+              <span key={item} className="pref-pill">
+                {item}
+                <button type="button" onClick={() => removeDislike(item)} aria-label={`Remove ${item}`}>&times;</button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <label className="block planner-head">
