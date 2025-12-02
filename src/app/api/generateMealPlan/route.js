@@ -114,6 +114,7 @@ export async function POST(req) {
       fitnessGoal,
       mealsPerDay = 3,
       dietaryPreferences = [],
+      dislikedFoods = [],
       allergies = [],
       // range controls: pass either (startDate+endDate) or numDays
       startDate,         // "yyyy-mm-dd" optional
@@ -127,6 +128,7 @@ export async function POST(req) {
       : (typeof v === 'string' ? v.split(',').map(s=>s.trim()).filter(Boolean) : []);
     const prefsDiet = normArray(dietaryPreferences);
     const prefsDietFriendly = describeDietaryPreferences(prefsDiet);
+    const prefsDislikes = normArray(dislikedFoods);
     const prefsAllergies = normArray(allergies);
 
     if (!fitnessGoal) {
@@ -152,12 +154,14 @@ User:
 - fitnessGoal: ${JSON.stringify(fitnessGoal)}
 - mealsPerDay: ${mealsPerDay}
 - dietaryPreferences (soft, emphasize these foods/cuisines): ${JSON.stringify(prefsDietFriendly.length ? prefsDietFriendly : prefsDiet)}
+- dislikedFoods (soft avoid): ${JSON.stringify(prefsDislikes)}
 - allergies/exclusions (HARD AVOID): ${JSON.stringify(prefsAllergies)}
 
 Rules:
 - For EVERY listed date, return EXACTLY ${mealsPerDay} meals.
 - Absolutely avoid any allergens. NEVER include any of: ${prefsAllergies.join(', ')}.
 - Prefer dietaryPreferences without violating allergies and try to spotlight at least one of them in each day's plan.
+- Soft-avoid any dislikedFoods while still meeting the other constraints.
 - Each recipe must be a single string of 3-6 numbered steps (e.g., "1. Preheat skillet...") separated by line breaks so a beginner can follow prep through serving.
 - Dates MUST match the provided list and use ISO yyyy-mm-dd.
 - Respond ONLY with JSON that matches the provided schema (no prose, no fences).

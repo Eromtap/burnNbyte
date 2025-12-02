@@ -65,6 +65,7 @@ export default function OnboardingForm() {
             activityLevel: formData.activityLevel,
             fitnessGoal: formData.fitnessGoal,
             dietaryPreferences: formData.dietaryPreferences,
+            dislikedFoods: formData.dislikedFoods,
             allergies: formData.allergies,
             mealsPerDay: formData.mealsPerDay,
             workoutPreference: formData.workoutPreference,
