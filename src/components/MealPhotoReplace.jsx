@@ -77,7 +77,7 @@ export default function MealPhotoReplace({ selectedISO }) {
           </button>
         </div>
         <div className="muted" style={{ fontSize: 12 }}>
-          AI-generated estimate. It's a guess and can be wrong — review and adjust if it seems off.
+          AI-generated estimate. It&apos;s a guess and can be wrong — review and adjust if it seems off.
         </div>
         <div className="list-row" style={{ gap: 8, flexWrap: "wrap" }}>
           <label className="muted">Describe portion (optional)</label>
