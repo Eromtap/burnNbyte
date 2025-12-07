@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import { signOut } from 'next-auth/react';
+import Image from 'next/image';
 
 export default function AppFrame({ children }){
   const pathname = usePathname();
@@ -20,7 +21,7 @@ export default function AppFrame({ children }){
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Z"/></svg>
           </button>
           <h1 className="brand">
-            <img src="/logo.png" alt="burnNbyte logo" className="logo-brand"/>
+            <Image src="/logo.png" alt="burnNbyte logo" className="logo-brand" width={48} height={48} priority />
           </h1>
           <div className="header-actions">
             <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggle}>
@@ -40,7 +41,9 @@ export default function AppFrame({ children }){
         <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />
         <aside className="drawer-panel" role="dialog" aria-modal="true" aria-label="Navigation">
           <div className="drawer-head">
-            <div className="brand"><img src="/logo.png" alt="burnNbyte logo" className="logo-drawer"/></div>
+            <div className="brand">
+              <Image src="/logo.png" alt="burnNbyte logo" className="logo-drawer" width={48} height={48} priority />
+            </div>
             <button className="btn btn-ghost" onClick={() => setDrawerOpen(false)} aria-label="Close">✕</button>
           </div>
           <nav className="drawer-nav">

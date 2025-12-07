@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 
 export default function AuthStatus() {
@@ -17,7 +18,10 @@ export default function AuthStatus() {
       <p>Prefs: {goal}</p>
       {!prefs && (
         <p className="text-sm text-gray-500">
-          No preferences yet. <a href="/onboarding/1" className="underline">Complete onboarding</a>
+          No preferences yet.{" "}
+          <Link href="/onboarding/1" className="underline">
+            Complete onboarding
+          </Link>
         </p>
       )}
       <button onClick={() => signOut()}>Sign out</button>
