@@ -101,7 +101,7 @@ export default async function HomePage() {
         <div className="dashboard-grid">
         <article className="card span-2">
           <header className="card-head">
-            <h3>Today's Summary</h3>
+            <h3>Today&apos;s Summary</h3>
             <div className="sub">Estimated totals</div>
           </header>
           <div className="stats">
@@ -125,7 +125,7 @@ export default async function HomePage() {
         </article>
         <article className="card span-2">
           <header className="card-head">
-            <h3>Today's Workout</h3>
+            <h3>Today&apos;s Workout</h3>
             <div className="sub">{workout ? formatUTCDateForDisplay(workout.date, timeZone) : "No workout saved"}</div>
           </header>
           {!workout && (
@@ -142,7 +142,7 @@ export default async function HomePage() {
 
         <article className="card span-2">
           <header className="card-head">
-            <h3>Today's Meal Plan</h3>
+            <h3>Today&apos;s Meal Plan</h3>
             <div className="sub">{mealPlan ? formatUTCDateForDisplay(mealPlan.date, timeZone) : "No meal plan saved"}</div>
           </header>
           {!mealPlan && (

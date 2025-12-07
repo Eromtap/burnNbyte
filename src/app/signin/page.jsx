@@ -70,7 +70,7 @@ export default function SignInPage() {
           </label>
 
           <button type="submit" className="btn btn-primary">Sign In</button>
-          <div className="muted">Don't have an account? <Link href="/signup">Sign Up</Link></div>
+          <div className="muted">Don&apos;t have an account? <Link href="/signup">Sign Up</Link></div>
         </form>
       </div>
     </main>
