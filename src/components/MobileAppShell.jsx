@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
+import Image from 'next/image';
 
 export default function MobileAppShell() {
   const { toggle } = useTheme();
@@ -12,7 +13,7 @@ export default function MobileAppShell() {
       <header className="app-header">
         <div className="header-main">
           <h1 className="brand">
-            <img src="/logo.png" alt="burnNbyte logo" className="logo-brand"/>
+            <Image src="/logo.png" alt="burnNbyte logo" className="logo-brand" width={48} height={48} priority />
           </h1>
           <div className="header-actions">
             <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggle}>

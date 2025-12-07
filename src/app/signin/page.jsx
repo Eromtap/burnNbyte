@@ -3,6 +3,7 @@ import { signIn, getSession } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // using next/navigation for App Router
+import Image from "next/image";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -52,10 +53,13 @@ export default function SignInPage() {
     <main>
       <div className="stack" style={{ maxWidth: 420, margin: '40px auto' }}>
         <h1 className="brand" style={{ justifyContent: 'center' }}>
-          <img
+          <Image
             src="/logo.png"
             alt="burnNbyte logo"
+            width={1024}
+            height={1024}
             style={{ width: '100%', height: 'auto', display: 'block' }}
+            priority
           />
         </h1>
         <form onSubmit={handleSubmit} className="card form">
