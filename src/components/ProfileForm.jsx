@@ -266,7 +266,9 @@ export default function ProfileForm({ initial }){
             }}
           />
         </label>
-        {form.equipmentAccess.length === 0 && <p className="text-xs muted mt-2">Even "bodyweight only" helps us program correctly.</p>}
+        {form.equipmentAccess.length === 0 && (
+          <p className="text-xs muted mt-2">Even &quot;bodyweight only&quot; helps us program correctly.</p>
+        )}
       </div>
 
       <label className="mt-4">
