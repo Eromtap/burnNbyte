@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
+import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -112,6 +113,7 @@ export async function POST(req) {
       heightIn,
       weight,
       fitnessGoal,
+      fitnessGoals,
       mealsPerDay = 3,
       dietaryPreferences = [],
       dislikedFoods = [],
@@ -130,8 +132,11 @@ export async function POST(req) {
     const prefsDietFriendly = describeDietaryPreferences(prefsDiet);
     const prefsDislikes = normArray(dislikedFoods);
     const prefsAllergies = normArray(allergies);
+    const goalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    const primaryGoal = goalList[0] || (typeof fitnessGoal === "string" ? fitnessGoal : "");
+    const goalFriendly = describeFitnessGoals(goalList);
 
-    if (!fitnessGoal) {
+    if (!primaryGoal) {
       return NextResponse.json({ error: "Missing required field: fitnessGoal" }, { status: 400 });
     }
 
@@ -151,7 +156,7 @@ User:
 - heightFt: ${JSON.stringify(heightFt ?? null)}
 - heightIn: ${JSON.stringify(heightIn ?? null)}
 - weight: ${JSON.stringify(weight ?? null)}
-- fitnessGoal: ${JSON.stringify(fitnessGoal)}
+- fitnessGoals: ${JSON.stringify(goalFriendly.length ? goalFriendly : goalList.length ? goalList : [primaryGoal])}
 - mealsPerDay: ${mealsPerDay}
 - dietaryPreferences (soft, emphasize these foods/cuisines): ${JSON.stringify(prefsDietFriendly.length ? prefsDietFriendly : prefsDiet)}
 - dislikedFoods (soft avoid): ${JSON.stringify(prefsDislikes)}

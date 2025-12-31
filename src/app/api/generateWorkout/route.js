@@ -4,6 +4,8 @@ import OpenAI from "openai";
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from "@/lib/prisma";
+import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
+import { normalizeEquipmentAccess } from "@/constants/equipmentAccess";
 
 
 
@@ -60,18 +62,25 @@ export async function POST(req) {
       heightFt,
       heightIn,
       weight,
-      fitnessGoal, 
+      fitnessGoal,
+      fitnessGoals,
       fitnessLevel = "beginner", 
       workoutPreference = "mixed",
       workoutDuration = "60",
       workoutDays,
+      equipmentAccess,
       dateRange = today + ' - ' + todayPlus7,
       dates = []
     } = body;
 
-    if (!fitnessGoal) {
+    const goalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    const primaryGoal = goalList[0] || (typeof fitnessGoal === 'string' ? fitnessGoal : '');
+    const goalDescriptions = describeFitnessGoals(goalList);
+    const goalText = goalDescriptions.length ? goalDescriptions.join("; ") : primaryGoal;
+    if (!primaryGoal) {
       return NextResponse.json({ error: "Missing required field: goal" }, { status: 400 });
     }
+    const equipmentList = normalizeEquipmentAccess(equipmentAccess);
 
     const targetDates = Array.isArray(dates)
       ? dates
@@ -103,11 +112,13 @@ export async function POST(req) {
       - heightFt: "${heightFt}" feet
       - heightIn: "${heightIn}" inches
       - weight: "${weight}" pounds
-      - fitnessGoal: "${fitnessGoal}"
+      - fitnessGoals: ${JSON.stringify(goalList.length ? goalList : [primaryGoal])}
+      - goal details: ${goalText}
       - fitness level: "${fitnessLevel}"
       - workoutPreference: "${workoutPreference}"
       - workoutDuration: ${workoutDuration}
       - preferred workoutDays: ${JSON.stringify(workoutDays)}
+      - available equipment: ${JSON.stringify(equipmentList)}
       - targetDates: ${JSON.stringify(targetDates)}
 
       Return ONLY a JSON object with these fields (no commentary, no code fences):

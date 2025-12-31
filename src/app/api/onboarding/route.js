@@ -96,6 +96,8 @@ export async function POST(req) {
     };
 
     const dietaryPreferences = normalizeList(data.dietaryPreferences);
+    const fitnessGoals = normalizeList(data.fitnessGoals);
+    const equipmentAccess = normalizeList(data.equipmentAccess);
 
     // Normalize dislikedFoods to an array of strings
     const dislikedFoods = normalizeList(data.dislikedFoods);
@@ -113,12 +115,14 @@ export async function POST(req) {
       heightIn: toFloatOrNull(data.heightIn),
       weight: toFloatOrNull(data.weight),
       activityLevel: data.activityLevel,
-      fitnessGoal: data.fitnessGoal,
+      fitnessGoal: data.fitnessGoal || fitnessGoals[0] || null,
+      fitnessGoals,
       dietaryPreferences,
       dislikedFoods,
       workoutPreference: data.workoutPreference,
       workoutDuration: toIntOrNull(data.workoutDuration),
       workoutDays,
+      equipmentAccess,
       // workoutFrequency: undefined,
       allergies,
       mealsPerDay: toIntOrNull(data.mealsPerDay),
@@ -144,12 +148,14 @@ export async function POST(req) {
       heightIn: toFloatOrNull(data.heightIn),
       weight: toFloatOrNull(data.weight),
       activityLevel: data.activityLevel,
-      fitnessGoal: data.fitnessGoal,
+      fitnessGoal: data.fitnessGoal || fitnessGoals[0] || null,
+      fitnessGoals,
       dietaryPreferences,
       dislikedFoods,
       workoutPreference: data.workoutPreference,
       workoutDuration: toIntOrNull(data.workoutDuration),
       workoutDays,
+      equipmentAccess,
       // workoutFrequency: undefined,
       allergies,
       mealsPerDay: toIntOrNull(data.mealsPerDay),

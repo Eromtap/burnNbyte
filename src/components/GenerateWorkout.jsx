@@ -21,6 +21,12 @@ export default function GenerateWorkout() {
     const day = String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
   }
+  function toYMDUtc(d){
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth()+1).padStart(2,'0');
+    const day = String(d.getUTCDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
 
   function parseLocalYMD(ymd){
     const [y,m,d] = String(ymd||'').split('-').map(Number);
@@ -39,6 +45,10 @@ export default function GenerateWorkout() {
       // Determine selected date from URL (defaults to today)
       const selectedDate = parseLocalYMD(selectedISO);
       const selectedDow = dowCode(selectedDate);
+      const goalList = Array.isArray(userPrefs.fitnessGoals)
+        ? userPrefs.fitnessGoals
+        : (userPrefs.fitnessGoal ? [userPrefs.fitnessGoal] : []);
+      const equipmentAccess = Array.isArray(userPrefs.equipmentAccess) ? userPrefs.equipmentAccess : [];
 
       const preferredDays = Array.isArray(userPrefs.workoutDays) ? userPrefs.workoutDays : [];
       const nextSevenDates = [];
@@ -63,11 +73,13 @@ export default function GenerateWorkout() {
           heightFt: userPrefs.heightFt,
           heightIn: userPrefs.heightIn,
           weight: userPrefs.weight,
-          fitnessGoal: userPrefs.fitnessGoal,
+          fitnessGoal: userPrefs.fitnessGoal || goalList[0],
+          fitnessGoals: goalList,
           fitnessLevel: userPrefs.fitnessLevel || 'beginner',
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
           workoutDays: preferredDays.length ? preferredDays : [selectedDow],
+          equipmentAccess,
           dateRange: `${toYMDLocal(todayLocal)} - ${toYMDLocal(new Date(todayLocal.getTime() + 6*24*60*60*1000))}`,
           dates: nextSevenDates,
         }),
@@ -78,12 +90,22 @@ export default function GenerateWorkout() {
       const list = Array.isArray(data) ? data : (data?.workouts || []);
       const filtered = list.filter((w) => {
         try {
-          return toYMDLocal(new Date(w.date)) === selectedISO;
+          return toYMDUtc(new Date(w.date)) === selectedISO;
         } catch {
           return false;
         }
       });
-      setResult(filtered);
+      const deduped = [];
+      const seen = new Set();
+      for (const w of filtered) {
+        const key = `${toYMDUtc(new Date(w.date))}:${w.name || ''}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(w);
+      }
+      // We rely on the server-rendered card for display to avoid double-rendering;
+      // only show a simple success message here.
+      setResult({ ok: true, count: deduped.length, date: selectedISO });
     } catch (err) {
       setResult({ error: 'Failed to generate workout.' });
     } finally {
@@ -103,28 +125,9 @@ export default function GenerateWorkout() {
         </div>
       )}
 
-      {Array.isArray(result) && result.length > 0 && (
-        <div className="stack">
-          {result.map((w) => (
-            <article className="card" key={w.id || `${w.name}-${w.date}`}>
-              <header className="card-head">
-                <h3>{w.name || 'Workout'}</h3>
-                <div className="sub">{selectedLabel}</div>
-              </header>
-              <div className="stack">
-                <div className="list-row"><span>Duration</span><span className="muted">{w.duration} min</span></div>
-                {w.muscleGroup && <div className="list-row"><span>Muscle</span><span className="muted">{w.muscleGroup}</span></div>}
-                {Array.isArray(w.instructions) && w.instructions.length > 0 && (
-                  <div>
-                    <div className="planner-head">Instructions</div>
-                    <ul className="list" style={{ marginTop: 8 }}>
-                      {w.instructions.map((s, i) => (<li key={i} className="list-row"><span>{s}</span></li>))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </article>
-          ))}
+      {result?.ok && (
+        <div className="alert alert-success">
+          Created {result.count || 1} workout{(result.count||1) > 1 ? 's' : ''} for {selectedLabel}. Scroll down to view.
         </div>
       )}
     </div>

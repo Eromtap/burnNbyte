@@ -58,6 +58,7 @@ model UserProfile {
   weight             Float?
   activityLevel      String?
   fitnessGoal        String?
+  fitnessGoals       String[] @default([])
   dietaryPreferences String[]
   dislikedFoods      String[] @default([])
   workoutPreference  String?
@@ -68,6 +69,8 @@ model UserProfile {
 
   // (Optional) keep the old field temporarily for backwards compatibility
   workoutFrequency Int? @default(3)
+
+  equipmentAccess String[] @default([])
 
   allergies   String?
   mealsPerDay Int?

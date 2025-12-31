@@ -15,11 +15,12 @@ export function OnboardingProvider({ children }) {
     weight: "",
     activityLevel: "",
     fitnessGoal: "",
+    fitnessGoals: [],
+    equipmentAccess: [],
     dietaryPreferences: [],
     dislikedFoods: [],
     allergies: "",
     mealsPerDay: 3,
-    workoutPreference: "",
     workoutDuration: "",
     workoutsPerWeek: "",
   });

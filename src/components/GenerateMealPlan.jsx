@@ -35,6 +35,9 @@ export default function GenerateMealPlan() {
       let fresh = null;
       try { fresh = await update(); } catch {}
       const prefs = fresh?.user?.preferences || session?.user?.preferences || {};
+      const goalList = Array.isArray(prefs.fitnessGoals)
+        ? prefs.fitnessGoals
+        : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []);
       const res = await fetch('/api/generateMealPlan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,7 +46,8 @@ export default function GenerateMealPlan() {
           heightFt: prefs.heightFt,
           heightIn: prefs.heightIn,
           weight: prefs.weight,
-          fitnessGoal: prefs.fitnessGoal,
+          fitnessGoal: prefs.fitnessGoal || goalList[0],
+          fitnessGoals: goalList,
           mealsPerDay: prefs.mealsPerDay || 3,
           dietaryPreferences: prefs.dietaryPreferences || [],
           dislikedFoods: prefs.dislikedFoods || [],
