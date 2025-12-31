@@ -2,15 +2,19 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
+import { labelForFitnessGoal } from '@/constants/fitnessGoals';
 
 export default function AuthStatus() {
   const { data: session, status } = useSession();
 
-  if (status === 'loading') return <p>Loading…</p>;
+  if (status === 'loading') return <p>Loading...</p>;
   if (!session) return <p>Not signed in</p>;
 
   const prefs = session.user?.preferences ?? null;
-  const goal = prefs?.fitnessGoal ?? '—';
+  const goals = Array.isArray(prefs?.fitnessGoals) ? prefs.fitnessGoals : [];
+  const goal = goals.length
+    ? goals.map((g) => labelForFitnessGoal(g)).join(', ')
+    : (prefs?.fitnessGoal ?? '--');
 
   return (
     <>

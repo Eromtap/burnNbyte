@@ -64,14 +64,15 @@ export default function OnboardingForm() {
             weight: formData.weight,
             activityLevel: formData.activityLevel,
             fitnessGoal: formData.fitnessGoal,
+            fitnessGoals: formData.fitnessGoals,
             dietaryPreferences: formData.dietaryPreferences,
             dislikedFoods: formData.dislikedFoods,
             allergies: formData.allergies,
             mealsPerDay: formData.mealsPerDay,
-            workoutPreference: formData.workoutPreference,
             workoutDuration: formData.workoutDuration,
             workoutDays: formData.workoutDays,
             workoutsPerWeek: formData.workoutsPerWeek,
+            equipmentAccess: formData.equipmentAccess,
           }),
         });
 
@@ -94,7 +95,13 @@ export default function OnboardingForm() {
   const onSubmitNext = async (e) => {
     e.preventDefault();
     const current = Number(step);
-    // Custom validations for non-native groups (none required now)
+    if (current === 2) {
+      const goals = Array.isArray(formData.fitnessGoals) ? formData.fitnessGoals : [];
+      if (!formData.fitnessGoal && goals.length === 0) {
+        alert('Please select at least one fitness goal.');
+        return;
+      }
+    }
     await next();
   };
 

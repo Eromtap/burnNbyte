@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import OpenAI from "openai";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
+import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,10 @@ export async function POST(req) {
       ? profile.allergies.split(",").map(s=>s.trim()).filter(Boolean)
       : Array.isArray(profile?.allergies) ? profile.allergies : [];
     const fitnessGoal = profile?.fitnessGoal || null;
+    const fitnessGoals = Array.isArray(profile?.fitnessGoals) ? profile.fitnessGoals : [];
+    const goalList = normalizeFitnessGoals(fitnessGoals.length ? fitnessGoals : fitnessGoal);
+    const goalFriendly = describeFitnessGoals(goalList);
+    const goalForPrompt = goalFriendly.length ? goalFriendly : (goalList.length ? goalList : (fitnessGoal ? [fitnessGoal] : []));
 
     // Convert images to data URLs
     const dataUrls = [];
@@ -105,7 +110,7 @@ export async function POST(req) {
           "You are a nutrition assistant.",
           `Analyze the pantry photo and list recognizable edible items (ingredients).`,
           `Then propose ${days} meals that primarily use those items and respect these constraints:`,
-          `- fitnessGoal: ${JSON.stringify(fitnessGoal)}`,
+          `- fitnessGoals: ${JSON.stringify(goalForPrompt)}`,
           `- dietaryPreferences (soft): ${JSON.stringify(dietaryPrefFriendly.length ? dietaryPrefFriendly : dietaryPreferences)}`,
           `- dislikedFoods (soft avoid): ${JSON.stringify(dislikedFoods)}`,
           `- allergies (HARD AVOID): ${JSON.stringify(allergies)}`,
