@@ -78,42 +78,42 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
 
   return (
     <main>
-      <div className="stack">
-        <DateStrip basePath="/workouts" selectedISO={selectedISO} />
-        <article className="card">
-          <header className="card-head">
-            <h3>Generate Workout Plan</h3>
-            <div className="sub">Creates/upserts workouts by date</div>
-          </header>
-          <GenerateWorkout />
-        </article>
+      <div className="page-shell">
+        <div className="stack">
+          <DateStrip basePath="/workouts" selectedISO={selectedISO} />
+          <article className="card">
+            <header className="card-head">
+              <h3>Generate Workout Plan</h3>
+              <div className="sub">Creates/upserts workouts by date</div>
+            </header>
+            <GenerateWorkout />
+          </article>
 
-        <article className="card">
-          <header className="card-head">
-            <h3>Workout</h3>
-            <div className="sub">{workout ? selectedISO : 'No workout on this day'}</div>
-          </header>
-          {!workout && <div className="muted">No workout for today. Use the button above to generate.</div>}
-          {workout && (
-            <div className="stack">
-              <div className="list-row"><span>Name</span><span className="muted">{workout.name}</span></div>
-              {workout.muscleGroup && <div className="list-row"><span>Muscle Group</span><span className="muted">{workout.muscleGroup}</span></div>}
-              <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>
-              {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
-                <div>
-                  <div className="planner-head">Instructions</div>
-                  <ul className="list" style={{marginTop:8}}>
-                    {workout.instructions.map((step, i) => (
-                      <li key={i} className="list-row"><span>{step}</span></li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </article>
-
-        
+          <article className="card">
+            <header className="card-head">
+              <h3>Workout</h3>
+              <div className="sub">{workout ? selectedISO : 'No workout on this day'}</div>
+            </header>
+            {!workout && <div className="muted">No workout for today. Use the button above to generate.</div>}
+            {workout && (
+              <div className="stack">
+                <div className="list-row"><span>Name</span><span className="muted">{workout.name}</span></div>
+                {workout.muscleGroup && <div className="list-row"><span>Muscle Group</span><span className="muted">{workout.muscleGroup}</span></div>}
+                <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>
+                {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
+                  <div>
+                    <div className="planner-head">Instructions</div>
+                    <ul className="list" style={{marginTop:8}}>
+                      {workout.instructions.map((step, i) => (
+                        <li key={i} className="list-row"><span>{step}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </article>
+        </div>
       </div>
     </main>
   );

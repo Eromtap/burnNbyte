@@ -9,14 +9,16 @@ export default async function HealthCalendar() {
   if (!profile) redirect('/onboarding/1');
 
   return (
-    <>
-      <Calendar
-        calendarTitle="My Health Calendar"
-        dataSources={[
-          { url: '/api/workouts', type: 'workout' },
-          { url: '/api/mealPlans', type: 'mealPlan' },
-        ]}
-      />
-    </>
+    <main>
+      <div className="page-shell">
+        <Calendar
+          calendarTitle="My Health Calendar"
+          dataSources={[
+            { url: '/api/workouts', type: 'workout' },
+            { url: '/api/mealPlans', type: 'mealPlan' },
+          ]}
+        />
+      </div>
+    </main>
   );
 }

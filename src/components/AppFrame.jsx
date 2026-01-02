@@ -21,7 +21,7 @@ export default function AppFrame({ children }){
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Z"/></svg>
           </button>
           <h1 className="brand">
-            <Image src="/logo.png" alt="burnNbyte logo" className="logo-brand" width={48} height={48} priority />
+            <Image src="/logo.png" alt="burnNbyte logo" className="logo-brand" width={119} height={119} unoptimized priority />
           </h1>
           <div className="header-actions">
             <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggle}>
@@ -42,7 +42,7 @@ export default function AppFrame({ children }){
         <aside className="drawer-panel" role="dialog" aria-modal="true" aria-label="Navigation">
           <div className="drawer-head">
             <div className="brand">
-              <Image src="/logo.png" alt="burnNbyte logo" className="logo-drawer" width={48} height={48} priority />
+              <Image src="/logo.png" alt="burnNbyte logo" className="logo-drawer" width={94} height={94} unoptimized priority />
             </div>
             <button className="btn btn-ghost" onClick={() => setDrawerOpen(false)} aria-label="Close">✕</button>
           </div>

@@ -70,47 +70,49 @@ export default async function MealTypePage({ params, searchParams }) {
 
   return (
     <main>
-      <div className="stack">
-        <article className="card">
-          <header className="card-head">
-            <h3 style={{ textTransform: "capitalize" }}>{rawType}</h3>
-            <div className="sub">{selectedISO}</div>
-          </header>
-          {!mealPlan && <div className="muted">No meal plan for this day. Go to <Link href={`/meals?date=${selectedISO}`} className="pill">Meals</Link> to generate.</div>}
-          {mealPlan && meals.length === 0 && (
-            <div className="muted">No {rawType} planned for this day.</div>
-          )}
-          {mealPlan && meals.length > 0 && (
-            <div className="stack">
-              {meals.map((m) => (
-                <article key={m.id} className="card">
-                  <header className="card-head">
-                    <h3>{m.name}</h3>
-                    <div className="sub">
-                      {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+      <div className="page-shell">
+        <div className="stack">
+          <article className="card">
+            <header className="card-head">
+              <h3 style={{ textTransform: "capitalize" }}>{rawType}</h3>
+              <div className="sub">{selectedISO}</div>
+            </header>
+            {!mealPlan && <div className="muted">No meal plan for this day. Go to <Link href={`/meals?date=${selectedISO}`} className="pill">Meals</Link> to generate.</div>}
+            {mealPlan && meals.length === 0 && (
+              <div className="muted">No {rawType} planned for this day.</div>
+            )}
+            {mealPlan && meals.length > 0 && (
+              <div className="stack">
+                {meals.map((m) => (
+                  <article key={m.id} className="card">
+                    <header className="card-head">
+                      <h3>{m.name}</h3>
+                      <div className="sub">
+                        {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                      </div>
+                    </header>
+                    <div className="stack">
+                      {Array.isArray(m.ingredients) && m.ingredients.length > 0 && (
+                        <div>
+                          <div className="planner-head">Ingredients</div>
+                          <ul className="list" style={{ marginTop: 8 }}>
+                            {m.ingredients.map((ing, i) => (<li key={i} className="list-row"><span>{ing}</span></li>))}
+                          </ul>
+                        </div>
+                      )}
+                      {m.recipe && (
+                        <div>
+                          <div className="planner-head">Recipe</div>
+                          <div className="list-row"><span style={{ whiteSpace: "pre-wrap" }}>{m.recipe}</span></div>
+                        </div>
+                      )}
                     </div>
-                  </header>
-                  <div className="stack">
-                    {Array.isArray(m.ingredients) && m.ingredients.length > 0 && (
-                      <div>
-                        <div className="planner-head">Ingredients</div>
-                        <ul className="list" style={{ marginTop: 8 }}>
-                          {m.ingredients.map((ing, i) => (<li key={i} className="list-row"><span>{ing}</span></li>))}
-                        </ul>
-                      </div>
-                    )}
-                    {m.recipe && (
-                      <div>
-                        <div className="planner-head">Recipe</div>
-                        <div className="list-row"><span style={{ whiteSpace: "pre-wrap" }}>{m.recipe}</span></div>
-                      </div>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </article>
+                  </article>
+                ))}
+              </div>
+            )}
+          </article>
+        </div>
       </div>
     </main>
   );

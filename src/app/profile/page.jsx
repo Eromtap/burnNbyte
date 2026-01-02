@@ -10,14 +10,16 @@ export default async function ProfilePage(){
 
   return (
     <main>
-      <div className="stack">
-        <article className="card">
-          <header className="card-head">
-            <h3>Profile</h3>
-            <div className="sub">Update your preferences</div>
-          </header>
-          <ProfileForm initial={profile} />
-        </article>
+      <div className="page-shell">
+        <div className="stack">
+          <article className="card">
+            <header className="card-head">
+              <h3>Profile</h3>
+              <div className="sub">Update your preferences</div>
+            </header>
+            <ProfileForm initial={profile} />
+          </article>
+        </div>
       </div>
     </main>
   );

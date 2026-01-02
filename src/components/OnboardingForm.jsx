@@ -107,36 +107,37 @@ export default function OnboardingForm() {
 
   return (
     <main>
-      <div className="stack">
-        <article className="card">
-          <header className="card-head">
-            <h3>Profile Setup</h3>
-            <div className="sub">Step {Number(step)} of 3</div>
-          </header>
-          <form className="form" onSubmit={onSubmitNext}>
-            {StepComponent ? (
-              <StepComponent formData={formData} updateForm={updateForm} />
-            ) : (
-              <p className="muted">Loading…</p>
-            )}
-            <div className="flex justify-between mt-8">
-              <button
-                type="button"
-                onClick={prev}
-                className="btn btn-secondary"
-                disabled={Number(step) === 1}
-              >
-                Back
-              </button>
-              <button type="submit" className="btn btn-primary">
-                {Number(step) === 3 ? 'Finish' : 'Next'}
-              </button>
-            </div>
-          </form>
-        </article>
+      <div className="page-shell">
+        <div className="stack">
+          <article className="card">
+            <header className="card-head">
+              <h3>Profile Setup</h3>
+              <div className="sub">Step {Number(step)} of 3</div>
+            </header>
+            <form className="form" onSubmit={onSubmitNext}>
+              {StepComponent ? (
+                <StepComponent formData={formData} updateForm={updateForm} />
+              ) : (
+                <p className="muted">Loading…</p>
+              )}
+              <div className="flex justify-between mt-8">
+                <button
+                  type="button"
+                  onClick={prev}
+                  className="btn btn-secondary"
+                  disabled={Number(step) === 1}
+                >
+                  Back
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {Number(step) === 3 ? 'Finish' : 'Next'}
+                </button>
+              </div>
+            </form>
+          </article>
+        </div>
       </div>
     </main>
   );
 }
-
 

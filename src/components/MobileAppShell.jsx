@@ -13,7 +13,7 @@ export default function MobileAppShell() {
       <header className="app-header">
         <div className="header-main">
           <h1 className="brand">
-            <Image src="/logo.png" alt="burnNbyte logo" className="logo-brand" width={48} height={48} priority />
+            <Image src="/logo.png" alt="burnNbyte logo" className="logo-brand" width={119} height={119} unoptimized priority />
           </h1>
           <div className="header-actions">
             <button className="btn btn-ghost" aria-label="Toggle theme" onClick={toggle}>
