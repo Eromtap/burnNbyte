@@ -77,25 +77,27 @@ export default async function GroceriesPage({ searchParams }) {
 
   return (
     <main>
-      <div className="stack">
-        <DateStrip basePath="/groceries" selectedISO={selectedISO} />
-        {cached && (<StoreReadyList items={cached.items} unitSystem={cached.unitSystem} updatedAt={cached.updatedAt} />)}
+      <div className="page-shell">
+        <div className="stack">
+          <DateStrip basePath="/groceries" selectedISO={selectedISO} />
+          {cached && (<StoreReadyList items={cached.items} unitSystem={cached.unitSystem} updatedAt={cached.updatedAt} />)}
 
-        <article className="card">
-          <header className="card-head">
-            <h3>AI Optimization</h3>
-            <div className="sub">Combine items and convert to store units</div>
-          </header>
-          <GroceryOptimizer selectedISO={selectedISO} />
-        </article>
+          <article className="card">
+            <header className="card-head">
+              <h3>AI Optimization</h3>
+              <div className="sub">Combine items and convert to store units</div>
+            </header>
+            <GroceryOptimizer selectedISO={selectedISO} />
+          </article>
 
-        <article className="card">
-          <header className="card-head">
-            <h3>Raw Ingredients</h3>
-            <div className="sub">Direct from meal plans</div>
-          </header>
-          <RawGroceryList items={items} rangeLabel={displayRangeLabel} />
-        </article>
+          <article className="card">
+            <header className="card-head">
+              <h3>Raw Ingredients</h3>
+              <div className="sub">Direct from meal plans</div>
+            </header>
+            <RawGroceryList items={items} rangeLabel={displayRangeLabel} />
+          </article>
+        </div>
       </div>
     </main>
   );

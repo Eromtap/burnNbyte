@@ -85,9 +85,9 @@ body{background:var(--bg);}
 /* Optional: image-based logo next to brand */
 .logo-img{inline-size:28px;block-size:28px;object-fit:contain;border-radius:4px}
 /* Larger brand logo for app header */
-.logo-brand{inline-size:48px;block-size:48px;object-fit:contain;border-radius:6px}
+.logo-brand{inline-size:119px;block-size:119px;object-fit:contain;border-radius:8px}
 /* Drawer-sized logo */
-.logo-drawer{inline-size:36px;block-size:36px;object-fit:contain;border-radius:6px}
+.logo-drawer{inline-size:94px;block-size:94px;object-fit:contain;border-radius:8px}
 .header-actions{display:flex;gap:6px}
 .header-sub{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 
@@ -157,6 +157,8 @@ body{background:var(--bg);}
 .list-row>*{min-width:0}
 .list-row span{color:var(--text)}
 .pill{padding:2px 8px;border-radius:999px;background:color-mix(in oklab, var(--accent) 12%, transparent);color:var(--text);font-size:12px}
+.pill-workout{background:color-mix(in oklab, var(--accent) 12%, transparent)}
+.pill-meal{background:color-mix(in oklab, var(--accent-2) 18%, transparent)}
 .muted{color:var(--muted)}
 
 /* Planner */
@@ -239,6 +241,9 @@ select{color:var(--text)}
 .dashboard-grid{display:grid;gap:12px;grid-template-columns:1fr}
 .dashboard-grid .span-2{grid-column:1 / -1}
 
+/* Shared page width to match dashboard */
+.page-shell{max-width:820px;margin:0 auto;width:100%;padding-inline:8px}
+
 /* Focus and a11y */
 :focus-visible{outline:2px solid color-mix(in oklab, var(--accent) 60%, white);outline-offset:2px;border-radius:8px}
 
@@ -255,7 +260,10 @@ select{color:var(--text)}
 .fc-theme-standard .fc-scrollgrid{border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
 .fc-theme-standard td, .fc-theme-standard th{border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
 .fc .fc-day-today{background:color-mix(in oklab, var(--elev) 70%, transparent)}
-.fc .fc-daygrid-event{background:linear-gradient(90deg, var(--accent), var(--accent-2));border:1px solid color-mix(in oklab, var(--accent) 60%, transparent);color:#fff;border-radius:10px;padding:2px 6px}
+.fc .fc-daygrid-event{color:#fff;border-radius:10px;padding:2px 6px}
+.fc .fc-daygrid-event.event-workout{background:linear-gradient(90deg, var(--accent), var(--accent-2));border:1px solid color-mix(in oklab, var(--accent) 60%, transparent)}
+.fc .fc-daygrid-event.event-meal{background:linear-gradient(90deg, var(--ok), color-mix(in oklab, var(--ok) 70%, black));border:1px solid color-mix(in oklab, var(--ok) 60%, transparent)}
+.fc .fc-daygrid-event .calendar-pill{background:transparent;padding:0}
 .fc .fc-button{background:color-mix(in oklab, var(--surface) 85%, transparent);border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);color:var(--text);border-radius:10px}
 .fc .fc-button-primary:disabled{background:color-mix(in oklab, var(--surface) 85%, transparent);border-color:color-mix(in oklab, var(--elev) 60%, transparent);opacity:.6}
 .fc .fc-highlight{background:color-mix(in oklab, var(--accent) 18%, transparent)}

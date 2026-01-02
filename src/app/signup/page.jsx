@@ -29,35 +29,37 @@ export default function SignUpPage() {
 
   return (
     <main>
-      <div className="stack" style={{ maxWidth: 420, margin: '40px auto' }}>
-        <h1 className="brand" style={{ justifyContent: 'center' }}>
-          <Image
-            src="/logo.png"
-            alt="burnNbyte logo"
-            width={1024}
-            height={1024}
-            style={{ width: '100%', height: 'auto', display: 'block' }}
-            priority
-          />
-        </h1>
-        <form onSubmit={handleSubmit} className="card form">
-          <label>
-            <span>Name</span>
-            <input type="name" value={name} onChange={e => setName(e.target.value)} required />
-          </label>
-          
-          <label>
-            <span>Email</span>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          </label>
+      <div className="page-shell">
+        <div className="stack" style={{ maxWidth: 420, margin: '40px auto' }}>
+          <h1 className="brand" style={{ justifyContent: 'center' }}>
+            <Image
+              src="/logo.png"
+              alt="burnNbyte logo"
+              width={1024}
+              height={1024}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+              priority
+            />
+          </h1>
+          <form onSubmit={handleSubmit} className="card form">
+            <label>
+              <span>Name</span>
+              <input type="name" value={name} onChange={e => setName(e.target.value)} required />
+            </label>
+            
+            <label>
+              <span>Email</span>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+            </label>
 
-          <label>
-            <span>Password</span>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-          </label>
+            <label>
+              <span>Password</span>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+            </label>
 
-          <button type="submit" className="btn btn-primary">Sign Up</button>
-        </form>
+            <button type="submit" className="btn btn-primary">Sign Up</button>
+          </form>
+        </div>
       </div>
     </main>
   );
