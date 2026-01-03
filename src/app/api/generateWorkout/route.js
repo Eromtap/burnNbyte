@@ -103,11 +103,30 @@ export async function POST(req) {
       return NextResponse.json({ error: "No target dates supplied" }, { status: 400 });
     }
 
+    const normalizeUTCDate = (value) => {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      d.setUTCHours(0, 0, 0, 0);
+      return d;
+    };
+    const targetDateObjs = targetDates
+      .map((d) => normalizeUTCDate(d))
+      .filter(Boolean);
+    const rangeStart = targetDateObjs.length ? new Date(Math.min(...targetDateObjs.map((d) => d.getTime()))) : null;
+    const rangeEnd = targetDateObjs.length ? new Date(Math.max(...targetDateObjs.map((d) => d.getTime()))) : null;
+    const existingWorkouts = rangeStart && rangeEnd
+      ? await prisma.workout.findMany({
+          where: { userId: session.user.id, date: { gte: rangeStart, lte: rangeEnd } },
+          select: { date: true, name: true, muscleGroup: true, difficulty: true, duration: true },
+          orderBy: { date: "asc" },
+        })
+      : [];
+
     const prompt = {
       role: "user",
       content:
         `Create a workout plan for each calendar date listed. Return one workout entry per date in the same order they are provided. Only generate workouts on those dates and set the "date" field exactly to the yyyy-mm-dd string supplied.
-        Include enough exercises to fill the allotted workout duration.
+        Include enough exercises to fill the allotted workout duration. Balance muscle groups across the week and avoid repeating the same muscle group on consecutive days when possible.
       - gender: "${gender}"
       - heightFt: "${heightFt}" feet
       - heightIn: "${heightIn}" inches
@@ -120,6 +139,13 @@ export async function POST(req) {
       - preferred workoutDays: ${JSON.stringify(workoutDays)}
       - available equipment: ${JSON.stringify(equipmentList)}
       - targetDates: ${JSON.stringify(targetDates)}
+      - existingWorkouts: ${JSON.stringify(existingWorkouts.map((w) => ({
+        date: w.date?.toISOString?.().slice(0, 10) || null,
+        name: w.name,
+        muscleGroup: w.muscleGroup,
+        difficulty: w.difficulty,
+        duration: w.duration,
+      })))}
 
       Return ONLY a JSON object with these fields (no commentary, no code fences):
       {

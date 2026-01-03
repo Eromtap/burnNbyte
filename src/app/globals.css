@@ -264,6 +264,21 @@ select{color:var(--text)}
 .fc .fc-daygrid-event.event-workout{background:linear-gradient(90deg, var(--accent), var(--accent-2));border:1px solid color-mix(in oklab, var(--accent) 60%, transparent)}
 .fc .fc-daygrid-event.event-meal{background:linear-gradient(90deg, var(--ok), color-mix(in oklab, var(--ok) 70%, black));border:1px solid color-mix(in oklab, var(--ok) 60%, transparent)}
 .fc .fc-daygrid-event .calendar-pill{background:transparent;padding:0}
+@media (max-width: 640px){
+  .fc .fc-daygrid-event{
+    font-size:11px;
+    line-height:1.1;
+    padding:1px 4px;
+    border-radius:8px;
+  }
+  .fc .fc-daygrid-event .calendar-pill{
+    display:inline-block;
+    max-width:100%;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+}
 .fc .fc-button{background:color-mix(in oklab, var(--surface) 85%, transparent);border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);color:var(--text);border-radius:10px}
 .fc .fc-button-primary:disabled{background:color-mix(in oklab, var(--surface) 85%, transparent);border-color:color-mix(in oklab, var(--elev) 60%, transparent);opacity:.6}
 .fc .fc-highlight{background:color-mix(in oklab, var(--accent) 18%, transparent)}

@@ -38,7 +38,7 @@ export default function GenerateWorkout() {
     return CODES[date.getDay()];
   }
 
-  async function handleClick() {
+  async function handleClick({ selectedOnly } = {}) {
     setLoading(true);
     setResult(null);
     try {
@@ -51,18 +51,22 @@ export default function GenerateWorkout() {
       const equipmentAccess = Array.isArray(userPrefs.equipmentAccess) ? userPrefs.equipmentAccess : [];
 
       const preferredDays = Array.isArray(userPrefs.workoutDays) ? userPrefs.workoutDays : [];
-      const nextSevenDates = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(todayLocal);
-        d.setDate(todayLocal.getDate() + i);
-        const dow = dowCode(d);
-        if (!preferredDays.length || preferredDays.includes(dow)) {
-          nextSevenDates.push(toYMDLocal(d));
+      let targetDates = [];
+      if (selectedOnly) {
+        targetDates = [selectedISO];
+      } else {
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(todayLocal);
+          d.setDate(todayLocal.getDate() + i);
+          const dow = dowCode(d);
+          if (!preferredDays.length || preferredDays.includes(dow)) {
+            targetDates.push(toYMDLocal(d));
+          }
         }
       }
-      if (!nextSevenDates.length) {
+      if (!targetDates.length) {
         // Fallback to selected day so the API still receives at least one date
-        nextSevenDates.push(selectedISO);
+        targetDates.push(selectedISO);
       }
 
       const res = await fetch('/api/generateWorkout', {
@@ -78,10 +82,12 @@ export default function GenerateWorkout() {
           fitnessLevel: userPrefs.fitnessLevel || 'beginner',
           workoutPreference: userPrefs.workoutPreference,
           workoutDuration: userPrefs.workoutDuration,
-          workoutDays: preferredDays.length ? preferredDays : [selectedDow],
+          workoutDays: selectedOnly ? [selectedDow] : (preferredDays.length ? preferredDays : [selectedDow]),
           equipmentAccess,
-          dateRange: `${toYMDLocal(todayLocal)} - ${toYMDLocal(new Date(todayLocal.getTime() + 6*24*60*60*1000))}`,
-          dates: nextSevenDates,
+          dateRange: selectedOnly
+            ? `${selectedISO} - ${selectedISO}`
+            : `${toYMDLocal(todayLocal)} - ${toYMDLocal(new Date(todayLocal.getTime() + 6*24*60*60*1000))}`,
+          dates: targetDates,
         }),
       });
       const data = await res.json();
@@ -105,7 +111,13 @@ export default function GenerateWorkout() {
       }
       // We rely on the server-rendered card for display to avoid double-rendering;
       // only show a simple success message here.
-      setResult({ ok: true, count: deduped.length, date: selectedISO });
+      setResult({
+        ok: true,
+        count: deduped.length,
+        selectedOnly: !!selectedOnly,
+        dates: targetDates,
+        selectedLabel,
+      });
     } catch (err) {
       setResult({ error: 'Failed to generate workout.' });
     } finally {
@@ -115,7 +127,10 @@ export default function GenerateWorkout() {
 
   return (
     <div className="stack">
-      <button className="btn btn-primary btn-full" onClick={handleClick} disabled={loading}>
+      <button className="btn btn-primary btn-full" onClick={() => handleClick({ selectedOnly: true })} disabled={loading}>
+        {loading ? 'Generating…' : `Create or Replace Workout for ${selectedLabel}`}
+      </button>
+      <button className="btn btn-secondary btn-full" onClick={() => handleClick({ selectedOnly: false })} disabled={loading}>
         {loading ? 'Generating…' : 'Create Workout Plan'}
       </button>
 
@@ -127,9 +142,15 @@ export default function GenerateWorkout() {
 
       {result?.ok && (
         <div className="alert alert-success">
-          Created {result.count || 1} workout{(result.count||1) > 1 ? 's' : ''} for {selectedLabel}. Scroll down to view.
+          {result.selectedOnly
+            ? `Created or replaced ${result.count || 1} workout${(result.count||1) > 1 ? 's' : ''} for ${result.selectedLabel}.`
+            : `Created workouts for your preferred days this week (${(result.dates || []).length} day${(result.dates || []).length === 1 ? '' : 's'}).`}
         </div>
       )}
     </div>
   );
 }
+
+
+
+// TODO: change created workout wording. it will say one is created even when the current day isn't in preferences
