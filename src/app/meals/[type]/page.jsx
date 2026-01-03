@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { formatMacro } from "@/lib/macros";
+import ReplaceMealButton from "@/components/ReplaceMealButton";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -73,11 +74,19 @@ export default async function MealTypePage({ params, searchParams }) {
       <div className="page-shell">
         <div className="stack">
           <article className="card">
-            <header className="card-head">
-              <h3 style={{ textTransform: "capitalize" }}>{rawType}</h3>
-              <div className="sub">{selectedISO}</div>
-            </header>
-            {!mealPlan && <div className="muted">No meal plan for this day. Go to <Link href={`/meals?date=${selectedISO}`} className="pill">Meals</Link> to generate.</div>}
+          <header className="card-head">
+            <h3 style={{ textTransform: "capitalize" }}>{rawType}</h3>
+            <div className="sub">{selectedISO}</div>
+          </header>
+          <div className="list-row" style={{ marginTop: 8 }}>
+            <ReplaceMealButton
+              dateISO={selectedISO}
+              type={rawType}
+              className="btn btn-secondary"
+              label="Replace"
+            />
+          </div>
+          {!mealPlan && <div className="muted">No meal plan for this day. Go to <Link href={`/meals?date=${selectedISO}`} className="pill">Meals</Link> to generate.</div>}
             {mealPlan && meals.length === 0 && (
               <div className="muted">No {rawType} planned for this day.</div>
             )}

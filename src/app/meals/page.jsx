@@ -7,6 +7,7 @@ import DateStrip from "@/components/DateStrip";
 import MealsReplacerSingle from "@/components/MealsReplacerSingle";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
 import MealPhotoReplace from "@/components/MealPhotoReplace";
+import ReplaceMealButton from "@/components/ReplaceMealButton";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -107,12 +108,18 @@ export default async function MealsPage({ searchParams }){
                   </span>
                 </div>
                 <div className="stack">
-                  {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                    <div key={type} className="planner-col">
-                      <div className="planner-head" style={{ textTransform: "capitalize" }}>{type}</div>
-                      <div>
-                        {(grouped[type] || []).map((m) => (
-                          <article key={m.id} className="card" style={{ marginTop: 8 }}>
+                {["breakfast", "lunch", "dinner", "snack"].map((type) => (
+                  <div key={type} className="planner-col">
+                    <div className="planner-head" style={{ textTransform: "capitalize" }}>{type}</div>
+                    <ReplaceMealButton
+                      dateISO={selectedISO}
+                      type={type}
+                      className="btn btn-secondary"
+                      label="Replace"
+                    />
+                    <div>
+                      {(grouped[type] || []).map((m) => (
+                        <article key={m.id} className="card" style={{ marginTop: 8 }}>
                             <header className="card-head">
                               <h3>{m.name}</h3>
                               <div className="sub">

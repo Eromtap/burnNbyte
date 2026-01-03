@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import MiniCalendar from "@/components/MiniCalendar";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
+import ReplaceMealButton from "@/components/ReplaceMealButton";
 
 // Server component renders dashboard content; AppFrame wraps it globally
 
@@ -138,6 +139,9 @@ export default async function HomePage() {
               <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>
             </div>
           )}
+          <div className="list-row" style={{ marginTop: 12 }}>
+            <Link href={`/workouts?date=${todayISO}`} className="btn btn-primary">Open Today&apos;s Workout</Link>
+          </div>
         </article>
 
         <article className="card span-2">
@@ -166,6 +170,12 @@ export default async function HomePage() {
                     >
                       {type}
                     </Link>
+                    <ReplaceMealButton
+                      dateISO={todayISO}
+                      type={type}
+                      className="btn btn-secondary meal-link"
+                      label="Replace"
+                    />
                     <div>
                       {(grouped[type] || []).map((m) => (
                         <div key={m.id} className="list-row" style={{ marginTop: 8 }}>

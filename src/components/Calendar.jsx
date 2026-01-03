@@ -6,8 +6,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 
-const Calendar = ({ calendarTitle, dataSources }) => {
-  const [events, setEvents] = useState([]);
+const Calendar = ({ calendarTitle, dataSources, initialEvents = [] }) => {
+  const [events, setEvents] = useState(initialEvents);
 
   useEffect(() => {
   const fetchAllData = async () => {
