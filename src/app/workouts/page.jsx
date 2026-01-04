@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import GenerateWorkout from "@/components/GenerateWorkout";
 import DateStrip from "@/components/DateStrip";
+import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 
 function toUTCDateFromLocalYMD(ymd){
   const [y,m,d] = ymd.split('-').map(Number);
@@ -97,6 +98,10 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
             {!workout && <div className="muted">No workout for today. Use the button above to generate.</div>}
             {workout && (
               <div className="stack">
+                <div className="list-row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="muted">{workout.isCompleted ? 'Completed' : 'Not done yet'}</span>
+                  <WorkoutCompletionToggle key={workout.id} workoutId={workout.id} initialCompleted={workout.isCompleted} />
+                </div>
                 <div className="list-row"><span>Name</span><span className="muted">{workout.name}</span></div>
                 {workout.muscleGroup && <div className="list-row"><span>Muscle Group</span><span className="muted">{workout.muscleGroup}</span></div>}
                 <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>

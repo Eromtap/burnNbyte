@@ -177,6 +177,8 @@ model Meal {
   fat         Float? // in grams
   ingredients String[]
   recipe      String?
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
 
   // Relations
   mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
@@ -293,8 +295,11 @@ model GrocerySummary {
   start      DateTime
   end        DateTime
   unitSystem String // 'imperial' | 'metric'
-  items      Json // array of { name, quantity, unit, packageSize, notes }
+  items      Json // array of { id, name, quantity, unit, packageSize, notes, checked }
+  archivedItems Json?
   note       String?
+  clearedAt  DateTime?
+  archivedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

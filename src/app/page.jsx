@@ -8,6 +8,8 @@ import Link from "next/link";
 import MiniCalendar from "@/components/MiniCalendar";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
 import ReplaceMealButton from "@/components/ReplaceMealButton";
+import MealCompletionToggle from "@/components/MealCompletionToggle";
+import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 
 // Server component renders dashboard content; AppFrame wraps it globally
 
@@ -74,9 +76,11 @@ export default async function HomePage() {
 
   const [workout, mealPlan] = await Promise.all([
     prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
-    prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } })
+    prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } }),
   ]);
   const mealMacros = sumMealMacros(mealPlan?.meals || []);
+  const completedMeals = (mealPlan?.meals || []).filter((m) => m.isCompleted);
+  const consumedMacros = sumMealMacros(completedMeals);
 
   const grouped = (mealPlan?.meals || []).reduce((acc, m) => {
     const t = (m.type || "").toLowerCase();
@@ -87,6 +91,7 @@ export default async function HomePage() {
 
   // Food calories from meals (matches Meals tab)
   const mealCalories = mealMacros.calories;
+  const consumedCalories = consumedMacros.calories;
 
   // Estimated workout calories
   const weightLb = profile?.weight || null;
@@ -95,6 +100,7 @@ export default async function HomePage() {
   const met = diff === "advanced" ? 8 : diff === "intermediate" ? 6.5 : 5.0;
   const durationH = (workout?.duration || 0) / 60;
   const workoutCalories = weightKg ? Math.round(met * weightKg * durationH) : null;
+  const burnedCalories = workout?.isCompleted ? (workoutCalories ?? 0) : 0;
 
   return (
     <main>
@@ -105,18 +111,20 @@ export default async function HomePage() {
             <h3>Today&apos;s Summary</h3>
             <div className="sub">Estimated totals</div>
           </header>
-          <div className="stats">
-            <div className="stat">
-              <div className="stat-label">Food Calories</div>
-              <div className="stat-value">{mealCalories}<span className="unit"> kcal</span></div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Workout Calories
-                <span className="pill" title="Estimate uses MET by difficulty and weight" style={{ marginLeft: 8 }}>i</span>
+            <div className="stats">
+              <div className="stat">
+                <div className="stat-label">Food Calories</div>
+                <div className="stat-value">{consumedCalories}<span className="unit"> kcal</span></div>
+                <div className="sub">Planned {mealCalories} kcal</div>
               </div>
-              <div className="stat-value">{workoutCalories ?? 0}<span className="unit"> kcal</span></div>
+              <div className="stat">
+                <div className="stat-label">Workout Calories
+                  <span className="pill" title="Estimate uses MET by difficulty and weight" style={{ marginLeft: 8 }}>i</span>
+                </div>
+                <div className="stat-value">{burnedCalories}<span className="unit"> kcal</span></div>
+                <div className="sub">Est. if completed {workoutCalories ?? 0} kcal</div>
+              </div>
             </div>
-          </div>
           <div className="list-row" style={{ marginTop: 12 }}>
             <span>Meal Macros (est.)</span>
             <span className="muted">
@@ -134,6 +142,10 @@ export default async function HomePage() {
           )}
           {workout && (
             <div className="stack">
+              <div className="list-row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="muted">{workout.isCompleted ? 'Completed' : 'Not done yet'}</span>
+                <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />
+              </div>
               <div className="list-row"><span>Name</span><span className="muted">{workout.name}</span></div>
               {workout.muscleGroup && <div className="list-row"><span>Muscle Group</span><span className="muted">{workout.muscleGroup}</span></div>}
               <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>
@@ -178,11 +190,14 @@ export default async function HomePage() {
                     />
                     <div>
                       {(grouped[type] || []).map((m) => (
-                        <div key={m.id} className="list-row" style={{ marginTop: 8 }}>
-                          <span>{m.name}</span>
-                          <span className="muted">
-                            {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
-                          </span>
+                        <div key={m.id} className="list-row" style={{ marginTop: 8, alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ color: "var(--text, #111)" }}>{m.name}</div>
+                            <div className="muted">
+                              {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                            </div>
+                          </div>
+                          <MealCompletionToggle mealId={m.id} initialCompleted={m.isCompleted} />
                         </div>
                       ))}
                       {!((grouped[type] || []).length) && <div className="muted">No {type} planned.</div>}
