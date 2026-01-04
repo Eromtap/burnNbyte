@@ -3,6 +3,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import OpenAI from 'openai';
+import { randomUUID } from 'crypto';
 
 function startOfTodayUTC() {
   const d = new Date();
@@ -33,6 +34,23 @@ function startOfWeekLocal(d){
   const dow = x.getDay();
   x.setDate(x.getDate() - dow);
   return x;
+}
+function normalizeStoreItems(items = [], { resetChecked = false, summaryId } = {}){
+  let changed = false;
+  const normalized = (Array.isArray(items) ? items : []).map((item, idx) => {
+    const id = item?.id || `${summaryId || 'item'}-${idx}`;
+    if (!item?.id) changed = true;
+    return {
+      id,
+      name: item?.name || `Item ${idx + 1}`,
+      quantity: typeof item?.quantity === 'number' ? item.quantity : Number(item?.quantity) || 0,
+      unit: item?.unit || '',
+      packageSize: item?.packageSize || '',
+      notes: item?.notes || '',
+      checked: resetChecked ? false : Boolean(item?.checked),
+    };
+  });
+  return { items: normalized, changed };
 }
 
 export async function GET() {
@@ -145,12 +163,21 @@ export async function POST(req) {
             },
           },
         });
-        if (cached) {
+        const hasUsableItems = Array.isArray(cached?.items) && cached.items.length > 0;
+        if (cached && hasUsableItems) {
+          const { items: normalizedItems, changed } = normalizeStoreItems(cached.items, { summaryId: cached.id });
+          if (changed) {
+            try {
+              await prisma.grocerySummary.update({ where: { id: cached.id }, data: { items: normalizedItems } });
+            } catch (e) {
+              console.warn('Failed to normalize cached grocery items', e?.message || e);
+            }
+          }
           return NextResponse.json({
             start,
             end,
             unitSystem,
-            items: cached.items ?? [],
+            items: normalizedItems,
             note: cached.note ?? 'cached',
             cached: true,
           });
@@ -214,6 +241,7 @@ export async function POST(req) {
     } catch (e) {
       return NextResponse.json({ items: [], note: 'Failed to parse AI response' }, { status: 502 });
     }
+    const { items: normalizedItems } = normalizeStoreItems(out.items || [], { resetChecked: true });
 
     // Persist or update the cached summary
     try {
@@ -227,7 +255,7 @@ export async function POST(req) {
           },
         },
         update: {
-          items: out.items ?? [],
+          items: normalizedItems,
           note: out.note ?? null,
         },
         create: {
@@ -235,7 +263,7 @@ export async function POST(req) {
           start,
           end,
           unitSystem,
-          items: out.items ?? [],
+          items: normalizedItems,
           note: out.note ?? null,
         },
       });
@@ -243,7 +271,7 @@ export async function POST(req) {
       console.warn('Failed to upsert grocery summary cache', e?.message || e);
     }
 
-    return NextResponse.json({ start, end, unitSystem, ...out, cached: false });
+    return NextResponse.json({ start, end, unitSystem, items: normalizedItems, note: out.note, cached: false });
   } catch (err) {
     console.error('groceries POST failed', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

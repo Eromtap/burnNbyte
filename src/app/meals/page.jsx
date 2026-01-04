@@ -8,6 +8,7 @@ import MealsReplacerSingle from "@/components/MealsReplacerSingle";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
 import MealPhotoReplace from "@/components/MealPhotoReplace";
 import ReplaceMealButton from "@/components/ReplaceMealButton";
+import MealCompletionToggle from "@/components/MealCompletionToggle";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -126,6 +127,7 @@ export default async function MealsPage({ searchParams }){
                                 {(m.calories ?? "?")} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
                               </div>
                             </header>
+                            <MealCompletionToggle mealId={m.id} initialCompleted={m.isCompleted} />
                             <div className="stack">
                               {Array.isArray(m.ingredients) && m.ingredients.length > 0 && (
                                 <div>

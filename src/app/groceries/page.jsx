@@ -28,6 +28,17 @@ function toUTCDateFromLocalYMD(ymd){
   return new Date(Date.UTC(y, (m||1)-1, d||1));
 }
 function addDaysUTC(d, n){ const x = new Date(d); x.setUTCDate(x.getUTCDate()+n); return x; }
+function normalizeStoreItems(items = [], summaryId){
+  return (Array.isArray(items) ? items : []).map((it, idx) => ({
+    id: it?.id || `${summaryId || 'item'}-${idx}`,
+    name: it?.name || `Item ${idx + 1}`,
+    quantity: typeof it?.quantity === 'number' ? it.quantity : Number(it?.quantity) || 0,
+    unit: it?.unit || '',
+    packageSize: it?.packageSize || '',
+    notes: it?.notes || '',
+    checked: Boolean(it?.checked),
+  }));
+}
 
 export default async function GroceriesPage({ searchParams }) {
   const session = await requireAuth();
@@ -58,6 +69,8 @@ export default async function GroceriesPage({ searchParams }) {
     });
   } catch {}
 
+  const summary = cached ? { ...cached, items: normalizeStoreItems(cached.items, cached.id), archivedItems: normalizeStoreItems(cached.archivedItems || [], cached.id) } : null;
+
   const map = new Map();
   for (const p of plans) {
     for (const m of p.meals || []) {
@@ -80,7 +93,17 @@ export default async function GroceriesPage({ searchParams }) {
       <div className="page-shell">
         <div className="stack">
           <DateStrip basePath="/groceries" selectedISO={selectedISO} />
-          {cached && (<StoreReadyList items={cached.items} unitSystem={cached.unitSystem} updatedAt={cached.updatedAt} />)}
+          {summary && (
+            <StoreReadyList
+              summaryId={summary.id}
+              items={summary.items}
+              archivedItems={summary.archivedItems}
+              unitSystem={summary.unitSystem}
+              updatedAt={summary.updatedAt}
+              clearedAt={summary.clearedAt}
+              archivedAt={summary.archivedAt}
+            />
+          )}
 
           <article className="card">
             <header className="card-head">
