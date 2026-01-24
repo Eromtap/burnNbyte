@@ -121,6 +121,11 @@ export async function POST(req) {
           orderBy: { date: "asc" },
         })
       : [];
+    const recentLogs = await prisma.exerciseLog.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 25,
+    });
 
     const prompt = {
       role: "user",
@@ -146,6 +151,21 @@ export async function POST(req) {
         difficulty: w.difficulty,
         duration: w.duration,
       })))}
+      - recentExerciseLogs: ${JSON.stringify(recentLogs.map((log) => ({
+        exerciseName: log.exerciseName,
+        type: log.type,
+        weight: log.weight,
+        reps: log.reps,
+        sets: log.sets,
+        distance: log.distance,
+        pace: log.pace,
+        createdAt: log.createdAt?.toISOString?.() || null,
+      })))}
+
+      Progression rules:
+      - If you include a previously logged weighted exercise, increase weight slightly (2.5-5 lb) and keep sets/reps similar.
+      - If you include a previously logged cardio exercise, increase distance slightly (0.1-0.25 mi) OR improve pace slightly (5-10 sec/mi), not both.
+      - Include the target weight/distance/pace in the instructions array so the user can follow the progression.
 
       Return ONLY a JSON object with these fields (no commentary, no code fences):
       {

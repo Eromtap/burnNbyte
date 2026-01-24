@@ -35,6 +35,7 @@ model User {
   // Relations
   profile          UserProfile?
   workouts         Workout[]
+  exerciseLogs     ExerciseLog[]
   mealPlans        MealPlan[]
   socialPosts      SocialPost[]
   subscription     Subscription?
@@ -112,6 +113,7 @@ model Workout {
   // Relations
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercises WorkoutExercise[]
+  exerciseLogs ExerciseLog[]
 
   @@unique([userId, date]) // <-- Enforce one workout per user per date
   @@index([userId, date]) // <-- Optional, speeds lookups
@@ -147,6 +149,28 @@ model WorkoutExercise {
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
   @@unique([workoutId, exerciseId, order])
+}
+
+// ExerciseLog - track performed exercise/cardio metrics
+model ExerciseLog {
+  id           String   @id @default(uuid())
+  userId       String
+  workoutId    String?
+  exerciseName String
+  type         String // weighted | cardio | other
+  weight       Float?
+  reps         Int?
+  sets         Int?
+  distance     Float?
+  pace         Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout Workout? @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  @@index([userId, exerciseName, createdAt])
 }
 
 // MealPlan - nutrition plans
