@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import GenerateWorkout from "@/components/GenerateWorkout";
 import DateStrip from "@/components/DateStrip";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
+import ExerciseLogPanel from "@/components/ExerciseLogPanel";
 
 function toUTCDateFromLocalYMD(ymd){
   const [y,m,d] = ymd.split('-').map(Number);
@@ -44,6 +45,20 @@ function resolveTimeZone(candidate){
   }
   return 'UTC';
 }
+function extractExerciseSuggestions(instructions){
+  if (!Array.isArray(instructions)) return [];
+  const candidates = instructions
+    .map((step) => {
+      if (typeof step !== 'string') return null;
+      const cleaned = step.replace(/\s+/g, ' ').trim();
+      if (!cleaned) return null;
+      const firstChunk = cleaned.split(/[:\-]/)[0].trim();
+      if (firstChunk.length < 2 || firstChunk.length > 60) return null;
+      return firstChunk;
+    })
+    .filter(Boolean);
+  return Array.from(new Set(candidates));
+}
 
 export default async function WorkoutsPage({ searchParams: searchParamsPromise }){
   const searchParams = await searchParamsPromise;
@@ -74,6 +89,13 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const workout = await prisma.workout.findFirst({ where: { userId: session.user.id, date: baseUtc } });
+  const exerciseLogs = workout
+    ? await prisma.exerciseLog.findMany({
+        where: { workoutId: workout.id, userId: session.user.id },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+  const exerciseSuggestions = workout ? extractExerciseSuggestions(workout.instructions) : [];
 
   // Removed Upcoming section
 
@@ -115,6 +137,10 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
                     </ul>
                   </div>
                 )}
+                <div>
+                  <div className="planner-head">Exercise Progress</div>
+                  <ExerciseLogPanel workoutId={workout.id} initialLogs={exerciseLogs} exerciseSuggestions={exerciseSuggestions} />
+                </div>
               </div>
             )}
           </article>
