@@ -106,7 +106,7 @@ export default async function TermsPage() {
               <section>
                 <div className="planner-head">Disclaimers</div>
                 <p className="muted">
-                  The app and all content are provided on an "as is" and "as available" basis without
+                  The app and all content are provided on an &quot;as is&quot; and &quot;as available&quot; basis without
                   warranties of any kind, express or implied, including implied warranties of
                   merchantability, fitness for a particular purpose, and non-infringement.
                 </p>
