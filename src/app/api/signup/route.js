@@ -5,10 +5,13 @@ const prisma = new PrismaClient();
 
 export async function POST(req) {
   try {
-    const { name, email, password } = await req.json();
+    const { name, email, password, termsAccepted } = await req.json();
 
     if (!name || !email || !password) {
       return Response.json({ error: "Missing name, email or password" }, { status: 400 });
+    }
+    if (!termsAccepted) {
+      return Response.json({ error: "You must accept the terms and conditions" }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -22,6 +25,7 @@ export async function POST(req) {
         name,
         email,
         password: hashedPassword,
+        termsAcceptedAt: new Date(),
       },
     });
 
