@@ -7,6 +7,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const router = useRouter();
 
@@ -15,7 +16,7 @@ export default function SignUpPage() {
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, termsAccepted }),
     });
 
     if (res.ok) {
@@ -57,7 +58,20 @@ export default function SignUpPage() {
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </label>
 
-            <button type="submit" className="btn btn-primary">Sign Up</button>
+            <label className="list-row" style={{ alignItems: 'flex-start', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                style={{ marginTop: 4 }}
+                required
+              />
+              <span className="muted">
+                I agree to the <a href="/terms" className="pill">Terms &amp; Conditions</a>.
+              </span>
+            </label>
+
+            <button type="submit" className="btn btn-primary" disabled={!termsAccepted}>Sign Up</button>
           </form>
         </div>
       </div>

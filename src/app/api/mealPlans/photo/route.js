@@ -49,6 +49,15 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing OPENAI_API_KEY server env var" }, { status: 500 });
     }
 
+    const moderation = await openai.moderations.create({
+      model: "omni-moderation-latest",
+      input: [{ type: "image_url", image_url: { url: dataUrl } }]
+    });
+    const flagged = moderation?.results?.[0]?.flagged;
+    if (flagged) {
+      return NextResponse.json({ error: "Image failed content safety checks." }, { status: 400 });
+    }
+
     const MEAL_SCHEMA = {
       name: "meal_macros",
       strict: true,
