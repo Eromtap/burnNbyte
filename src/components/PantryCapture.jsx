@@ -37,7 +37,12 @@ export default function PantryCapture() {
       fd.append('days', String(days));
       const res = await fetch('/api/pantry/plan', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to analyze photo');
+      if (!res.ok) {
+        if (data?.code === 'moderation_blocked') {
+          throw new Error('Image blocked by content safety checks. Please upload a food photo.');
+        }
+        throw new Error(data?.error || 'Failed to analyze photo');
+      }
       setResult(data);
     } catch (err) {
       setResult({ error: err.message || 'Failed' });
