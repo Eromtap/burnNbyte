@@ -53,9 +53,18 @@ export async function POST(req) {
       model: "omni-moderation-latest",
       input: [{ type: "image_url", image_url: { url: dataUrl } }]
     });
-    const flagged = moderation?.results?.[0]?.flagged;
+    const moderationResult = moderation?.results?.[0] || {};
+    const categories = moderationResult?.categories || {};
+    const flagged = moderationResult?.flagged
+      || categories?.sexual
+      || categories?.["sexual/minors"]
+      || categories?.nudity
+      || categories?.["nudity/sexual"];
     if (flagged) {
-      return NextResponse.json({ error: "Image failed content safety checks." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Image rejected due to explicit content.", code: "moderation_blocked" },
+        { status: 400 }
+      );
     }
 
     const MEAL_SCHEMA = {

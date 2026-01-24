@@ -32,7 +32,12 @@ export default function MealPhotoReplace({ selectedISO }) {
       if (portionNote.trim()) fd.append("portionNote", portionNote.trim());
       const res = await fetch("/api/mealPlans/photo", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to analyze meal");
+      if (!res.ok) {
+        if (data?.code === "moderation_blocked") {
+          throw new Error("Image blocked by content safety checks. Please upload a food photo.");
+        }
+        throw new Error(data?.error || "Failed to analyze meal");
+      }
       setResult(data);
       router.refresh(); // refresh server-rendered data
     } catch (err) {

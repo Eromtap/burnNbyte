@@ -57,6 +57,29 @@ export async function POST(req) {
     }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    if (!openai.apiKey) {
+      return NextResponse.json({ error: "Missing OPENAI_API_KEY server env var" }, { status: 500 });
+    }
+
+    const moderation = await openai.moderations.create({
+      model: "omni-moderation-latest",
+      input: dataUrls.map((url) => ({ type: "image_url", image_url: { url } }))
+    });
+    const results = Array.isArray(moderation?.results) ? moderation.results : [];
+    const blocked = results.some((result) => {
+      const categories = result?.categories || {};
+      return result?.flagged
+        || categories?.sexual
+        || categories?.["sexual/minors"]
+        || categories?.nudity
+        || categories?.["nudity/sexual"];
+    });
+    if (blocked) {
+      return NextResponse.json(
+        { error: "Image rejected due to explicit content.", code: "moderation_blocked" },
+        { status: 400 }
+      );
+    }
 
     const PLAN_SCHEMA = {
       name: "pantry_meals",
