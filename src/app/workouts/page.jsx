@@ -60,6 +60,20 @@ function extractExerciseSuggestions(instructions){
   return Array.from(new Set(candidates));
 }
 
+function normalizeInstructionForSearch(step){
+  if (typeof step !== 'string') return '';
+  let text = step.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  text = text.split(/[:\-]/)[0].trim();
+  text = text.replace(/\([^)]*\)/g, '').trim();
+  text = text.replace(/\b\d+\s*(x|×)\s*\d+\b/gi, '').trim();
+  text = text.replace(/\b\d+\s*(reps?|sets?|set|rep)\b/gi, '').trim();
+  text = text.replace(/\bsets?\s*of\s*\d+\b/gi, '').trim();
+  text = text.replace(/\b\d+\s*(secs?|seconds?|mins?|minutes?)\b/gi, '').trim();
+  text = text.replace(/\s{2,}/g, ' ').trim();
+  return text;
+}
+
 export default async function WorkoutsPage({ searchParams: searchParamsPromise }){
   const searchParams = await searchParamsPromise;
   const resolveDateParam = () => {
@@ -124,7 +138,7 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
                   <span className="muted">{workout.isCompleted ? 'Completed' : 'Not done yet'}</span>
                   <WorkoutCompletionToggle key={workout.id} workoutId={workout.id} initialCompleted={workout.isCompleted} />
                 </div>
-                <div className="list-row"><span>Name</span><span className="muted">{workout.name}</span></div>
+                <div className="list-row"><span>Name</span><span className="workout-title">{workout.name}</span></div>
                 {workout.muscleGroup && <div className="list-row"><span>Muscle Group</span><span className="muted">{workout.muscleGroup}</span></div>}
                 <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>
                 {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
@@ -132,7 +146,28 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
                     <div className="planner-head">Instructions</div>
                     <ul className="list" style={{marginTop:8}}>
                       {workout.instructions.map((step, i) => (
-                        <li key={i} className="list-row"><span>{step}</span></li>
+                        <li key={i} className="list-row" style={{ alignItems: 'flex-start' }}>
+                          <div>
+                            <div className="instruction-text">{step}</div>
+                            <a
+                              style={{
+                                display: 'inline-block',
+                                marginTop: 4,
+                                color: 'var(--accent)',
+                                fontSize: 12,
+                                textDecoration: 'none',
+                                fontWeight: 600,
+                              }}
+                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
+                                `${normalizeInstructionForSearch(step) || step} exercise demo`
+                              )}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Need a demo? Watch on YouTube
+                            </a>
+                          </div>
+                        </li>
                       ))}
                     </ul>
                   </div>
