@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -69,71 +69,72 @@ export default function ProgressSummary({ weightPoints = [], calories = {}, plan
 
   return (
     <div className="stack">
-      <div className="list-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="list-row">
         <div>
-          <div className="muted">Plan completion</div>
-          <div style={{ fontWeight: 600 }}>{planPercent}%</div>
-          <div className="muted" style={{ fontSize: 12 }}>{completedLabel}</div>
+          <div className="metric-label">Plan completion</div>
+          <div className="metric-value" style={{ fontSize: '1.9rem' }}>{planPercent}%</div>
+          <div className="muted text-xs">{completedLabel}</div>
         </div>
-        <div style={{ flex: 1, marginLeft: 16 }}>
-          <div style={{ background: 'var(--neutral-100, #f3f4f6)', height: 8, borderRadius: 9999, overflow: 'hidden' }}>
-            <div style={{ width: `${planPercent}%`, height: '100%', background: 'var(--primary, #2563eb)', transition: 'width 150ms ease' }} />
-          </div>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div className="progress"><span style={{ width: `${planPercent}%` }} /></div>
         </div>
       </div>
 
       <div className="stats">
         <div className="stat">
-          <div className="stat-label">Calories Consumed</div>
-          <div className="stat-value">{calorieData.consumed}<span className="unit"> kcal</span></div>
+          <div className="stat-label">Calories consumed</div>
+          <div className="stat-value">{calorieData.consumed}<span className="unit">kcal</span></div>
           <div className="sub">Planned {calorieData.planned} kcal</div>
         </div>
         <div className="stat">
-          <div className="stat-label">Calories Burned</div>
-          <div className="stat-value">{calorieData.burned}<span className="unit"> kcal</span></div>
-          <div className="sub">Workout est. {calorieData.plannedBurn} kcal</div>
+          <div className="stat-label">Calories burned</div>
+          <div className="stat-value">{calorieData.burned}<span className="unit">kcal</span></div>
+          <div className="sub">Workout estimate {calorieData.plannedBurn} kcal</div>
+        </div>
+        <div className="stat">
+          <div className="stat-label">Weight logs</div>
+          <div className="stat-value">{chartData.length}</div>
+          <div className="sub">Stored entries used for the trend line</div>
         </div>
       </div>
 
-      <div className="stack" style={{ marginTop: 8 }}>
-        <div className="list-row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+      <div className="card" style={{ padding: 18 }}>
+        <div className="card-head">
           <div>
-            <div className="muted">Weight trend</div>
-            <div className="sub">Log today&apos;s weight to keep the line current.</div>
+            <h3>Weight trend</h3>
+            <div className="sub">Log today&apos;s bodyweight to keep the chart current.</div>
           </div>
-          <div className="stack" style={{ gap: 6, alignItems: 'flex-end' }}>
-            <div className="list-row" style={{ gap: 8 }}>
-              <input
-                type="number"
-                placeholder="Enter weight in pounds"
-                value={weightInput}
-                onChange={(e) => setWeightInput(e.target.value)}
-                style={{ width: 170 }}
-              />
-              <button className="btn btn-primary" onClick={handleAddWeight} disabled={pending}>
-                {pending ? 'Saving…' : 'Save weight'}
-              </button>
-            </div>
-            <div className="muted" style={{ fontSize: 12 }}>Tip: log once per day to see your trend.</div>
+          <div className="quick-actions" style={{ alignItems: 'center' }}>
+            <input
+              type="number"
+              placeholder="Weight in pounds"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+              style={{ width: 180 }}
+            />
+            <button className="btn btn-primary" onClick={handleAddWeight} disabled={pending}>
+              {pending ? 'Saving...' : 'Save weight'}
+            </button>
           </div>
         </div>
-        {error && <div className="muted" style={{ color: 'var(--danger, #b91c1c)' }}>{error}</div>}
+        {error && <div className="muted" style={{ color: 'var(--danger)' }}>{error}</div>}
         {chartData.length > 0 ? (
-          <div style={{ width: '100%', height: 220 }}>
+          <div style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer>
-              <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
-                <YAxis domain={['dataMin - 5', 'dataMax + 5']} />
-                <Tooltip formatter={(v) => [`${v} lb`, 'Weight']} />
-                <Line type="monotone" dataKey="value" stroke="#2563eb" dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
+                <CartesianGrid stroke="var(--edge, rgba(255,255,255,.08))" strokeDasharray="3 3" />
+                <XAxis dataKey="label" stroke="var(--muted, rgba(255,255,255,.7))" />
+                <YAxis domain={['dataMin - 5', 'dataMax + 5']} stroke="var(--muted, rgba(255,255,255,.7))" />
+                <Tooltip formatter={(v) => [`${v} lb`, 'Weight']} contentStyle={{ background: 'var(--elev)', border: '1px solid var(--edge)', borderRadius: 16 }} />
+                <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={3} dot={{ r: 3, fill: 'var(--accent)' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="muted">Add a weight entry to see your trend.</div>
+          <div className="list-row"><span className="muted">Add a weight entry to see your trend.</span></div>
         )}
       </div>
     </div>
   );
 }
+

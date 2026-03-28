@@ -23,6 +23,7 @@ export function OnboardingProvider({ children }) {
     mealsPerDay: 3,
     workoutDuration: "",
     workoutsPerWeek: "",
+    workoutDays: [],
   });
 
   const updateForm = (updates) => {

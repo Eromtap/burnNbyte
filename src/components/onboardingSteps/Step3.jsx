@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import StepLayout from './StepLayout';
 import { DIETARY_PREFERENCES, labelForDietaryPreference } from '@/constants/dietaryPreferences';
@@ -15,14 +15,9 @@ export default function Step3({ formData, updateForm }) {
     updateForm({ dietaryPreferences: next });
   };
 
-  const removePreference = (value) => {
-    updateForm({ dietaryPreferences: preferences.filter((pref) => pref !== value) });
-  };
-
   const addCustomPreference = () => {
     const cleaned = customPref.trim();
-    if (!cleaned) return;
-    if (preferences.includes(cleaned)) {
+    if (!cleaned || preferences.includes(cleaned)) {
       setCustomPref('');
       return;
     }
@@ -30,39 +25,29 @@ export default function Step3({ formData, updateForm }) {
     setCustomPref('');
   };
 
-  const onCustomKey = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addCustomPreference();
-    }
-  };
-
   const addDislike = () => {
     const cleaned = customDislike.trim();
-    if (!cleaned) return;
-    if (dislikes.includes(cleaned)) {
+    if (!cleaned || dislikes.includes(cleaned)) {
       setCustomDislike('');
       return;
     }
     updateForm({ dislikedFoods: [...dislikes, cleaned] });
     setCustomDislike('');
   };
-  const removeDislike = (value) => {
-    updateForm({ dislikedFoods: dislikes.filter((d) => d !== value) });
-  };
-  const onDislikeKey = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addDislike();
-    }
-  };
 
   return (
-    <StepLayout stepNumber={3} totalSteps={3} title="Nutrition & Focus Areas">
-      <div className="block planner-head">
-        <div className="flex justify-between items-center">
-          <span>Dietary Preferences</span>
-          <span className="text-xs muted">Pick anything you love</span>
+    <StepLayout
+      stepNumber={3}
+      totalSteps={3}
+      title="Nutrition setup"
+      description="Set food preferences and soft avoids so the meal planner feels personalized from day one."
+    >
+      <div className="onboard-section">
+        <div className="onboard-section-head">
+          <div>
+            <div className="planner-head">Dietary preferences</div>
+            <div className="muted text-xs">Select anything the meal planner should lean toward.</div>
+          </div>
         </div>
         <div className="prefs-grid mt-2">
           {DIETARY_PREFERENCES.map((pref) => {
@@ -80,88 +65,84 @@ export default function Step3({ formData, updateForm }) {
             );
           })}
         </div>
-        <label className="block mt-3">
-          <span className="text-sm">Custom preferences</span>
-          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <input
-              type="text"
-              className="input"
-              style={{ flex: 1 }}
-              placeholder="Add custom preference (press Enter)"
-              value={customPref}
-              onChange={(e) => setCustomPref(e.target.value)}
-              onKeyDown={onCustomKey}
-            />
-            <button type="button" className="btn btn-secondary" onClick={addCustomPreference}>
-              Add
-            </button>
-          </div>
-        </label>
-        {preferences.length > 0 && (
-          <div className="selected-prefs mt-3">
-            {preferences.map((pref) => (
-              <span key={pref} className="pref-pill">
-                {labelForDietaryPreference(pref)}
-                <button type="button" onClick={() => removePreference(pref)} aria-label={`Remove ${pref}`}>
-                  &times;
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-        {preferences.length === 0 && <p className="text-xs muted mt-2">Leave blank if you are open to anything.</p>}
-      </div>
-
-      <div className="block planner-head mt-4">
-        <span>Foods you dislike</span>
-        <p className="text-xs muted">Optional: list items you prefer to avoid (soft avoid).</p>
-        <div className="mt-2" style={{ display: 'flex', gap: 12 }}>
+        <div className="onboard-inline-fields mt-4">
           <input
             type="text"
             className="input"
-            style={{ flex: 1 }}
-            placeholder="e.g. olives, cottage cheese, mushrooms"
-            value={customDislike}
-            onChange={(e) => setCustomDislike(e.target.value)}
-            onKeyDown={onDislikeKey}
+            placeholder="Add custom preference"
+            value={customPref}
+            onChange={(e) => setCustomPref(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addCustomPreference();
+              }
+            }}
           />
-          <button type="button" className="btn btn-secondary" onClick={addDislike}>Add</button>
+          <button type="button" className="btn btn-secondary" onClick={addCustomPreference}>Add</button>
         </div>
-        {dislikes.length > 0 && (
-          <div className="selected-prefs mt-3">
-            {dislikes.map((item) => (
-              <span key={item} className="pref-pill">
-                {item}
-                <button type="button" onClick={() => removeDislike(item)} aria-label={`Remove ${item}`}>&times;</button>
-              </span>
+        {preferences.length > 0 && (
+          <div className="selected-prefs mt-4">
+            {preferences.map((pref) => (
+              <span key={pref} className="pref-pill">{labelForDietaryPreference(pref)}</span>
             ))}
           </div>
         )}
       </div>
 
-      <label className="block planner-head">
-        Allergies:
-        <input
-          type="text"
-          placeholder="e.g. peanuts, dairy"
-          className="input mt-1"
-          value={formData.allergies || ''}
-          onChange={(e) => updateForm({ allergies: e.target.value })}
-        />
-      </label>
+      <div className="onboard-grid onboard-grid-2">
+        <div className="onboard-section" style={{ marginTop: 0 }}>
+          <div className="planner-head">Foods you dislike</div>
+          <div className="muted text-xs">Optional soft avoids for meals and grocery suggestions.</div>
+          <div className="onboard-inline-fields mt-4">
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. olives, mushrooms"
+              value={customDislike}
+              onChange={(e) => setCustomDislike(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  addDislike();
+                }
+              }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addDislike}>Add</button>
+          </div>
+          {dislikes.length > 0 && (
+            <div className="selected-prefs mt-4">
+              {dislikes.map((item) => (
+                <span key={item} className="pref-pill">{item}</span>
+              ))}
+            </div>
+          )}
+        </div>
 
-      <label className="block planner-head">
-        Meals Per Day:
-        <input
-          type="number"
-          placeholder="e.g. 3"
-          className="input mt-1"
-          value={formData.mealsPerDay}
-          onChange={(e) => updateForm({ mealsPerDay: e.target.value })}
-          min="1"
-          required
-        />
-      </label>
+        <div className="onboard-info-stack">
+          <label>
+            <span>Allergies</span>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. peanuts, dairy"
+              value={formData.allergies || ''}
+              onChange={(e) => updateForm({ allergies: e.target.value })}
+            />
+          </label>
+          <label>
+            <span>Meals per day</span>
+            <input
+              type="number"
+              className="input"
+              value={formData.mealsPerDay}
+              onChange={(e) => updateForm({ mealsPerDay: e.target.value })}
+              min="1"
+              required
+            />
+          </label>
+        </div>
+      </div>
     </StepLayout>
   );
 }

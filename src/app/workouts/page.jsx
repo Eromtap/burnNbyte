@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+﻿import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -23,16 +23,6 @@ function toYMDInTimeZone(date, timeZone){
   const day = parts.find(p => p.type === 'day')?.value ?? '01';
   return `${year}-${month}-${day}`;
 }
-function formatYMDForDisplay(ymd, timeZone){
-  const [y,m,d] = ymd.split('-').map(Number);
-  const utcDate = new Date(Date.UTC(y, (m||1)-1, d||1));
-  return new Intl.DateTimeFormat(undefined, {
-    timeZone,
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-  }).format(utcDate);
-}
 
 function resolveTimeZone(candidate){
   try {
@@ -45,6 +35,7 @@ function resolveTimeZone(candidate){
   }
   return 'UTC';
 }
+
 function extractExerciseSuggestions(instructions){
   if (!Array.isArray(instructions)) return [];
   const candidates = instructions
@@ -106,65 +97,88 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
   const exerciseLogs = workout
     ? await prisma.exerciseLog.findMany({
         where: { workoutId: workout.id, userId: session.user.id },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
       })
     : [];
   const exerciseSuggestions = workout ? extractExerciseSuggestions(workout.instructions) : [];
 
-  // Removed Upcoming section
-
   return (
     <main>
-      <div className="page-shell">
-        <div className="stack">
-          <DateStrip basePath="/workouts" selectedISO={selectedISO} />
-          <article className="card">
+      <div className="page-shell stack">
+        <section className="hero-card page-hero">
+          <div className="page-hero-copy">
+            <div className="eyebrow">Workout builder</div>
+            <div>
+              <h1 className="page-hero-title">Train with a cleaner plan and tighter execution.</h1>
+              <p className="page-hero-text">
+                Generate by date, track completion, and keep exercise progress next to the actual session so the workout page feels like a tool, not a dump.
+              </p>
+            </div>
+            <div className="page-hero-actions">
+              <LinkButton href="#generate">Generate workout</LinkButton>
+              <LinkButton href="#session" variant="outline">Jump to session</LinkButton>
+            </div>
+          </div>
+          <aside className="hero-panel hero-metrics">
+            <div className="metric-card">
+              <div className="metric-label">Selected day</div>
+              <div className="metric-value">{selectedISO}</div>
+              <div className="metric-detail">{workout ? 'Plan ready for this day.' : 'No plan saved yet.'}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">Session target</div>
+              <div className="metric-value">{profile.workoutDuration || 30}<span className="unit">min</span></div>
+              <div className="metric-detail">Based on your profile defaults.</div>
+            </div>
+          </aside>
+        </section>
+
+        <DateStrip basePath="/workouts" selectedISO={selectedISO} />
+
+        <section className="section-grid">
+          <article id="generate" className="card section-side">
             <header className="card-head">
-              <h3>Generate Workout Plan</h3>
-              <div className="sub">Creates/upserts workouts by date</div>
+              <div>
+                <h3>Generate workout plan</h3>
+                <div className="sub">Creates or updates the session for the selected date.</div>
+              </div>
             </header>
             <GenerateWorkout />
           </article>
 
-          <article className="card">
+          <article id="session" className="card section-main">
             <header className="card-head">
-              <h3>Workout</h3>
-              <div className="sub">{workout ? selectedISO : 'No workout on this day'}</div>
+              <div>
+                <h3>Session details</h3>
+                <div className="sub">{workout ? 'Everything you need to execute today.' : 'Generate a workout to populate this view.'}</div>
+              </div>
+              {workout && <div className="section-badge section-badge-workout">{workout.difficulty || 'beginner'}</div>}
             </header>
-            {!workout && <div className="muted">No workout for today. Use the button above to generate.</div>}
+            {!workout && <div className="list-row"><span className="muted">No workout for this date. Use the generator to create one.</span></div>}
             {workout && (
               <div className="stack">
-                <div className="list-row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span className="muted">{workout.isCompleted ? 'Completed' : 'Not done yet'}</span>
+                <div className="list-row">
+                  <div>
+                    <strong>{workout.name}</strong>
+                    <div className="muted" style={{ marginTop: 4 }}>{workout.muscleGroup || 'General training'} • {workout.duration} minutes</div>
+                  </div>
                   <WorkoutCompletionToggle key={workout.id} workoutId={workout.id} initialCompleted={workout.isCompleted} />
                 </div>
-                <div className="list-row"><span>Name</span><span className="workout-title">{workout.name}</span></div>
-                {workout.muscleGroup && <div className="list-row"><span>Muscle Group</span><span className="muted">{workout.muscleGroup}</span></div>}
-                <div className="list-row"><span>Duration</span><span className="muted">{workout.duration} min</span></div>
                 {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
-                  <div>
+                  <div className="stack">
                     <div className="planner-head">Instructions</div>
-                    <ul className="list" style={{marginTop:8}}>
+                    <ul className="list">
                       {workout.instructions.map((step, i) => (
                         <li key={i} className="list-row" style={{ alignItems: 'flex-start' }}>
                           <div>
                             <div className="instruction-text">{step}</div>
                             <a
-                              style={{
-                                display: 'inline-block',
-                                marginTop: 4,
-                                color: 'var(--accent)',
-                                fontSize: 12,
-                                textDecoration: 'none',
-                                fontWeight: 600,
-                              }}
-                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(
-                                `${normalizeInstructionForSearch(step) || step} exercise demo`
-                              )}`}
+                              style={{ display: 'inline-block', marginTop: 8, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}
+                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${normalizeInstructionForSearch(step) || step} exercise demo`)}`}
                               target="_blank"
                               rel="noreferrer"
                             >
-                              Need a demo? Watch on YouTube
+                              Watch a demo on YouTube
                             </a>
                           </div>
                         </li>
@@ -172,15 +186,20 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
                     </ul>
                   </div>
                 )}
-                <div>
-                  <div className="planner-head">Exercise Progress</div>
+                <div className="stack">
+                  <div className="planner-head">Exercise progress</div>
                   <ExerciseLogPanel workoutId={workout.id} initialLogs={exerciseLogs} exerciseSuggestions={exerciseSuggestions} />
                 </div>
               </div>
             )}
           </article>
-        </div>
+        </section>
       </div>
     </main>
   );
 }
+
+function LinkButton({ href, children, variant = 'primary' }) {
+  return <a href={href} className={`btn ${variant === 'outline' ? 'btn-outline' : 'btn-primary'}`}>{children}</a>;
+}
+

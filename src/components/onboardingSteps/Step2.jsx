@@ -1,38 +1,11 @@
-// 'use client';
-// import StepLayout from './StepLayout';
-
-// export default function Step2({ formData, updateForm }) {
-//   return (
-//     <StepLayout stepNumber={2} totalSteps={3} title="Fitness Goals">
-//       <select className="input" value={formData.fitnessGoal} onChange={(e) => updateForm({ fitnessGoal: e.target.value })}>
-//         <option value="">Fitness Goal</option>
-//         <option value="lose_weight">Lose Weight</option>
-//         <option value="gain_muscle">Gain Muscle</option>
-//         <option value="improve_endurance">Endurance</option>
-//       </select>
-//       <select className="input" value={formData.workoutPreference} onChange={(e) => updateForm({ workoutPreference: e.target.value })}>
-//         <option value="">Workout Type</option>
-//         <option value="cardio">Cardio</option>
-//         <option value="strength">Strength</option>
-//         <option value="pilates">Pilates</option>
-//         <option value="calisthetics">Calisthetics</option>
-//         <option value="mixed">Mixed</option>
-//       </select>
-//       <input type="number" placeholder="Workout Duration (min)" className="input" value={formData.workoutDuration} onChange={(e) => updateForm({ workoutDuration: e.target.value })} />
-//       <input type="number" placeholder="Workouts per Week" className="input" value={formData.workoutsPerWeek} onChange={(e) => updateForm({ workoutsPerWeek: e.target.value })} />
-//     </StepLayout>
-//   );
-// }
-
-
-'use client';
+﻿'use client';
 import { useState } from 'react';
 import StepLayout from './StepLayout';
-import { FITNESS_GOALS } from '@/constants/fitnessGoals';
-import { EQUIPMENT_OPTIONS } from '@/constants/equipmentAccess';
+import { FITNESS_GOALS, labelForFitnessGoal } from '@/constants/fitnessGoals';
+import { EQUIPMENT_OPTIONS, labelForEquipmentOption } from '@/constants/equipmentAccess';
 
-const ALL_DAYS = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-const DAY_LABEL = { SUN:"Sun", MON:"Mon", TUE:"Tue", WED:"Wed", THU:"Thu", FRI:"Fri", SAT:"Sat" };
+const ALL_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const DAY_LABEL = { SUN: 'Sun', MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat' };
 
 export default function Step2({ formData, updateForm }) {
   const workoutDays = Array.isArray(formData.workoutDays) ? formData.workoutDays : [];
@@ -43,7 +16,7 @@ export default function Step2({ formData, updateForm }) {
 
   const toggleDay = (day) => {
     const next = workoutDays.includes(day)
-      ? workoutDays.filter(d => d !== day)
+      ? workoutDays.filter((d) => d !== day)
       : [...workoutDays, day];
     updateForm({ workoutDays: next });
   };
@@ -51,29 +24,18 @@ export default function Step2({ formData, updateForm }) {
   const toggleGoal = (value) => {
     const exists = goals.includes(value);
     const next = exists ? goals.filter((g) => g !== value) : [...goals, value];
-    updateForm({
-      fitnessGoals: next,
-      fitnessGoal: next[0] || '',
-    });
+    updateForm({ fitnessGoals: next, fitnessGoal: next[0] || '' });
   };
 
   const addCustomGoal = () => {
     const cleaned = customGoal.trim();
-    if (!cleaned) return;
-    if (goals.includes(cleaned)) {
+    if (!cleaned || goals.includes(cleaned)) {
       setCustomGoal('');
       return;
     }
     const next = [...goals, cleaned];
     updateForm({ fitnessGoals: next, fitnessGoal: next[0] || '' });
     setCustomGoal('');
-  };
-
-  const onCustomGoalKey = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addCustomGoal();
-    }
   };
 
   const toggleEquipment = (value) => {
@@ -84,8 +46,7 @@ export default function Step2({ formData, updateForm }) {
 
   const addCustomEquipment = () => {
     const cleaned = customEquipment.trim();
-    if (!cleaned) return;
-    if (equipmentAccess.includes(cleaned)) {
+    if (!cleaned || equipmentAccess.includes(cleaned)) {
       setCustomEquipment('');
       return;
     }
@@ -93,19 +54,19 @@ export default function Step2({ formData, updateForm }) {
     setCustomEquipment('');
   };
 
-  const onCustomEquipmentKey = (event) => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      addCustomEquipment();
-    }
-  };
-
   return (
-    <StepLayout stepNumber={2} totalSteps={3} title="Fitness Goals">
-      <div className="block planner-head">
-        <div className="flex justify-between items-center">
-          <span>Fitness Goals</span>
-          <span className="text-xs muted">Pick one or more</span>
+    <StepLayout
+      stepNumber={2}
+      totalSteps={3}
+      title="Training setup"
+      description="Choose the kind of outcome you want and what tools you actually have access to so workouts stop feeling generic."
+    >
+      <div className="onboard-section">
+        <div className="onboard-section-head">
+          <div>
+            <div className="planner-head">Fitness goals</div>
+            <div className="muted text-xs">Pick one or more targets.</div>
+          </div>
         </div>
         <div className="prefs-grid mt-2">
           {FITNESS_GOALS.map((goal) => {
@@ -123,32 +84,37 @@ export default function Step2({ formData, updateForm }) {
             );
           })}
         </div>
-        <label className="block mt-3">
-          <span className="text-sm">Custom goals</span>
-          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <input
-              type="text"
-              className="input"
-              style={{ flex: 1 }}
-              placeholder="e.g. Chicago marathon in October"
-              value={customGoal}
-              onChange={(e) => setCustomGoal(e.target.value)}
-              onKeyDown={onCustomGoalKey}
-            />
-            <button type="button" className="btn btn-secondary" onClick={addCustomGoal}>
-              Add
-            </button>
+        <div className="onboard-inline-fields mt-4">
+          <input
+            type="text"
+            className="input"
+            placeholder="Add a custom goal"
+            value={customGoal}
+            onChange={(e) => setCustomGoal(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addCustomGoal();
+              }
+            }}
+          />
+          <button type="button" className="btn btn-secondary" onClick={addCustomGoal}>Add</button>
+        </div>
+        {goals.length > 0 && (
+          <div className="selected-prefs mt-4">
+            {goals.map((goal) => (
+              <span key={goal} className="pref-pill">{labelForFitnessGoal(goal)}</span>
+            ))}
           </div>
-        </label>
-        {goals.length === 0 && (
-          <p className="text-xs muted mt-2">Select at least one target to shape your plans.</p>
         )}
       </div>
 
-      <div className="block planner-head">
-        <div className="flex justify-between items-center">
-          <span>Equipment Access</span>
-          <span className="text-xs muted">Helps tailor workouts</span>
+      <div className="onboard-section">
+        <div className="onboard-section-head">
+          <div>
+            <div className="planner-head">Equipment access</div>
+            <div className="muted text-xs">Tell the app what you can actually train with.</div>
+          </div>
         </div>
         <div className="prefs-grid mt-2">
           {EQUIPMENT_OPTIONS.map((item) => {
@@ -166,60 +132,65 @@ export default function Step2({ formData, updateForm }) {
             );
           })}
         </div>
-        <label className="block mt-3">
-          <span className="text-sm">Other equipment (optional)</span>
-          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-            <input
-              type="text"
-              className="input"
-              style={{ flex: 1 }}
-              placeholder="e.g. Peloton, TRX, pool access"
-              value={customEquipment}
-              onChange={(e) => setCustomEquipment(e.target.value)}
-              onKeyDown={onCustomEquipmentKey}
-            />
-            <button type="button" className="btn btn-secondary" onClick={addCustomEquipment}>
-              Add
-            </button>
+        <div className="onboard-inline-fields mt-4">
+          <input
+            type="text"
+            className="input"
+            placeholder="Add custom equipment"
+            value={customEquipment}
+            onChange={(e) => setCustomEquipment(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addCustomEquipment();
+              }
+            }}
+          />
+          <button type="button" className="btn btn-secondary" onClick={addCustomEquipment}>Add</button>
+        </div>
+        {equipmentAccess.length > 0 && (
+          <div className="selected-prefs mt-4">
+            {equipmentAccess.map((item) => (
+              <span key={item} className="pref-pill">{labelForEquipmentOption(item)}</span>
+            ))}
           </div>
-        </label>
-        {equipmentAccess.length === 0 && <p className="text-xs muted mt-2">Tell us what gear you can use (home or gym).</p>}
+        )}
       </div>
 
-      <label>
-        <span>Workout Duration (min)</span>
-        <input
-          type="number"
-          className="input"
-          value={formData.workoutDuration ?? ""}
-          onChange={(e) => updateForm({ workoutDuration: e.target.value })}
-          min="1"
-          required
-        />
-      </label>
-
-      {/* New: Day-of-week picker */}
-      <div className="mt-3">
-        <label className="planner-head" style={{ display: 'block', marginBottom: 4 }}>Workout Days</label>
-        <div className="days-grid">
-          {ALL_DAYS.map((d) => {
-            const active = workoutDays.includes(d);
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => toggleDay(d)}
-                className={`btn-chip ${active ? 'btn-chip-active' : ''}`}
-                aria-pressed={active}
-              >
-                {DAY_LABEL[d]}
-              </button>
-            );
-          })}
+      <div className="onboard-grid onboard-grid-2">
+        <label>
+          <span>Workout duration (min)</span>
+          <input
+            type="number"
+            className="input"
+            value={formData.workoutDuration ?? ''}
+            onChange={(e) => updateForm({ workoutDuration: e.target.value })}
+            min="1"
+            required
+          />
+        </label>
+        <div className="onboard-info-card">
+          <div className="metric-label">Workout days</div>
+          <div className="days-grid mt-2">
+            {ALL_DAYS.map((day) => {
+              const active = workoutDays.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleDay(day)}
+                  className={`btn-chip ${active ? 'btn-chip-active' : ''}`}
+                  aria-pressed={active}
+                >
+                  {DAY_LABEL[day]}
+                </button>
+              );
+            })}
+          </div>
+          <div className="metric-detail" style={{ marginTop: 10 }}>
+            {workoutDays.length ? workoutDays.map((day) => DAY_LABEL[day]).join(', ') : 'No days selected yet.'}
+          </div>
         </div>
-        <p className="text-xs muted" style={{ marginTop: 6 }}>
-          Selected: {workoutDays.length ? workoutDays.map(d => DAY_LABEL[d]).join(', ') : 'None'}
-        </p>
       </div>
     </StepLayout>
   );

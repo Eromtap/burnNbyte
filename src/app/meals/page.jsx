@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+﻿import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -26,16 +26,6 @@ function toYMDInTimeZone(date, timeZone) {
   const day = parts.find((p) => p.type === "day")?.value ?? "01";
   return `${year}-${month}-${day}`;
 }
-function formatUTCDateForDisplay(date, timeZone) {
-  if (!date) return "";
-  const dt = new Date(date);
-  return new Intl.DateTimeFormat(undefined, {
-    timeZone,
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  }).format(dt);
-}
 
 function resolveTimeZone(candidate) {
   try {
@@ -58,120 +48,157 @@ export default async function MealsPage({ searchParams }){
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
   const session = await requireAuth();
-  // Optional onboarding check to match home page
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect("/onboarding/1");
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
-  const params = await searchParams; // Next.js async searchParams (may be URLSearchParams)
+  const params = await searchParams;
   const paramDate = typeof params?.get === "function" ? params.get("date") : params?.date;
   const selectedISO = paramDate ? String(paramDate) : todayISO;
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const mealPlan = await prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } });
   const mealMacros = sumMealMacros(mealPlan?.meals || []);
-
-  const grouped = (mealPlan?.meals || []).reduce((acc, m) => {
-    const t = (m.type || "").toLowerCase();
-    acc[t] = acc[t] || [];
-    acc[t].push(m);
+  const grouped = (mealPlan?.meals || []).reduce((acc, meal) => {
+    const type = (meal.type || "").toLowerCase();
+    acc[type] = acc[type] || [];
+    acc[type].push(meal);
     return acc;
   }, {});
 
   return (
     <main>
-      <div className="page-shell">
-        <div className="stack">
-          <DateStrip basePath="/meals" selectedISO={selectedISO} />
-          <article className="card">
+      <div className="page-shell stack">
+        <section className="hero-card page-hero">
+          <div className="page-hero-copy">
+            <div className="eyebrow">Meal planning</div>
+            <div>
+              <h1 className="page-hero-title">A nutrition plan that feels organized, not stitched together.</h1>
+              <p className="page-hero-text">
+                Generate a full day, swap specific meals, and pull in photo-based replacements without losing sight of your daily macro totals.
+              </p>
+            </div>
+            <div className="page-hero-actions">
+              <a href="#planner" className="btn btn-primary">Open planner</a>
+              <a href="#replace" className="btn btn-outline">Replace a meal</a>
+            </div>
+          </div>
+          <aside className="hero-panel hero-metrics">
+            <div className="metric-card">
+              <div className="metric-label">Selected day</div>
+              <div className="metric-value">{selectedISO}</div>
+              <div className="metric-detail">{mealPlan ? 'Meal plan loaded.' : 'No plan saved yet.'}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">Daily totals</div>
+              <div className="metric-value">{mealMacros.calories}<span className="unit">kcal</span></div>
+              <div className="metric-detail">{formatMacro(mealMacros.protein)}g protein • {formatMacro(mealMacros.carbs)}g carbs • {formatMacro(mealMacros.fat)}g fat</div>
+            </div>
+          </aside>
+        </section>
+
+        <DateStrip basePath="/meals" selectedISO={selectedISO} />
+
+        <section className="section-grid">
+          <article className="card section-side">
             <header className="card-head">
-              <h3>Generate Meal Plan</h3>
-              <div className="sub">Creates plans and saves to calendar</div>
+              <div>
+                <h3>Generate meal plan</h3>
+                <div className="sub">Creates and saves the plan for the selected date.</div>
+              </div>
             </header>
             <GenerateMealPlan />
-            <div className="list-row" style={{ marginTop: 8 }}>
-              <a className="pill" href="/pantry" style={{ marginLeft: 8 }}>Use Pantry Photo</a>
+            <div className="page-hero-actions" style={{ marginTop: 12 }}>
+              <a className="btn btn-secondary" href="/pantry">Use pantry photo</a>
             </div>
           </article>
 
-          <article className="card">
+          <article id="planner" className="card section-main">
             <header className="card-head">
-              <h3>Meal Plan</h3>
-              <div className="sub">{mealPlan ? selectedISO : 'No plan on this day'}</div>
+              <div>
+                <h3>Meal lineup</h3>
+                <div className="sub">Browse each meal block and swap as needed.</div>
+              </div>
+              {mealPlan && <div className="section-badge section-badge-meal">{mealPlan.meals.length} items</div>}
             </header>
-            {!mealPlan && <div className="muted">No meal plan for today. Use the button above to generate.</div>}
+            {!mealPlan && <div className="list-row"><span className="muted">No meal plan for this date. Generate one to populate the planner.</span></div>}
             {mealPlan && (
-              <>
-                <div className="list-row" style={{ marginBottom: 12 }}>
+              <div className="stack">
+                <div className="list-row">
                   <span>Daily totals</span>
-                  <span className="muted">
-                    {mealMacros.calories} kcal | {formatMacro(mealMacros.protein)}g Protein | {formatMacro(mealMacros.carbs)}g Carbs | {formatMacro(mealMacros.fat)}g Fat
-                  </span>
+                  <span className="muted">{mealMacros.calories} kcal • {formatMacro(mealMacros.protein)}g protein • {formatMacro(mealMacros.carbs)}g carbs • {formatMacro(mealMacros.fat)}g fat</span>
                 </div>
-                <div className="stack">
-                {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                  <div key={type} className="planner-col">
-                    <div className="planner-head" style={{ textTransform: "capitalize" }}>{type}</div>
-                    <ReplaceMealButton
-                      dateISO={selectedISO}
-                      type={type}
-                      className="btn btn-secondary"
-                      label="Replace"
-                    />
-                    <div>
-                      {(grouped[type] || []).map((m) => (
-                        <article key={m.id} className="card" style={{ marginTop: 8 }}>
+                <div className="planner">
+                  {["breakfast", "lunch", "dinner", "snack"].map((type) => (
+                    <div key={type} className="planner-col">
+                      <div className="planner-col planner-col-row" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                        <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
+                        <ReplaceMealButton dateISO={selectedISO} type={type} className="btn btn-secondary" label="Replace" />
+                      </div>
+                      {(grouped[type] || []).length ? (
+                        (grouped[type] || []).map((meal) => (
+                          <article key={meal.id} className="card" style={{ padding: 16 }}>
                             <header className="card-head">
-                              <h3>{m.name}</h3>
-                              <div className="sub">
-                                {(m.calories ?? "?")} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                              <div>
+                                <h3>{meal.name}</h3>
+                                <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat</div>
                               </div>
+                              <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
                             </header>
-                            <MealCompletionToggle mealId={m.id} initialCompleted={m.isCompleted} />
                             <div className="stack">
-                              {Array.isArray(m.ingredients) && m.ingredients.length > 0 && (
+                              {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
                                 <div>
                                   <div className="planner-head">Ingredients</div>
                                   <ul className="list" style={{ marginTop: 8 }}>
-                                    {m.ingredients.map((ing, i) => (<li key={i} className="list-row"><span>{ing}</span></li>))}
+                                    {meal.ingredients.map((ingredient, index) => (
+                                      <li key={index} className="list-row"><span>{ingredient}</span></li>
+                                    ))}
                                   </ul>
                                 </div>
                               )}
-                              {m.recipe && (
+                              {meal.recipe && (
                                 <div>
                                   <div className="planner-head">Recipe</div>
-                                  <div className="list-row"><span style={{ whiteSpace: "pre-wrap" }}>{m.recipe}</span></div>
+                                  <div className="list-row"><span style={{ whiteSpace: 'pre-wrap' }}>{meal.recipe}</span></div>
                                 </div>
                               )}
                             </div>
                           </article>
-                        ))}
-                        {!(grouped[type] || []).length && <div className="muted">No {type} planned.</div>}
-                      </div>
+                        ))
+                      ) : (
+                        <div className="list-row"><span className="muted">No {type} planned.</span></div>
+                      )}
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </article>
+        </section>
 
-          <article className="card">
+        <section className="section-grid">
+          <article id="replace" className="card section-side">
             <header className="card-head">
-              <h3>Replace Meal for Day</h3>
-              <div className="sub">Pick one meal to swap for this day</div>
+              <div>
+                <h3>Replace meal for day</h3>
+                <div className="sub">Swap one meal on the selected date.</div>
+              </div>
             </header>
             <MealsReplacerSingle selectedISO={selectedISO} />
           </article>
 
-          <article className="card">
+          <article className="card section-main">
             <header className="card-head">
-              <h3>Replace with Meal Photo</h3>
-              <div className="sub">Upload a meal photo to estimate macros and swap it into this day</div>
+              <div>
+                <h3>Replace from photo</h3>
+                <div className="sub">Upload a meal photo, estimate macros, and drop it into the plan.</div>
+              </div>
             </header>
             <MealPhotoReplace selectedISO={selectedISO} />
           </article>
-        </div>
+        </section>
       </div>
     </main>
   );
 }
+
