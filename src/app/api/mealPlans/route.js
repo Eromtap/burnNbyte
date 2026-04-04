@@ -23,11 +23,28 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+function toUTCDateFromLocalYMD(ymd) {
+  const [y, m, d] = String(ymd || "").split("-").map(Number);
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+}
+
+export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const date = searchParams.get("date");
+
+    if (date) {
+      const baseUtc = toUTCDateFromLocalYMD(date);
+      const mealPlan = await prisma.mealPlan.findFirst({
+        where: { userId: session.user.id, date: baseUtc },
+        include: { meals: true },
+      });
+      return NextResponse.json({ mealPlan });
     }
 
     // Include related meals

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function WorkoutCompletionToggle({ workoutId, initialCompleted = false }) {
+export default function WorkoutCompletionToggle({ workoutId, initialCompleted = false, onUpdated }) {
   const router = useRouter();
   const [checked, setChecked] = useState(Boolean(initialCompleted));
   const [pending, startTransition] = useTransition();
@@ -26,7 +26,11 @@ export default function WorkoutCompletionToggle({ workoutId, initialCompleted = 
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Failed to update workout');
-        router.refresh();
+        if (typeof onUpdated === 'function') {
+          onUpdated(data?.workout || null);
+        } else {
+          router.refresh();
+        }
       } catch (e) {
         setChecked(!next);
         setError(e.message || 'Failed to update workout');

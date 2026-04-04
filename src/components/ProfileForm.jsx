@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { DIETARY_PREFERENCES } from '@/constants/dietaryPreferences';
 import { FITNESS_GOALS } from '@/constants/fitnessGoals';
 import { EQUIPMENT_OPTIONS } from '@/constants/equipmentAccess';
+import { WORKOUT_SPLITS } from '@/constants/workoutSplits';
 
 const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 const BUILT_IN_PREFS = new Set(DIETARY_PREFERENCES.map(p => p.id));
@@ -19,6 +20,7 @@ export default function ProfileForm({ initial }){
     heightFt: initial.heightFt ?? '',
     heightIn: initial.heightIn ?? '',
     weight: initial.weight ?? '',
+    goalWeight: initial.goalWeight ?? '',
     activityLevel: initial.activityLevel || '',
     fitnessGoal: initial.fitnessGoal || '',
     fitnessGoals: Array.isArray(initial.fitnessGoals)
@@ -27,67 +29,83 @@ export default function ProfileForm({ initial }){
     equipmentAccess: Array.isArray(initial.equipmentAccess) ? initial.equipmentAccess : [],
     dietaryPreferences: Array.isArray(initial.dietaryPreferences) ? initial.dietaryPreferences : [],
     dislikedFoods: Array.isArray(initial.dislikedFoods) ? initial.dislikedFoods : [],
+    workoutPreference: initial.workoutPreference || 'auto',
     workoutDuration: initial.workoutDuration ?? 30,
     workoutDays: Array.isArray(initial.workoutDays) ? initial.workoutDays : [],
     allergies: initial.allergies ? (Array.isArray(initial.allergies) ? initial.allergies : String(initial.allergies).split(',').map(s=>s.trim()).filter(Boolean)) : [],
     mealsPerDay: initial.mealsPerDay ?? 3,
   });
   const [saving, setSaving] = useState(false);
-  const [customPrefsCSV, setCustomPrefsCSV] = useState(
-    (Array.isArray(form.dietaryPreferences) ? form.dietaryPreferences : [])
-      .filter(p => !BUILT_IN_PREFS.has(p))
-      .join(', ')
-  );
-  const [customGoalsCSV, setCustomGoalsCSV] = useState(
-    (Array.isArray(form.fitnessGoals) ? form.fitnessGoals : [])
-      .filter(g => !BUILT_IN_GOALS.has(g))
-      .join(', ')
-  );
-  const [customEquipmentCSV, setCustomEquipmentCSV] = useState(
-    (Array.isArray(form.equipmentAccess) ? form.equipmentAccess : [])
-      .filter(e => !BUILT_IN_EQUIPMENT.has(e))
-      .join(', ')
-  );
-  const [dislikesCSV, setDislikesCSV] = useState(
-    Array.isArray(form.dislikedFoods) ? form.dislikedFoods.join(', ') : ''
-  );
-  const [allergiesCSV, setAllergiesCSV] = useState(
-    Array.isArray(form.allergies) ? form.allergies.join(', ')
-      : (typeof form.allergies === 'string' ? form.allergies : '')
-  );
+  const [customPrefInput, setCustomPrefInput] = useState('');
+  const [customGoalInput, setCustomGoalInput] = useState('');
+  const [customEquipmentInput, setCustomEquipmentInput] = useState('');
+  const [dislikeInput, setDislikeInput] = useState('');
+  const [allergyInput, setAllergyInput] = useState('');
   const [msg, setMsg] = useState(null);
   function updateField(key, val){ setForm(f => ({...f, [key]: val})); }
   function toggleDay(day){ setForm(f => ({...f, workoutDays: f.workoutDays.includes(day) ? f.workoutDays.filter(d=>d!==day) : [...f.workoutDays, day]})); }
-  const parseCSV = (csv) => csv.split(',').map(s=>s.trim()).filter(Boolean);
-  function updateCSV(key, csv){ updateField(key, parseCSV(csv)); }
+  const customDietaryPreferences = form.dietaryPreferences.filter(p => !BUILT_IN_PREFS.has(p));
+  const customFitnessGoals = form.fitnessGoals.filter(g => !BUILT_IN_GOALS.has(g));
+  const customEquipmentAccess = form.equipmentAccess.filter(e => !BUILT_IN_EQUIPMENT.has(e));
+  function addUniqueValue(list, value){
+    const cleaned = String(value || '').trim();
+    if (!cleaned || list.includes(cleaned)) return list;
+    return [...list, cleaned];
+  }
   function toggleDietPreference(value){
-    const customs = parseCSV(customPrefsCSV).filter(p => !BUILT_IN_PREFS.has(p));
     const builtins = form.dietaryPreferences.filter(p => BUILT_IN_PREFS.has(p));
     const nextBuiltins = builtins.includes(value)
       ? builtins.filter(v => v !== value)
       : [...builtins, value];
-    updateField('dietaryPreferences', [...nextBuiltins, ...customs]);
+    updateField('dietaryPreferences', [...nextBuiltins, ...customDietaryPreferences]);
   }
   function removeDietPreference(value){
     updateField('dietaryPreferences', form.dietaryPreferences.filter(v => v !== value));
   }
   function toggleFitnessGoal(value){
-    const customs = parseCSV(customGoalsCSV).filter(g => !BUILT_IN_GOALS.has(g));
     const builtins = form.fitnessGoals.filter(g => BUILT_IN_GOALS.has(g));
     const nextBuiltins = builtins.includes(value)
       ? builtins.filter(v => v !== value)
       : [...builtins, value];
-    const combined = [...nextBuiltins, ...customs];
+    const combined = [...nextBuiltins, ...customFitnessGoals];
     updateField('fitnessGoals', combined);
     updateField('fitnessGoal', combined[0] || '');
   }
   function toggleEquipment(value){
-    const customs = parseCSV(customEquipmentCSV).filter(e => !BUILT_IN_EQUIPMENT.has(e));
     const builtins = form.equipmentAccess.filter(e => BUILT_IN_EQUIPMENT.has(e));
     const nextBuiltins = builtins.includes(value)
       ? builtins.filter(v => v !== value)
       : [...builtins, value];
-    updateField('equipmentAccess', [...nextBuiltins, ...customs]);
+    updateField('equipmentAccess', [...nextBuiltins, ...customEquipmentAccess]);
+  }
+  function addCustomGoal(){
+    const next = addUniqueValue(form.fitnessGoals, customGoalInput);
+    updateField('fitnessGoals', next);
+    updateField('fitnessGoal', next[0] || '');
+    setCustomGoalInput('');
+  }
+  function addCustomPreference(){
+    updateField('dietaryPreferences', addUniqueValue(form.dietaryPreferences, customPrefInput));
+    setCustomPrefInput('');
+  }
+  function addCustomEquipment(){
+    updateField('equipmentAccess', addUniqueValue(form.equipmentAccess, customEquipmentInput));
+    setCustomEquipmentInput('');
+  }
+  function addDislike(){
+    updateField('dislikedFoods', addUniqueValue(form.dislikedFoods, dislikeInput));
+    setDislikeInput('');
+  }
+  function addAllergy(){
+    updateField('allergies', addUniqueValue(form.allergies, allergyInput));
+    setAllergyInput('');
+  }
+  function removeFromList(key, value){
+    updateField(key, (Array.isArray(form[key]) ? form[key] : []).filter(item => item !== value));
+    if (key === 'fitnessGoals') {
+      const nextGoals = (Array.isArray(form[key]) ? form[key] : []).filter(item => item !== value);
+      updateField('fitnessGoal', nextGoals[0] || '');
+    }
   }
   function buildPayload(){
     const goals = Array.isArray(form.fitnessGoals) ? form.fitnessGoals : [];
@@ -114,6 +132,7 @@ export default function ProfileForm({ initial }){
           heightFt: data.profile.heightFt ?? '',
           heightIn: data.profile.heightIn ?? '',
           weight: data.profile.weight ?? '',
+          goalWeight: data.profile.goalWeight ?? '',
           activityLevel: data.profile.activityLevel || '',
           fitnessGoal: data.profile.fitnessGoal || '',
           fitnessGoals: Array.isArray(data.profile.fitnessGoals)
@@ -121,6 +140,7 @@ export default function ProfileForm({ initial }){
             : (data.profile.fitnessGoal ? [data.profile.fitnessGoal] : []),
           dietaryPreferences: Array.isArray(data.profile.dietaryPreferences) ? data.profile.dietaryPreferences : [],
           dislikedFoods: Array.isArray(data.profile.dislikedFoods) ? data.profile.dislikedFoods : [],
+          workoutPreference: data.profile.workoutPreference || 'auto',
           workoutDuration: data.profile.workoutDuration ?? 30,
           workoutDays: Array.isArray(data.profile.workoutDays) ? data.profile.workoutDays : [],
           allergies: typeof data.profile.allergies === 'string'
@@ -130,11 +150,11 @@ export default function ProfileForm({ initial }){
           equipmentAccess: Array.isArray(data.profile.equipmentAccess) ? data.profile.equipmentAccess : [],
         };
         setForm(updated);
-        setCustomPrefsCSV(updated.dietaryPreferences.filter(p=>!BUILT_IN_PREFS.has(p)).join(', '));
-        setCustomGoalsCSV(updated.fitnessGoals.filter(g=>!BUILT_IN_GOALS.has(g)).join(', '));
-        setCustomEquipmentCSV(updated.equipmentAccess.filter(e=>!BUILT_IN_EQUIPMENT.has(e)).join(', '));
-        setDislikesCSV(updated.dislikedFoods.join(', '));
-        setAllergiesCSV(Array.isArray(updated.allergies) ? updated.allergies.join(', ') : '');
+        setCustomPrefInput('');
+        setCustomGoalInput('');
+        setCustomEquipmentInput('');
+        setDislikeInput('');
+        setAllergyInput('');
       }
       setMsg('Saved');
       try { await update(); } catch {}
@@ -166,6 +186,11 @@ export default function ProfileForm({ initial }){
       <label>
         <span>Weight (lb)</span>
         <input type="number" value={form.weight} onChange={e=>updateField('weight', e.target.value)} placeholder="180" />
+      </label>
+
+      <label>
+        <span>Goal Weight (lb)</span>
+        <input type="number" value={form.goalWeight} onChange={e=>updateField('goalWeight', e.target.value)} placeholder="Optional" />
       </label>
 
       <label>
@@ -206,24 +231,32 @@ export default function ProfileForm({ initial }){
         </div>
         <label className="block mt-4">
           <span className="planner-head">Custom Goals</span>
-          <p className="text-xs muted">Comma separated: race names, seasons, or anything not listed.</p>
-          <input
-            type="text"
-            className="input"
-            style={{width:'100%', marginTop:8}}
-            placeholder="e.g. Boston qualifier, summer hiking season"
-            value={customGoalsCSV}
-            onChange={e=>{
-              const csv = e.target.value;
-              setCustomGoalsCSV(csv);
-              const customs = parseCSV(csv).filter(g=>!BUILT_IN_GOALS.has(g));
-              const builtins = form.fitnessGoals.filter(g=>BUILT_IN_GOALS.has(g));
-              const combined = [...builtins, ...customs];
-              updateField('fitnessGoals', combined);
-              updateField('fitnessGoal', combined[0] || '');
-            }}
-          />
+          <p className="text-xs muted">Add race names, seasons, or anything not listed one at a time.</p>
+          <div style={{display:'flex', gap:8, marginTop:8}}>
+            <input
+              type="text"
+              className="input"
+              style={{width:'100%'}}
+              placeholder="e.g. Boston qualifier"
+              value={customGoalInput}
+              onChange={e=>setCustomGoalInput(e.target.value)}
+              onKeyDown={e=>{
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustomGoal();
+                }
+              }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addCustomGoal}>+</button>
+          </div>
         </label>
+        {customFitnessGoals.length > 0 && (
+          <div className="selected-prefs" style={{ marginTop: 10 }}>
+            {customFitnessGoals.map(goal => (
+              <span key={goal} className="pref-pill">{goal}<button type="button" onClick={()=>removeFromList('fitnessGoals', goal)} aria-label={`Remove ${goal}`}>×</button></span>
+            ))}
+          </div>
+        )}
         {form.fitnessGoals.length === 0 && <p className="text-xs muted mt-2">Select at least one so we can tailor training.</p>}
       </div>
 
@@ -250,22 +283,32 @@ export default function ProfileForm({ initial }){
         </div>
         <label className="block mt-4">
           <span className="planner-head">Other Equipment</span>
-          <p className="text-xs muted">Comma separated for anything else (e.g. Peloton, swimming pool, TRX).</p>
-          <input
-            type="text"
-            className="input"
-            style={{width:'100%', marginTop:8}}
-            placeholder="e.g. Peloton, TRX, pool access"
-            value={customEquipmentCSV}
-            onChange={e=>{
-              const csv = e.target.value;
-              setCustomEquipmentCSV(csv);
-              const customs = parseCSV(csv).filter(val => !BUILT_IN_EQUIPMENT.has(val));
-              const builtins = form.equipmentAccess.filter(val => BUILT_IN_EQUIPMENT.has(val));
-              updateField('equipmentAccess', [...builtins, ...customs]);
-            }}
-          />
+          <p className="text-xs muted">Add anything else one item at a time.</p>
+          <div style={{display:'flex', gap:8, marginTop:8}}>
+            <input
+              type="text"
+              className="input"
+              style={{width:'100%'}}
+              placeholder="e.g. Peloton"
+              value={customEquipmentInput}
+              onChange={e=>setCustomEquipmentInput(e.target.value)}
+              onKeyDown={e=>{
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustomEquipment();
+                }
+              }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addCustomEquipment}>+</button>
+          </div>
         </label>
+        {customEquipmentAccess.length > 0 && (
+          <div className="selected-prefs" style={{ marginTop: 10 }}>
+            {customEquipmentAccess.map(item => (
+              <span key={item} className="pref-pill">{item}<button type="button" onClick={()=>removeFromList('equipmentAccess', item)} aria-label={`Remove ${item}`}>×</button></span>
+            ))}
+          </div>
+        )}
         {form.equipmentAccess.length === 0 && (
           <p className="text-xs muted mt-2">Even &quot;bodyweight only&quot; helps us program correctly.</p>
         )}
@@ -274,6 +317,15 @@ export default function ProfileForm({ initial }){
       <label className="mt-4">
         <span>Workout Duration (min)</span>
         <input type="number" value={form.workoutDuration} onChange={e=>updateField('workoutDuration', e.target.value)} />
+      </label>
+
+      <label>
+        <span>Preferred Split</span>
+        <select value={form.workoutPreference} onChange={e=>updateField('workoutPreference', e.target.value)}>
+          {WORKOUT_SPLITS.map((item) => (
+            <option key={item.id} value={item.id}>{item.label}</option>
+          ))}
+        </select>
       </label>
 
       <div>
@@ -313,54 +365,88 @@ export default function ProfileForm({ initial }){
         </div>
         <label className="block mt-4">
           <span className="planner-head">Custom Preferences</span>
-          <p className="text-xs muted">Type any cuisines or foods you want us to lean into (comma separated).</p>
-          <input
-            type="text"
-            className="input"
-            style={{width:'100%', marginTop:8}}
-            placeholder="e.g. Mediterranean, high-protein bowls"
-            value={customPrefsCSV}
-            onChange={e=>{
-              const csv = e.target.value;
-              setCustomPrefsCSV(csv);
-              const customs = parseCSV(csv).filter(p=>!BUILT_IN_PREFS.has(p));
-              const builtins = form.dietaryPreferences.filter(p=>BUILT_IN_PREFS.has(p));
-              updateField('dietaryPreferences', [...builtins, ...customs]);
-            }}
-          />
+          <p className="text-xs muted">Add any cuisines or foods you want us to lean into one at a time.</p>
+          <div style={{display:'flex', gap:8, marginTop:8}}>
+            <input
+              type="text"
+              className="input"
+              style={{width:'100%'}}
+              placeholder="e.g. Mediterranean"
+              value={customPrefInput}
+              onChange={e=>setCustomPrefInput(e.target.value)}
+              onKeyDown={e=>{
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addCustomPreference();
+                }
+              }}
+            />
+            <button type="button" className="btn btn-secondary" onClick={addCustomPreference}>+</button>
+          </div>
         </label>
+        {customDietaryPreferences.length > 0 && (
+          <div className="selected-prefs" style={{ marginTop: 10 }}>
+            {customDietaryPreferences.map(pref => (
+              <span key={pref} className="pref-pill">{pref}<button type="button" onClick={()=>removeDietPreference(pref)} aria-label={`Remove ${pref}`}>×</button></span>
+            ))}
+          </div>
+        )}
         {form.dietaryPreferences.length === 0 && <p className="text-xs muted mt-2">Leave empty if you have no dietary preferences.</p>}
       </div>
 
       <div className="mt-4">
         <div className="planner-head">Dislikes</div>
-        <p className="text-xs muted">Soft avoid: foods you prefer not to see in plans (comma separated).</p>
-        <input
-          type="text"
-          className="input"
-          style={{width:'100%', marginTop:8}}
-          placeholder="e.g. olives, cottage cheese, mushrooms"
-          value={dislikesCSV}
-          onChange={e=>{
-            const csv = e.target.value;
-            setDislikesCSV(csv);
-            updateField('dislikedFoods', parseCSV(csv));
-          }}
-        />
+        <p className="text-xs muted">Soft avoid: add foods you prefer not to see one at a time.</p>
+        <div style={{display:'flex', gap:8, marginTop:8}}>
+          <input
+            type="text"
+            className="input"
+            style={{width:'100%'}}
+            placeholder="e.g. olives"
+            value={dislikeInput}
+            onChange={e=>setDislikeInput(e.target.value)}
+            onKeyDown={e=>{
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addDislike();
+              }
+            }}
+          />
+          <button type="button" className="btn btn-secondary" onClick={addDislike}>+</button>
+        </div>
+        {form.dislikedFoods.length > 0 && (
+          <div className="selected-prefs" style={{ marginTop: 10 }}>
+            {form.dislikedFoods.map(item => (
+              <span key={item} className="pref-pill">{item}<button type="button" onClick={()=>removeFromList('dislikedFoods', item)} aria-label={`Remove ${item}`}>×</button></span>
+            ))}
+          </div>
+        )}
       </div>
 
       <label>
-        <span>Allergies (comma separated)</span>
-        <input
-          value={allergiesCSV}
-          onChange={e=>{
-            const csv = e.target.value;
-            setAllergiesCSV(csv);
-            updateField('allergies', parseCSV(csv));
-          }}
-          placeholder="peanuts, dairy"
-        />
+        <span>Allergies</span>
+        <div style={{display:'flex', gap:8, marginTop:8}}>
+          <input
+            value={allergyInput}
+            onChange={e=>setAllergyInput(e.target.value)}
+            onKeyDown={e=>{
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addAllergy();
+              }
+            }}
+            placeholder="e.g. peanuts"
+          />
+          <button type="button" className="btn btn-secondary" onClick={addAllergy}>+</button>
+        </div>
       </label>
+      {form.allergies.length > 0 && (
+        <div className="selected-prefs" style={{ marginTop: 10 }}>
+          {form.allergies.map(item => (
+            <span key={item} className="pref-pill">{item}<button type="button" onClick={()=>removeFromList('allergies', item)} aria-label={`Remove ${item}`}>×</button></span>
+          ))}
+        </div>
+      )}
 
       <label>
         <span>Meals Per Day</span>

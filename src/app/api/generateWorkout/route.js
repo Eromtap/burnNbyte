@@ -139,7 +139,7 @@ export async function POST(req) {
       - fitnessGoals: ${JSON.stringify(goalList.length ? goalList : [primaryGoal])}
       - goal details: ${goalText}
       - fitness level: "${fitnessLevel}"
-      - workoutPreference: "${workoutPreference}"
+      - preferred split: "${workoutPreference}"
       - workoutDuration: ${workoutDuration}
       - preferred workoutDays: ${JSON.stringify(workoutDays)}
       - available equipment: ${JSON.stringify(equipmentList)}
@@ -166,6 +166,8 @@ export async function POST(req) {
       - If you include a previously logged weighted exercise, increase weight slightly (2.5-5 lb) and keep sets/reps similar.
       - If you include a previously logged cardio exercise, increase distance slightly (0.1-0.25 mi) OR improve pace slightly (5-10 sec/mi), not both.
       - Include the target weight/distance/pace in the instructions array so the user can follow the progression.
+      - Treat the preferred split as a real constraint when it fits the requested number of days. For example: "full_body" should bias toward full-body sessions, "push_pull_legs" should bias toward a PPL rotation, "upper_lower" should bias toward upper/lower alternation, and "body_part" should bias toward dedicated muscle-group days.
+      - If the preferred split does not fit the number of target days exactly, honor the spirit of it as closely as possible instead of ignoring it.
 
       Return ONLY a JSON object with these fields (no commentary, no code fences):
       {

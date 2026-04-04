@@ -3,16 +3,17 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function GenerateWorkout() {
-  const { data: session } = useSession();
+export default function GenerateWorkout({ initialPreferences = null, selectedISO: selectedISOProp, onGenerated }) {
+  const { data: session, update } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const userPrefs = session?.user?.preferences || {};
+  const sessionPrefs = session?.user?.preferences || null;
+  const userPrefs = sessionPrefs || initialPreferences || {};
   const todayLocal = new Date();
   todayLocal.setHours(0,0,0,0);
-  const selectedISO = searchParams.get('date') || toYMDLocal(todayLocal);
+  const selectedISO = selectedISOProp || searchParams.get('date') || toYMDLocal(todayLocal);
   const selectedLabel = new Date(`${selectedISO}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   function toYMDLocal(d){
@@ -42,15 +43,19 @@ export default function GenerateWorkout() {
     setLoading(true);
     setResult(null);
     try {
+      let fresh = null;
+      try { fresh = await update(); } catch {}
+      const prefs = fresh?.user?.preferences || session?.user?.preferences || initialPreferences || {};
+
       // Determine selected date from URL (defaults to today)
       const selectedDate = parseLocalYMD(selectedISO);
       const selectedDow = dowCode(selectedDate);
-      const goalList = Array.isArray(userPrefs.fitnessGoals)
-        ? userPrefs.fitnessGoals
-        : (userPrefs.fitnessGoal ? [userPrefs.fitnessGoal] : []);
-      const equipmentAccess = Array.isArray(userPrefs.equipmentAccess) ? userPrefs.equipmentAccess : [];
+      const goalList = Array.isArray(prefs.fitnessGoals)
+        ? prefs.fitnessGoals
+        : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []);
+      const equipmentAccess = Array.isArray(prefs.equipmentAccess) ? prefs.equipmentAccess : [];
 
-      const preferredDays = Array.isArray(userPrefs.workoutDays) ? userPrefs.workoutDays : [];
+      const preferredDays = Array.isArray(prefs.workoutDays) ? prefs.workoutDays : [];
       let targetDates = [];
       if (selectedOnly) {
         targetDates = [selectedISO];
@@ -73,15 +78,15 @@ export default function GenerateWorkout() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          gender: userPrefs.gender,
-          heightFt: userPrefs.heightFt,
-          heightIn: userPrefs.heightIn,
-          weight: userPrefs.weight,
-          fitnessGoal: userPrefs.fitnessGoal || goalList[0],
+          gender: prefs.gender,
+          heightFt: prefs.heightFt,
+          heightIn: prefs.heightIn,
+          weight: prefs.weight,
+          fitnessGoal: prefs.fitnessGoal || goalList[0],
           fitnessGoals: goalList,
-          fitnessLevel: userPrefs.fitnessLevel || 'beginner',
-          workoutPreference: userPrefs.workoutPreference,
-          workoutDuration: userPrefs.workoutDuration,
+          fitnessLevel: prefs.fitnessLevel || 'beginner',
+          workoutPreference: prefs.workoutPreference,
+          workoutDuration: prefs.workoutDuration,
           workoutDays: selectedOnly ? [selectedDow] : (preferredDays.length ? preferredDays : [selectedDow]),
           equipmentAccess,
           dateRange: selectedOnly
@@ -91,9 +96,18 @@ export default function GenerateWorkout() {
         }),
       });
       const data = await res.json();
-      // Refresh page data so the server-rendered Workout card shows the selected day
-      try { router.refresh(); } catch {}
+      if (!res.ok) {
+        setResult({ error: data?.error || 'Failed to generate workout.' });
+        return;
+      }
       const list = Array.isArray(data) ? data : (data?.workouts || []);
+      if (typeof onGenerated === 'function') {
+        try {
+          await onGenerated({ workouts: list, selectedOnly: !!selectedOnly, selectedISO });
+        } catch {}
+      } else {
+        try { router.refresh(); } catch {}
+      }
       const filtered = list.filter((w) => {
         try {
           return toYMDUtc(new Date(w.date)) === selectedISO;
@@ -119,7 +133,7 @@ export default function GenerateWorkout() {
         selectedLabel,
       });
     } catch (err) {
-      setResult({ error: 'Failed to generate workout.' });
+      setResult({ error: err?.message || 'Failed to generate workout.' });
     } finally {
       setLoading(false);
     }

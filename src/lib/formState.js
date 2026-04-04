@@ -13,6 +13,7 @@ export function OnboardingProvider({ children }) {
     heightFt: "",
     heightIn: "",
     weight: "",
+    goalWeight: "",
     activityLevel: "",
     fitnessGoal: "",
     fitnessGoals: [],
@@ -21,8 +22,10 @@ export function OnboardingProvider({ children }) {
     dislikedFoods: [],
     allergies: "",
     mealsPerDay: 3,
+    workoutPreference: "auto",
     workoutDuration: "",
     workoutsPerWeek: "",
+    workoutDays: [],
   });
 
   const updateForm = (updates) => {

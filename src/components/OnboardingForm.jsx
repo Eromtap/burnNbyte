@@ -1,15 +1,12 @@
-'use client';
+﻿'use client';
 
 import { useRouter, useParams } from 'next/navigation';
 import { useOnboarding } from '@/lib/formState';
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-
-// Step components
-import Step1 from './onboardingSteps/Step1'; // Goal
-import Step2 from './onboardingSteps/Step2'; // Weight
-import Step3 from './onboardingSteps/Step3'; // Activity level
-import StepLayout from './onboardingSteps/StepLayout';
+import Step1 from './onboardingSteps/Step1';
+import Step2 from './onboardingSteps/Step2';
+import Step3 from './onboardingSteps/Step3';
 
 const steps = {
   1: Step1,
@@ -18,16 +15,13 @@ const steps = {
 };
 
 export default function OnboardingForm() {
-  // pull update() from useSession
-  const { data: session, status, update } = useSession();
+  const { status, update } = useSession();
   const router = useRouter();
 
-  // Optional: prevent flicker while we don’t know session state
   useEffect(() => {
     const checkRedirect = async () => {
       const res = await fetch('/api/user/profile', { cache: 'no-store' });
       const data = await res.json();
-      // align this with your API shape: preferencesFilledOut vs onboarded
       const onboarded = data.onboarded ?? data.preferencesFilledOut ?? false;
       if (onboarded) router.replace('/');
     };
@@ -35,26 +29,25 @@ export default function OnboardingForm() {
   }, [status, router]);
 
   const { step } = useParams();
-  const StepComponent = steps[step]; // OK if your dynamic route param is "1", "2", "3"
+  const currentStep = Number(step);
+  const StepComponent = steps[step];
   const { formData, updateForm } = useOnboarding();
+  const progress = Math.max(0, Math.min(100, Math.round((currentStep / 3) * 100)));
 
   const prev = () => {
-    const prevStep = Math.max(1, Number(step) - 1);
+    const prevStep = Math.max(1, currentStep - 1);
     router.push(`/onboarding/${prevStep}`);
   };
 
   const next = async () => {
-    const nextStep = Number(step) + 1;
+    const nextStep = currentStep + 1;
 
-    if (Number(step) === 3) {
+    if (currentStep === 3) {
       try {
-        // Prefer NOT sending userId (server should read from session),
-        // but if your API currently expects it, use session.user.id:
         const res = await fetch('/api/onboarding', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            // userId: session?.user?.id, // <-- include only if your API requires it
             firstName: formData.firstName,
             lastName: formData.lastName,
             birthday: formData.birthday,
@@ -62,6 +55,7 @@ export default function OnboardingForm() {
             heightFt: formData.heightFt,
             heightIn: formData.heightIn,
             weight: formData.weight,
+            goalWeight: formData.goalWeight,
             activityLevel: formData.activityLevel,
             fitnessGoal: formData.fitnessGoal,
             fitnessGoals: formData.fitnessGoals,
@@ -69,6 +63,7 @@ export default function OnboardingForm() {
             dislikedFoods: formData.dislikedFoods,
             allergies: formData.allergies,
             mealsPerDay: formData.mealsPerDay,
+            workoutPreference: formData.workoutPreference,
             workoutDuration: formData.workoutDuration,
             workoutDays: formData.workoutDays,
             workoutsPerWeek: formData.workoutsPerWeek,
@@ -79,7 +74,6 @@ export default function OnboardingForm() {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Submission failed');
 
-        // 🔑 Force the client session to re-fetch (runs your jwt() again)
         await update();
         router.replace('/');
         router.refresh();
@@ -94,8 +88,7 @@ export default function OnboardingForm() {
 
   const onSubmitNext = async (e) => {
     e.preventDefault();
-    const current = Number(step);
-    if (current === 2) {
+    if (currentStep === 2) {
       const goals = Array.isArray(formData.fitnessGoals) ? formData.fitnessGoals : [];
       if (!formData.fitnessGoal && goals.length === 0) {
         alert('Please select at least one fitness goal.');
@@ -107,37 +100,62 @@ export default function OnboardingForm() {
 
   return (
     <main>
-      <div className="page-shell">
-        <div className="stack">
-          <article className="card">
-            <header className="card-head">
-              <h3>Profile Setup</h3>
-              <div className="sub">Step {Number(step)} of 3</div>
-            </header>
-            <form className="form" onSubmit={onSubmitNext}>
-              {StepComponent ? (
-                <StepComponent formData={formData} updateForm={updateForm} />
-              ) : (
-                <p className="muted">Loading…</p>
-              )}
-              <div className="flex justify-between mt-8">
-                <button
-                  type="button"
-                  onClick={prev}
-                  className="btn btn-secondary"
-                  disabled={Number(step) === 1}
-                >
-                  Back
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {Number(step) === 3 ? 'Finish' : 'Next'}
-                </button>
+      <div className="page-shell stack">
+        <section className="hero-card page-hero onboard-hero">
+          <div className="page-hero-copy">
+            <div className="eyebrow">Onboarding</div>
+            <div>
+              <h1 className="page-hero-title">Set up burnNbyte once so the plan can actually fit you.</h1>
+              <p className="page-hero-text">
+                This onboarding collects the inputs that change your workouts and meals: body metrics, training goals, equipment, food preferences, and schedule.
+              </p>
+            </div>
+          </div>
+          <aside className="hero-panel hero-metrics">
+            <div className="metric-card">
+              <div className="metric-label">Progress</div>
+              <div className="metric-value">{progress}%</div>
+              <div className="progress"><span style={{ width: `${progress}%` }} /></div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">Current step</div>
+              <div className="metric-value" style={{ fontSize: '1.6rem' }}>
+                {currentStep === 1 ? 'Body profile' : currentStep === 2 ? 'Training setup' : 'Nutrition setup'}
               </div>
-            </form>
-          </article>
-        </div>
+              <div className="metric-detail">Three screens. No filler.</div>
+            </div>
+          </aside>
+        </section>
+
+        <article className="card onboard-card">
+          <header className="card-head onboard-card-head">
+            <div>
+              <h3>Profile setup</h3>
+              <div className="sub">Step {currentStep} of 3</div>
+            </div>
+            <div className="onboard-steps">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className={`onboard-step-dot ${item <= currentStep ? 'active' : ''}`}>{item}</div>
+              ))}
+            </div>
+          </header>
+          <form className="form onboard-form" onSubmit={onSubmitNext}>
+            {StepComponent ? (
+              <StepComponent formData={formData} updateForm={updateForm} />
+            ) : (
+              <p className="muted">Loading...</p>
+            )}
+            <div className="onboard-actions">
+              <button type="button" onClick={prev} className="btn btn-secondary" disabled={currentStep === 1}>
+                Back
+              </button>
+              <button type="submit" className="btn btn-primary">
+                {currentStep === 3 ? 'Finish setup' : 'Continue'}
+              </button>
+            </div>
+          </form>
+        </article>
       </div>
     </main>
   );
 }
-
