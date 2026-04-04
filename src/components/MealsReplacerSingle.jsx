@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function MealsReplacerSingle({ selectedISO }){
+export default function MealsReplacerSingle({ selectedISO, onReplaced }){
   const router = useRouter();
   const [type, setType] = useState('dinner');
   const [rebalance, setRebalance] = useState(false);
@@ -20,7 +20,11 @@ export default function MealsReplacerSingle({ selectedISO }){
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to replace');
-      router.refresh();
+      if (typeof onReplaced === 'function') {
+        await onReplaced();
+      } else {
+        router.refresh();
+      }
     } catch(e){ setError(e.message || 'Failed'); }
     finally { setLoading(false); }
   }
@@ -45,4 +49,3 @@ export default function MealsReplacerSingle({ selectedISO }){
     </div>
   );
 }
-

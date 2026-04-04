@@ -118,9 +118,16 @@ export default async function ProgressPage() {
             </div>
             <div className="metric-card">
               <div className="metric-label">Calories today</div>
-              <div className="metric-value">{consumedMacros.calories}<span className="unit">consumed</span></div>
+              <div className="metric-value">{consumedMacros.calories}<span className="unit">eaten</span></div>
               <div className="metric-detail">{burnedCalories} kcal burned from workout completion</div>
             </div>
+            {profile.goalWeight && (
+              <div className="metric-card">
+                <div className="metric-label">Goal weight</div>
+                <div className="metric-value">{profile.goalWeight}<span className="unit">lb</span></div>
+                <div className="metric-detail">Current weight {profile.weight ?? '--'} lb</div>
+              </div>
+            )}
           </aside>
         </section>
 
@@ -133,6 +140,8 @@ export default async function ProgressPage() {
           </header>
           <ProgressSummary
             weightPoints={weightPoints}
+            currentWeight={profile.weight}
+            goalWeight={profile.goalWeight}
             calories={{ consumed: consumedMacros.calories, planned: mealMacros.calories, burned: burnedCalories, plannedBurn: workoutCalories ?? 0 }}
             planCompletion={{ percent: completionPct, completed: completedActions, total: totalActions }}
           />

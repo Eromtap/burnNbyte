@@ -119,7 +119,7 @@ body{background:var(--bg);}
 /* Drawer (side nav) */
 .drawer{position:fixed;inset:0;pointer-events:none;z-index:1000}
 .drawer-open{pointer-events:auto}
-.drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.4);opacity:0;transition:opacity .2s ease;z-index:1001}
+.drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.78);opacity:0;transition:opacity .2s ease;z-index:1001}
 .drawer-open .drawer-backdrop{opacity:1}
 .drawer-panel{position:absolute;left:0;top:0;bottom:0;inline-size:min(84vw, 320px);background:var(--surface);border-right:1px solid color-mix(in oklab, var(--elev) 60%, transparent);transform:translateX(-100%);transition:transform .2s ease;display:flex;flex-direction:column;z-index:1002}
 .drawer-open .drawer-panel{transform:translateX(0)}
@@ -228,6 +228,123 @@ select{color:var(--text)}
 .modal-dialog{position:absolute;left:50%;bottom:0;transform:translateX(-50%);inline-size:min(720px, 100%);background:var(--surface);border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);border-radius:18px 18px 0 0;box-shadow:var(--shadow);padding:12px}
 .modal-head,.modal-foot{display:flex;align-items:center;justify-content:space-between;padding:6px}
 .modal-body{display:grid;gap:10px;padding:6px}
+.cheat-card{
+  grid-column:1 / -1;
+  padding:22px 24px;
+  background:
+    radial-gradient(circle at top right, color-mix(in oklab, var(--accent) 12%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 98%, white 2%), color-mix(in oklab, var(--elev) 99%, black 1%));
+}
+.cheat-card-head{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:18px;
+  align-items:end;
+  margin-bottom:0;
+}
+.cheat-card-copy{
+  display:grid;
+  gap:12px;
+  max-width:58ch;
+  justify-items:start;
+}
+.cheat-card-copy .section-badge{
+  padding:8px 14px;
+  color:var(--text);
+  background:color-mix(in oklab, var(--surface-soft) 82%, black 18%);
+}
+.cheat-card-copy h3{
+  font-size:2rem;
+  line-height:1;
+  letter-spacing:-.05em;
+}
+.cheat-card-copy .sub{
+  text-align:left;
+  font-size:1rem;
+  line-height:1.65;
+  color:color-mix(in oklab, var(--text) 78%, var(--muted));
+  max-width:52ch;
+}
+.cheat-card .btn{
+  align-self:end;
+  box-shadow:0 16px 28px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+.cheat-checkbox{display:flex;align-items:flex-start;gap:10px}
+.cheat-checkbox input{margin-top:2px}
+.cheat-modal{
+  inline-size:min(760px, calc(100% - 20px));
+  bottom:18px;
+  border-radius:28px;
+  padding:20px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 98%, white 2%), color-mix(in oklab, var(--elev) 99%, black 1%));
+  border-color:color-mix(in oklab, var(--edge) 70%, var(--accent) 30%);
+  box-shadow:0 28px 60px rgba(0,0,0,.4);
+}
+.cheat-modal-head{padding:0 0 10px;border-bottom:1px solid var(--edge)}
+.cheat-modal-copy{display:grid;gap:6px;max-width:56ch}
+.cheat-modal-body{gap:16px;padding:16px 0 0}
+.cheat-input-block{display:grid;gap:10px}
+.cheat-textarea{
+  min-height:128px;
+  border-radius:18px;
+  padding:16px 18px;
+  line-height:1.55;
+  background:color-mix(in oklab, var(--surface-soft) 78%, black 22%);
+  border-color:color-mix(in oklab, var(--edge) 65%, var(--accent) 20%);
+  resize:vertical;
+}
+.cheat-toggle-card{
+  padding:14px 16px;
+  border:1px solid var(--edge);
+  border-radius:18px;
+  background:color-mix(in oklab, var(--surface-soft) 82%, black 18%);
+}
+.cheat-result-card{
+  padding:12px;
+  border-radius:22px;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface-soft) 88%, white 12%), color-mix(in oklab, var(--surface-soft) 96%, black 4%));
+}
+.cheat-status-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:12px;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--edge);
+  background:color-mix(in oklab, var(--surface-soft) 82%, black 18%);
+  color:var(--text);
+  font-size:.92rem;
+  font-weight:600;
+}
+.cheat-status-pill-success{
+  border-color:color-mix(in oklab, var(--ok) 34%, var(--edge));
+  background:color-mix(in oklab, var(--ok) 14%, transparent);
+}
+.cheat-modal-foot{padding-top:4px}
+@media (max-width: 720px){
+  .cheat-card{
+    padding:18px;
+  }
+  .cheat-card-head{
+    grid-template-columns:1fr;
+    align-items:start;
+  }
+  .cheat-card-copy h3{
+    font-size:1.65rem;
+  }
+  .cheat-card .btn{
+    justify-self:start;
+  }
+  .cheat-modal{
+    left:50%;
+    bottom:0;
+    inline-size:min(100%, 100%);
+    border-radius:24px 24px 0 0;
+    padding:18px;
+  }
+}
 
 /* Responsive tweaks */
 @media (max-width: 640px){
@@ -265,13 +382,36 @@ select{color:var(--text)}
 /* ---- FullCalendar theme overrides ---- */
 .fc{color:var(--text)}
 .fc .fc-toolbar-title{font-size:18px;font-weight:700}
-.fc-theme-standard .fc-scrollgrid{border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
-.fc-theme-standard td, .fc-theme-standard th{border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
+.fc-theme-standard .fc-scrollgrid{
+  border-color:color-mix(in oklab, var(--text) 12%, var(--elev));
+  box-shadow:0 0 0 1px color-mix(in oklab, var(--text) 6%, transparent);
+}
+.fc-theme-standard td, .fc-theme-standard th{
+  border-color:color-mix(in oklab, var(--text) 10%, var(--elev));
+}
+.fc .fc-daygrid-day{
+  background-image:
+    linear-gradient(to bottom, color-mix(in oklab, var(--text) 4%, transparent), color-mix(in oklab, var(--text) 4%, transparent));
+  background-size:100% 1px;
+  background-repeat:no-repeat;
+  background-position:0 100%;
+}
+.fc .fc-col-header-cell{
+  box-shadow:inset -1px 0 0 color-mix(in oklab, var(--text) 8%, transparent);
+}
 .fc .fc-day-today{background:color-mix(in oklab, var(--elev) 70%, transparent)}
 .fc .fc-daygrid-event{color:#fff;border-radius:10px;padding:3px 7px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);text-shadow:0 1px 1px rgba(0,0,0,.28)}
 .fc .fc-daygrid-event.event-workout{background:#b93822;border:1px solid #d95b43}
 .fc .fc-daygrid-event.event-meal{background:#176746;border:1px solid #2c8c66}
-.fc .fc-daygrid-event .calendar-pill{background:transparent;padding:0}
+.fc .fc-daygrid-event .calendar-pill{
+  display:block;
+  width:100%;
+  padding:0;
+  background:transparent;
+  border:none;
+  border-radius:0;
+  box-shadow:none;
+}
 .fc .fc-col-header-cell-cushion,.fc .fc-daygrid-day-number{color:var(--text);font-weight:600}
 .fc .fc-event-title,.fc .fc-event-time,.fc .calendar-pill{color:#fff !important}
 @media (max-width: 640px){
@@ -287,6 +427,7 @@ select{color:var(--text)}
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
+    padding:0;
   }
 }
 .fc .fc-button{background:color-mix(in oklab, var(--surface) 85%, transparent);border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);color:var(--text);border-radius:10px}
@@ -592,6 +733,31 @@ body::before{
 .chip-success{border-color:rgba(98,212,156,.22);color:var(--ok)}
 .pill-workout,.section-badge-workout{border-color:rgba(255,92,67,.2);color:var(--accent)}
 .pill-meal,.section-badge-meal{border-color:rgba(98,212,156,.22);color:var(--ok)}
+.exercise-pill{
+  justify-content:center;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 94%, white 6%), var(--surface-soft));
+  color:var(--text);
+  border-color:color-mix(in oklab, var(--edge) 82%, var(--accent) 18%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 6px 14px rgba(0,0,0,.18);
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+.exercise-pill:hover{
+  transform:translateY(-1px);
+  border-color:color-mix(in oklab, var(--accent) 42%, var(--edge));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 10px 18px rgba(0,0,0,.22);
+}
+.exercise-pill-active{
+  color:#fff;
+  border-color:color-mix(in oklab, var(--accent) 72%, white 8%);
+  background:linear-gradient(180deg, color-mix(in oklab, var(--accent) 88%, white 12%), color-mix(in oklab, var(--accent) 78%, black 22%));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 12px 24px color-mix(in oklab, var(--accent) 28%, transparent);
+}
 
 .list{display:grid;gap:10px}
 .list-row{
@@ -686,7 +852,7 @@ input:focus,select:focus,textarea:focus{
 .btn-ghost{border-color:transparent}
 .drawer-panel{
   padding:22px;
-  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 96%, transparent), color-mix(in oklab, var(--elev) 96%, transparent));
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 99.6%, black .4%), color-mix(in oklab, var(--elev) 99.6%, black .4%));
   border-right:1px solid var(--edge);
 }
 
@@ -774,9 +940,31 @@ input:focus,select:focus,textarea:focus{
   .brand-subtitle{display:none}
   .app-main{padding-top:20px}
   .hero-card,.card{padding:18px;border-radius:20px}
-  .stats,.prefs-grid,.date-strip-scroll,.dashboard-grid,.grid{grid-template-columns:1fr}
+  .stats,.prefs-grid,.dashboard-grid,.grid{grid-template-columns:1fr}
   .span-2,.span-3,.span-4{grid-column:1 / -1}
   .page-hero-actions,.quick-actions,.meal-links{display:grid;grid-template-columns:1fr}
+  .date-strip{overflow:hidden}
+  .date-strip-scroll{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:2px 2px 6px;
+    margin:0 -2px;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .date-strip-scroll::-webkit-scrollbar{display:none}
+  .date-pill{
+    flex:0 0 84px;
+    min-width:84px;
+    padding:12px 10px;
+    border-radius:16px;
+    scroll-snap-align:start;
+  }
+  .date-pill .dow{font-size:.72rem}
+  .date-pill .dom{font-size:1.3rem}
 }
 
 .onboard-hero{

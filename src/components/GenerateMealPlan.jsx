@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
-export default function GenerateMealPlan() {
+export default function GenerateMealPlan({ initialPreferences = null, selectedISO = null, onGenerated }) {
   const router = useRouter();
   const { data: session, update } = useSession();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
-  const prefs = session?.user?.preferences || {};
+  const prefs = session?.user?.preferences || initialPreferences || {};
 
   function toYMDLocal(d){
     const y = d.getFullYear();
@@ -34,10 +34,12 @@ export default function GenerateMealPlan() {
       // Refresh session to ensure latest preferences (e.g., updated allergies)
       let fresh = null;
       try { fresh = await update(); } catch {}
-      const prefs = fresh?.user?.preferences || session?.user?.preferences || {};
+      const prefs = fresh?.user?.preferences || session?.user?.preferences || initialPreferences || {};
       const goalList = Array.isArray(prefs.fitnessGoals)
         ? prefs.fitnessGoals
         : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []);
+      const startDate = selectedISO || todayISO;
+      const endDate = selectedISO || sevenDaysOutISO;
       const res = await fetch('/api/generateMealPlan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -52,15 +54,18 @@ export default function GenerateMealPlan() {
           dietaryPreferences: prefs.dietaryPreferences || [],
           dislikedFoods: prefs.dislikedFoods || [],
           allergies: prefs.allergies || [],
-          startDate: todayISO,
-          endDate: sevenDaysOutISO
+          startDate,
+          endDate
         }),
       });
       const data = await res.json();
       setResult(data);
       if (res.ok) {
-        // Refresh the current route so server data (meal plan) re-renders
-        try { router.refresh(); } catch {}
+        if (typeof onGenerated === 'function') {
+          try { await onGenerated(data); } catch {}
+        } else {
+          try { router.refresh(); } catch {}
+        }
       }
     } catch (e) {
       setResult({ error: 'Failed to generate meal plan.' });
@@ -72,7 +77,7 @@ export default function GenerateMealPlan() {
   return (
     <div className="stack">
       <button className="btn btn-primary btn-full" onClick={handleClick} disabled={loading}>
-        {loading ? 'Generating…' : 'Create Meal Plans (Daily)'}
+        {loading ? 'Generating…' : (selectedISO ? `Create or Replace Meal Plan for ${selectedISO}` : 'Create Meal Plans (Daily)')}
       </button>
       {result?.ok && (
         <div className="list-row"><span>Created meal plans</span><span className="muted">{result.count} day(s)</span></div>

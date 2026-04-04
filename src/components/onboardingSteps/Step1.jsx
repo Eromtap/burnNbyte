@@ -135,6 +135,25 @@ export default function Step1({ formData, updateForm }) {
           />
         </label>
       </div>
+
+      <div className="onboard-grid onboard-grid-2">
+        <label>
+          <span>Goal weight (lb)</span>
+          <input
+            type="number"
+            className="input"
+            value={formData.goalWeight ?? ''}
+            onChange={(e) => updateForm({ goalWeight: e.target.value })}
+            min="1"
+            placeholder="Optional"
+          />
+        </label>
+        <div className="onboard-info-card">
+          <div className="metric-label">Weight target</div>
+          <div className="metric-value" style={{ fontSize: '1.6rem' }}>{formData.goalWeight || '--'}</div>
+          <div className="metric-detail">Optional. Used in progress tracking if you want a visible target.</div>
+        </div>
+      </div>
     </StepLayout>
   );
 }

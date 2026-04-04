@@ -3,6 +3,7 @@ import { useState } from 'react';
 import StepLayout from './StepLayout';
 import { FITNESS_GOALS, labelForFitnessGoal } from '@/constants/fitnessGoals';
 import { EQUIPMENT_OPTIONS, labelForEquipmentOption } from '@/constants/equipmentAccess';
+import { WORKOUT_SPLITS, labelForWorkoutSplit } from '@/constants/workoutSplits';
 
 const ALL_DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const DAY_LABEL = { SUN: 'Sun', MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat' };
@@ -11,6 +12,7 @@ export default function Step2({ formData, updateForm }) {
   const workoutDays = Array.isArray(formData.workoutDays) ? formData.workoutDays : [];
   const goals = Array.isArray(formData.fitnessGoals) ? formData.fitnessGoals : [];
   const equipmentAccess = Array.isArray(formData.equipmentAccess) ? formData.equipmentAccess : [];
+  const workoutPreference = formData.workoutPreference || 'auto';
   const [customGoal, setCustomGoal] = useState('');
   const [customEquipment, setCustomEquipment] = useState('');
 
@@ -169,6 +171,18 @@ export default function Step2({ formData, updateForm }) {
             required
           />
         </label>
+        <label>
+          <span>Preferred split</span>
+          <select
+            className="input"
+            value={workoutPreference}
+            onChange={(e) => updateForm({ workoutPreference: e.target.value })}
+          >
+            {WORKOUT_SPLITS.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </label>
         <div className="onboard-info-card">
           <div className="metric-label">Workout days</div>
           <div className="days-grid mt-2">
@@ -189,6 +203,9 @@ export default function Step2({ formData, updateForm }) {
           </div>
           <div className="metric-detail" style={{ marginTop: 10 }}>
             {workoutDays.length ? workoutDays.map((day) => DAY_LABEL[day]).join(', ') : 'No days selected yet.'}
+          </div>
+          <div className="metric-detail" style={{ marginTop: 8 }}>
+            Preferred split: {labelForWorkoutSplit(workoutPreference)}
           </div>
         </div>
       </div>

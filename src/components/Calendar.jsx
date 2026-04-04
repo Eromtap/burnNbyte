@@ -95,7 +95,7 @@ const Calendar = ({ calendarTitle, dataSources, initialEvents = [] }) => {
     const label = type === 'workout' ? 'Workout' : 'Meal Plan';
     return (
       <span
-        className={`pill calendar-pill ${type === 'mealPlan' ? 'pill-meal' : 'pill-workout'}`}
+        className="calendar-pill"
         onClick={(e) => {
           e.preventDefault();
           handleEventClick(eventInfo);

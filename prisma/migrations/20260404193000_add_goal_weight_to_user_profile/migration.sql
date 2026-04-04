@@ -1,0 +1,2 @@
+ALTER TABLE "UserProfile"
+ADD COLUMN "goalWeight" DOUBLE PRECISION;

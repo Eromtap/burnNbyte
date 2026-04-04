@@ -10,6 +10,7 @@ import { labelForFitnessGoal } from "@/constants/fitnessGoals";
 import ReplaceMealButton from "@/components/ReplaceMealButton";
 import MealCompletionToggle from "@/components/MealCompletionToggle";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
+import CheatPlanner from "@/components/CheatPlanner";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -61,24 +62,24 @@ function buildHeroContent({ workout, mealPlan, completionPct, primaryGoal }) {
   if (!workout && !mealPlan) {
     return {
       eyebrow: "Dashboard",
-      title: "Build your plan for today.",
-      body: "You don’t have a workout or meal plan saved yet. Start by generating today’s schedule so everything is lined up in one place.",
+      title: "Let’s build my plan for today.",
+      body: "I don’t have a workout or meal plan saved yet. Start by generating today’s schedule so everything is lined up in one place.",
     };
   }
 
   if (!workout) {
     return {
       eyebrow: "Dashboard",
-      title: "Your meals are ready. Your workout still needs a plan.",
-      body: "Your nutrition is set for today. Generate a workout so the rest of your day is mapped out too.",
+      title: "My meals are ready. My workout still needs a plan.",
+      body: "My food is set for today. Generate a workout so the rest of the day is mapped out too.",
     };
   }
 
   if (!mealPlan) {
     return {
       eyebrow: "Dashboard",
-      title: "Your workout is ready. Add your meal plan next.",
-      body: "Training is already on the board. Generate your meals so today’s plan feels complete instead of pieced together.",
+      title: "My workout is ready. My meals are next.",
+      body: "Training is already on the board. Generate meals so today feels complete instead of pieced together.",
     };
   }
 
@@ -92,8 +93,8 @@ function buildHeroContent({ workout, mealPlan, completionPct, primaryGoal }) {
 
   return {
     eyebrow: "Dashboard",
-    title: `${primaryGoal} plan ready for today.`,
-    body: "Your workout, meals, and progress are all here. Use this screen as the hub for what’s next.",
+    title: `My ${primaryGoal.toLowerCase()} plan is ready for today.`,
+    body: "My workout, meals, and progress are all here. Use this screen as the hub for what’s next.",
   };
 }
 
@@ -189,15 +190,15 @@ export default async function HomePage() {
               <div className="metric-detail">{completionDone} of {completionTotal} plan items completed.</div>
             </article>
             <article className="spotlight-card">
-              <div className="metric-label">Nutrition balance</div>
+              <div className="metric-label">Food balance</div>
               <div className="spotlight-row">
                 <div>
                   <div className="spotlight-mini">{consumedCalories}</div>
-                  <div className="metric-detail">calories in</div>
+                  <div className="metric-detail">eaten so far</div>
                 </div>
                 <div>
                   <div className="spotlight-mini">{burnedCalories}</div>
-                  <div className="metric-detail">calories out</div>
+                  <div className="metric-detail">burned in workouts</div>
                 </div>
               </div>
             </article>
@@ -209,17 +210,17 @@ export default async function HomePage() {
             <header className="card-head brand-story-head">
               <div>
                 <div className="section-badge section-badge-workout">Workout spotlight</div>
-                <h3>{workout ? workout.name : "No session built yet"}</h3>
+                <h3>{workout ? workout.name : "I haven’t built today’s session yet"}</h3>
                 <div className="sub">
                   {workout
                     ? `${workout.muscleGroup || "Full body focus"} • ${workout.duration} min • ${workout.difficulty || "beginner"}`
-                    : "Generate a workout and this becomes your featured training brief."}
+                    : "Generate a workout and this becomes my featured training brief."}
                 </div>
               </div>
               {workout ? (
                 <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />
               ) : (
-                <Link href="/workouts" className="btn btn-primary">Generate workout</Link>
+                <Link href="/workouts" className="btn btn-primary">Build my workout</Link>
               )}
             </header>
             <div className="brand-story-body">
@@ -227,11 +228,11 @@ export default async function HomePage() {
                 <div className="metric-label">Training note</div>
                 <p className="brand-story-text">
                   {workout
-                    ? `Your session is built for ${primaryGoal.toLowerCase()}. Use today as a focused block instead of another generic gym day.`
-                    : "No workout is saved for today yet. Generate one to turn the dashboard into a real coaching brief."}
+                    ? `This session is built for ${primaryGoal.toLowerCase()}. Use today as a focused block instead of another generic gym day.`
+                    : "There’s no workout saved for today yet. Build one to turn the dashboard into a real coaching brief."}
                 </p>
                 <div className="brand-story-actions">
-                  <Link href={`/workouts?date=${todayISO}`} className="btn btn-outline">Open workout details</Link>
+                  <Link href={`/workouts?date=${todayISO}`} className="btn btn-outline">See my workout</Link>
                   <Link href="/healthCalendar" className="btn btn-secondary">View calendar</Link>
                 </div>
               </div>
@@ -255,17 +256,17 @@ export default async function HomePage() {
               <div>
                 <div className="section-badge section-badge-meal">Nutrition spotlight</div>
                 <h3>Macro rhythm for today</h3>
-                <div className="sub">A cleaner view of what you&apos;ve eaten versus what the plan asked for.</div>
+                <div className="sub">A cleaner view of what I&apos;ve had today versus what the plan called for.</div>
               </div>
             </header>
             <div className="stats brand-tight-stats">
               <div className="stat">
-                <div className="stat-label">Calories</div>
+                <div className="stat-label">Calories so far</div>
                 <div className="stat-value">{consumedCalories}<span className="unit">/ {mealCalories || 0}</span></div>
                 <div className="progress"><span style={{ width: `${macroPct(consumedCalories, mealCalories || 1)}%` }} /></div>
               </div>
               <div className="stat">
-                <div className="stat-label">Protein</div>
+                <div className="stat-label">Protein so far</div>
                 <div className="stat-value">{formatMacro(consumedMacros.protein)}<span className="unit">g</span></div>
                 <div className="progress"><span style={{ width: `${macroPct(consumedMacros.protein, macroTargets.protein)}%` }} /></div>
               </div>
@@ -282,20 +283,20 @@ export default async function HomePage() {
                 <div className="metric-detail">
                   {spotlightMeal
                     ? `${spotlightMeal.calories ?? 0} kcal • ${formatMacro(spotlightMeal.protein)}g protein`
-                    : "Generate a meal plan to see your first featured plate."}
+                    : "Generate a meal plan to see my first featured plate."}
                 </div>
               </div>
-              <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">Open meal planner</Link>
+              <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See my meals</Link>
             </div>
           </article>
 
           <article className="card span-2 brand-feed-card">
             <header className="card-head">
               <div>
-                <h3>Today&apos;s lineup</h3>
+                <h3>What I&apos;m eating today</h3>
                 <div className="sub">Meal-by-meal tracking in a format that feels more like a curated daily feed.</div>
               </div>
-              <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Manage plan</Link>
+              <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Adjust my meals</Link>
             </header>
             <div className="planner brand-feed-grid">
               {["breakfast", "lunch", "dinner", "snack"].map((type) => (
@@ -303,9 +304,9 @@ export default async function HomePage() {
                   <div className="brand-feed-head">
                     <div>
                       <div className="metric-label">{type}</div>
-                      <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type} block</div>
+                      <div className="planner-head" style={{ textTransform: 'capitalize' }}>My {type}</div>
                     </div>
-                    <ReplaceMealButton dateISO={todayISO} type={type} className="btn btn-secondary" label="Replace" />
+                    <ReplaceMealButton dateISO={todayISO} type={type} className="btn btn-secondary" label="Swap it" />
                   </div>
                   {(grouped[type] || []).length ? (
                     (grouped[type] || []).map((meal) => (
@@ -326,10 +327,10 @@ export default async function HomePage() {
               ))}
             </div>
           </article>
+
+          <CheatPlanner currentDateISO={todayISO} />
         </section>
       </div>
     </main>
   );
 }
-
-

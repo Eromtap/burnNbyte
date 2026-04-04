@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResponsiveContainer, Line, LineChart, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, Line, LineChart, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
 
 function formatDateLabel(label) {
   try {
@@ -13,7 +13,7 @@ function formatDateLabel(label) {
   }
 }
 
-export default function ProgressSummary({ weightPoints = [], calories = {}, planCompletion = {} }) {
+export default function ProgressSummary({ weightPoints = [], calories = {}, planCompletion = {}, currentWeight = null, goalWeight = null }) {
   const router = useRouter();
   const [points, setPoints] = useState(weightPoints);
   const [weightInput, setWeightInput] = useState('');
@@ -40,6 +40,9 @@ export default function ProgressSummary({ weightPoints = [], calories = {}, plan
     burned: Number(calories?.burned || 0),
     plannedBurn: Number(calories?.plannedBurn || 0),
   };
+  const poundsToGoal = goalWeight != null && currentWeight != null
+    ? Math.round((Number(currentWeight) - Number(goalWeight)) * 10) / 10
+    : null;
 
   const handleAddWeight = () => {
     const val = Number(weightInput);
@@ -82,7 +85,7 @@ export default function ProgressSummary({ weightPoints = [], calories = {}, plan
 
       <div className="stats">
         <div className="stat">
-          <div className="stat-label">Calories consumed</div>
+          <div className="stat-label">Calories eaten</div>
           <div className="stat-value">{calorieData.consumed}<span className="unit">kcal</span></div>
           <div className="sub">Planned {calorieData.planned} kcal</div>
         </div>
@@ -96,6 +99,21 @@ export default function ProgressSummary({ weightPoints = [], calories = {}, plan
           <div className="stat-value">{chartData.length}</div>
           <div className="sub">Stored entries used for the trend line</div>
         </div>
+        {goalWeight != null && (
+          <div className="stat">
+            <div className="stat-label">Goal weight</div>
+            <div className="stat-value">{goalWeight}<span className="unit">lb</span></div>
+            <div className="sub">
+              {poundsToGoal == null
+                ? 'Current weight not available'
+                : poundsToGoal > 0
+                  ? `${poundsToGoal} lb to go`
+                  : poundsToGoal < 0
+                    ? `${Math.abs(poundsToGoal)} lb below target`
+                    : 'At your target'}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ padding: 18 }}>
@@ -126,6 +144,7 @@ export default function ProgressSummary({ weightPoints = [], calories = {}, plan
                 <XAxis dataKey="label" stroke="var(--muted, rgba(255,255,255,.7))" />
                 <YAxis domain={['dataMin - 5', 'dataMax + 5']} stroke="var(--muted, rgba(255,255,255,.7))" />
                 <Tooltip formatter={(v) => [`${v} lb`, 'Weight']} contentStyle={{ background: 'var(--elev)', border: '1px solid var(--edge)', borderRadius: 16 }} />
+                {goalWeight != null && <ReferenceLine y={goalWeight} stroke="var(--ok)" strokeDasharray="4 4" />}
                 <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={3} dot={{ r: 3, fill: 'var(--accent)' }} activeDot={{ r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -137,4 +156,3 @@ export default function ProgressSummary({ weightPoints = [], calories = {}, plan
     </div>
   );
 }
-
