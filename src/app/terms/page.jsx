@@ -54,6 +54,20 @@ export default async function TermsPage() {
                 </p>
               </section>
               <section>
+                <div className="planner-head">General health guidelines</div>
+                <p className="muted">
+                  We aim to design workouts, meal-planning features, and adjustment logic with
+                  reference to broadly recognized public health and fitness guidelines. This includes
+                  using general safety guardrails for calorie targets, exercise volume, and gradual
+                  progression where appropriate.
+                </p>
+                <p className="muted">
+                  These guardrails are general in nature and may not be appropriate for your age,
+                  body size, medications, injuries, health history, or other personal circumstances.
+                  You remain responsible for deciding what is appropriate for you.
+                </p>
+              </section>
+              <section>
                 <div className="planner-head">Eligibility</div>
                 <p className="muted">
                   You must be at least 18 years old, or the age of majority in your jurisdiction,

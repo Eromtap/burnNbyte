@@ -58,6 +58,7 @@ model UserProfile {
   heightFt           Float?
   heightIn           Float?
   weight             Float?
+  goalWeight         Float?
   activityLevel      String?
   fitnessGoal        String?
   fitnessGoals       String[] @default([])

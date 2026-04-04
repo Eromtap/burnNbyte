@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useMemo } from 'react';
 import StepLayout from './StepLayout';
 
@@ -18,10 +18,15 @@ export default function Step1({ formData, updateForm }) {
   const age = useMemo(() => calculateAge(formData.birthday), [formData.birthday]);
 
   return (
-    <StepLayout stepNumber={1} totalSteps={3} title="Basic Information">
-      <div style={{ display: 'flex', gap: 8 }}>
-        <label style={{ flex: 1 }}>
-          <span>First Name</span>
+    <StepLayout
+      stepNumber={1}
+      totalSteps={3}
+      title="Body profile"
+      description="Start with the numbers that change calorie targets, workout intensity, and the way the app personalizes your plan."
+    >
+      <div className="onboard-grid onboard-grid-2">
+        <label>
+          <span>First name</span>
           <input
             type="text"
             className="input"
@@ -30,8 +35,8 @@ export default function Step1({ formData, updateForm }) {
             required
           />
         </label>
-        <label style={{ flex: 1 }}>
-          <span>Last Name</span>
+        <label>
+          <span>Last name</span>
           <input
             type="text"
             className="input"
@@ -42,85 +47,113 @@ export default function Step1({ formData, updateForm }) {
         </label>
       </div>
 
-      <label className="block">
-        <span>Birthday</span>
-        <input
-          type="date"
-          className="input"
-          value={formData.birthday ? formData.birthday : ""}
-          onChange={(e) => updateForm({ birthday: e.target.value })}
-          required
-        />
-      </label>
-      {formData.birthday && (
-        <p className="text-sm muted">Age: {age}</p>
-      )}
-
-      <label>
-        <span>Gender</span>
-        <select
-          className="input"
-          value={formData.gender}
-          onChange={(e) => updateForm({ gender: e.target.value })}
-          required
-        >
-          <option value="">Select</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
-        </select>
-      </label>
-
-      <label>
-        <span>Height (ft / in)</span>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div className="onboard-grid onboard-grid-2">
+        <label>
+          <span>Birthday</span>
           <input
-            type="number"
+            type="date"
             className="input"
-            placeholder="ft"
-            value={formData.heightFt}
-            onChange={(e) => updateForm({ heightFt: e.target.value })}
+            value={formData.birthday || ''}
+            onChange={(e) => updateForm({ birthday: e.target.value })}
             required
           />
-          <input
-            type="number"
-            className="input"
-            placeholder="in"
-            value={formData.heightIn}
-            onChange={(e) => updateForm({ heightIn: e.target.value })}
-            required
-          />
+        </label>
+        <div className="onboard-info-card">
+          <div className="metric-label">Age preview</div>
+          <div className="metric-value" style={{ fontSize: '1.6rem' }}>{age || '--'}</div>
+          <div className="metric-detail">Used to tailor recommendations and pacing.</div>
         </div>
-      </label>
+      </div>
 
-      <label>
-        <span>Weight (lb)</span>
-        <input
-          type="number"
-          className="input"
-          value={formData.weight}
-          onChange={(e) => updateForm({ weight: e.target.value })}
-          min="1"
-          required
-        />
-      </label>
+      <div className="onboard-grid onboard-grid-2">
+        <label>
+          <span>Gender</span>
+          <select
+            className="input"
+            value={formData.gender}
+            onChange={(e) => updateForm({ gender: e.target.value })}
+            required
+          >
+            <option value="">Select</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>
+          <span>Activity level</span>
+          <select
+            className="input"
+            value={formData.activityLevel}
+            onChange={(e) => updateForm({ activityLevel: e.target.value })}
+            required
+          >
+            <option value="">Select</option>
+            <option value="sedentary">Sedentary</option>
+            <option value="light">Light</option>
+            <option value="moderate">Moderate</option>
+            <option value="active">Active</option>
+            <option value="very active">Very active</option>
+          </select>
+        </label>
+      </div>
 
-      <label>
-        <span>Activity Level</span>
-        <select
-          className="input"
-          value={formData.activityLevel}
-          onChange={(e) => updateForm({ activityLevel: e.target.value })}
-          required
-        >
-          <option value="">Select</option>
-          <option value="sedentary">sedentary</option>
-          <option value="light">light</option>
-          <option value="moderate">moderate</option>
-          <option value="active">active</option>
-          <option value="very active">very active</option>
-        </select>
-      </label>
+      <div className="onboard-grid onboard-grid-2">
+        <div className="onboard-inline-fields">
+          <label>
+            <span>Height (ft)</span>
+            <input
+              type="number"
+              className="input"
+              placeholder="5"
+              value={formData.heightFt}
+              onChange={(e) => updateForm({ heightFt: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            <span>Height (in)</span>
+            <input
+              type="number"
+              className="input"
+              placeholder="10"
+              value={formData.heightIn}
+              onChange={(e) => updateForm({ heightIn: e.target.value })}
+              required
+            />
+          </label>
+        </div>
+        <label>
+          <span>Weight (lb)</span>
+          <input
+            type="number"
+            className="input"
+            value={formData.weight}
+            onChange={(e) => updateForm({ weight: e.target.value })}
+            min="1"
+            required
+          />
+        </label>
+      </div>
+
+      <div className="onboard-grid onboard-grid-2">
+        <label>
+          <span>Goal weight (lb)</span>
+          <input
+            type="number"
+            className="input"
+            value={formData.goalWeight ?? ''}
+            onChange={(e) => updateForm({ goalWeight: e.target.value })}
+            min="1"
+            placeholder="Optional"
+          />
+        </label>
+        <div className="onboard-info-card">
+          <div className="metric-label">Weight target</div>
+          <div className="metric-value" style={{ fontSize: '1.6rem' }}>{formData.goalWeight || '--'}</div>
+          <div className="metric-detail">Optional. Used in progress tracking if you want a visible target.</div>
+        </div>
+      </div>
     </StepLayout>
   );
 }

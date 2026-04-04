@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 function formatLog(log) {
   if (!log) return '';
@@ -24,8 +24,12 @@ function sanitizeNumber(value) {
 
 export default function ExerciseLogPanel({ workoutId, initialLogs = [], exerciseSuggestions = [] }) {
   const [logs, setLogs] = useState(Array.isArray(initialLogs) ? initialLogs : []);
+  const availableExercises = useMemo(
+    () => (Array.isArray(exerciseSuggestions) ? exerciseSuggestions.filter(Boolean) : []),
+    [exerciseSuggestions]
+  );
   const [form, setForm] = useState({
-    exerciseName: '',
+    exerciseName: Array.isArray(exerciseSuggestions) && exerciseSuggestions[0] ? exerciseSuggestions[0] : '',
     type: 'weighted',
     weight: '',
     reps: '',
@@ -37,6 +41,20 @@ export default function ExerciseLogPanel({ workoutId, initialLogs = [], exercise
   const [error, setError] = useState(null);
   const isWeighted = form.type === 'weighted';
   const isCardio = form.type === 'cardio';
+
+  useEffect(() => {
+    setLogs(Array.isArray(initialLogs) ? initialLogs : []);
+    setForm({
+      exerciseName: availableExercises[0] || '',
+      type: 'weighted',
+      weight: '',
+      reps: '',
+      sets: '',
+      distance: '',
+      pace: '',
+    });
+    setError(null);
+  }, [workoutId, initialLogs, availableExercises]);
 
   const canSubmit = useMemo(() => {
     if (!form.exerciseName.trim()) return false;
@@ -73,7 +91,7 @@ export default function ExerciseLogPanel({ workoutId, initialLogs = [], exercise
       if (!res.ok) throw new Error(data?.error || 'Failed to log exercise');
       setLogs((prev) => [data.log, ...prev]);
       setForm({
-        exerciseName: '',
+        exerciseName: availableExercises[0] || '',
         type: form.type,
         weight: '',
         reps: '',
@@ -94,11 +112,12 @@ export default function ExerciseLogPanel({ workoutId, initialLogs = [], exercise
         <div>
           <div className="planner-head">Quick pick</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-            {exerciseSuggestions.map((name) => (
+            {availableExercises.map((name) => (
               <button
                 key={name}
                 type="button"
-                className="pill"
+                className={`pill exercise-pill${form.exerciseName === name ? ' exercise-pill-active' : ''}`}
+                aria-pressed={form.exerciseName === name}
                 onClick={() => updateField('exerciseName', name)}
               >
                 {name}
@@ -108,13 +127,17 @@ export default function ExerciseLogPanel({ workoutId, initialLogs = [], exercise
         </div>
       )}
       <form className="form" onSubmit={onSubmit}>
-        <label>
-          <span>Exercise name</span>
-          <input
-            value={form.exerciseName}
-            onChange={(e) => updateField('exerciseName', e.target.value)}
-          />
-        </label>
+        {availableExercises.length > 0 && (
+          <div className="list-row">
+            <span>Exercise</span>
+            <span className="muted">{form.exerciseName || 'Select an exercise above'}</span>
+          </div>
+        )}
+        {availableExercises.length === 0 && (
+          <div className="list-row">
+            <span className="muted">No workout exercises available for logging yet.</span>
+          </div>
+        )}
         <label>
           <span>Type</span>
           <select value={form.type} onChange={(e) => updateField('type', e.target.value)}>

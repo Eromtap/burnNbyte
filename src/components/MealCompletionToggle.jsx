@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function MealCompletionToggle({ mealId, initialCompleted = false }) {
+export default function MealCompletionToggle({ mealId, initialCompleted = false, onUpdated }) {
   const router = useRouter();
   const [checked, setChecked] = useState(Boolean(initialCompleted));
   const [pending, startTransition] = useTransition();
@@ -26,7 +26,11 @@ export default function MealCompletionToggle({ mealId, initialCompleted = false 
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Failed to update meal');
-        router.refresh();
+        if (typeof onUpdated === 'function') {
+          onUpdated(data?.meal || null);
+        } else {
+          router.refresh();
+        }
       } catch (e) {
         setChecked(!next);
         setError(e.message || 'Failed to update meal');
@@ -38,7 +42,7 @@ export default function MealCompletionToggle({ mealId, initialCompleted = false 
     <div className="list-row" style={{ gap: 8, alignItems: 'center' }}>
       <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <input type="checkbox" checked={checked} disabled={pending} onChange={(e) => toggle(e.target.checked)} />
-        <span>Consumed</span>
+        <span>Ate it</span>
       </label>
       {error && <span className="muted" style={{ color: 'var(--danger, #b91c1c)', fontSize: 12 }}>{error}</span>}
     </div>

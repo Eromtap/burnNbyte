@@ -6,7 +6,7 @@ import { formatMacro } from "@/lib/macros";
 
 const TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
-export default function MealPhotoReplace({ selectedISO }) {
+export default function MealPhotoReplace({ selectedISO, onReplaced }) {
   const router = useRouter();
   const [file, setFile] = useState(null);
   const [type, setType] = useState("dinner");
@@ -39,7 +39,11 @@ export default function MealPhotoReplace({ selectedISO }) {
         throw new Error(data?.error || "Failed to analyze meal");
       }
       setResult(data);
-      router.refresh(); // refresh server-rendered data
+      if (typeof onReplaced === "function") {
+        await onReplaced();
+      } else {
+        router.refresh();
+      }
     } catch (err) {
       setError(err.message || "Failed to analyze meal");
     } finally {
