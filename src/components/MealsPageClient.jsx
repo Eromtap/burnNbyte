@@ -166,6 +166,7 @@ export default function MealsPageClient({
                     summaryClassName="mobile-disclosure-summary meal-group-summary"
                     panelClassName="mobile-disclosure-panel"
                     defaultOpenMobile={type === 'breakfast'}
+                    anchorId={`meal-${type}`}
                     summary={
                       <>
                         <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>

@@ -152,12 +152,6 @@ export default async function HomePage() {
     carbs: Math.max(150, Math.round((mealMacros.carbs || 0) || 220)),
     fat: Math.max(50, Math.round((mealMacros.fat || 0) || 70)),
   };
-  const spotlightMeal =
-    grouped.breakfast?.[0] ||
-    grouped.lunch?.[0] ||
-    grouped.dinner?.[0] ||
-    grouped.snack?.[0] ||
-    null;
   const primaryGoalId = profile.fitnessGoal || profile.fitnessGoals?.[0] || "general_fitness";
   const primaryGoal = labelForFitnessGoal(primaryGoalId) || "General fitness";
   const hero = buildHeroContent({ workout, mealPlan, completionPct, primaryGoal });
@@ -255,7 +249,6 @@ export default async function HomePage() {
                     </p>
                     <div className="brand-story-actions">
                       <Link href={`/workouts?date=${todayISO}`} className="btn btn-outline">See my workout</Link>
-                      <Link href="/healthCalendar" className="btn btn-secondary">View calendar</Link>
                     </div>
                   </div>
                   <div className="brand-story-metrics">
@@ -310,16 +303,7 @@ export default async function HomePage() {
                     <div className="sub">Planned {formatMacro(mealMacros.carbs)}g carbs and {formatMacro(mealMacros.fat)}g fat</div>
                   </div>
                 </div>
-                <div className="brand-meal-spotlight">
-                  <div>
-                    <div className="metric-label">Featured meal</div>
-                    <div className="brand-meal-name">{spotlightMeal?.name || "No meals planned yet"}</div>
-                    <div className="metric-detail">
-                      {spotlightMeal
-                        ? `${spotlightMeal.calories ?? 0} kcal • ${formatMacro(spotlightMeal.protein)}g protein`
-                        : "Generate a meal plan to see my first featured plate."}
-                    </div>
-                  </div>
+                <div className="brand-story-actions">
                   <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See my meals</Link>
                 </div>
               </article>
@@ -369,12 +353,12 @@ export default async function HomePage() {
                         {(grouped[type] || []).length ? (
                           (grouped[type] || []).map((meal) => (
                             <div key={meal.id} className="list-row brand-feed-row">
-                              <div>
+                              <Link href={`/meals?date=${todayISO}#meal-${type}`} className="brand-feed-link">
                                 <strong>{meal.name}</strong>
                                 <div className="muted brand-feed-meta">
                                   {meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat
                                 </div>
-                              </div>
+                              </Link>
                               <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
                             </div>
                           ))

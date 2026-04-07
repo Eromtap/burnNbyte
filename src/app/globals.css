@@ -562,6 +562,25 @@ body::before{
   gap:10px;
 }
 
+.desktop-logout{
+  display:none;
+  padding:10px 6px;
+  border:none;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  cursor:pointer;
+}
+
+.desktop-logout:hover{
+  color:var(--text);
+}
+
+.mobile-menu-trigger,
+.mobile-only{
+  display:initial;
+}
+
 .desktop-nav-link{
   padding:10px 14px;
   border-radius:999px;
@@ -580,6 +599,7 @@ body::before{
   display:flex;
   align-items:center;
   gap:10px;
+  min-width:0;
 }
 
 .app-main{padding-top:28px}
@@ -1052,6 +1072,17 @@ input:focus,select:focus,textarea:focus{
 
 @media (min-width: 920px){
   .desktop-nav{display:flex}
+  .desktop-logout{display:inline-flex}
+  .mobile-menu-trigger{display:none}
+  .mobile-only{display:none}
+  .header-actions{
+    flex:1 1 auto;
+    justify-content:flex-end;
+    margin-left:24px;
+  }
+  .desktop-nav{
+    margin-right:auto;
+  }
 }
 
 @media (max-width: 920px){
@@ -1785,6 +1816,12 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
 
 .brand-feed-meta{
   margin-top:5px;
+}
+
+.brand-feed-link{
+  display:block;
+  flex:1 1 auto;
+  min-width:0;
 }
 
 @media (max-width: 720px){
