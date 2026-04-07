@@ -210,7 +210,7 @@ select{color:var(--text)}
 .btn-outline{background:transparent;border-color:color-mix(in oklab, var(--elev) 60%, transparent);box-shadow:0 0 0 2px color-mix(in oklab, var(--elev) 40%, transparent)}
 .btn-outline:hover{filter:brightness(1.1);box-shadow:0 0 0 3px color-mix(in oklab, var(--elev) 50%, transparent)}
 .btn-secondary{background:color-mix(in oklab, var(--elev) 80%, transparent);border-color:color-mix(in oklab, var(--accent) 18%, transparent)}
-.btn-full{display:flex;width:100%;justify-content:center;text-align:center}
+.btn-full{display:flex;width:100%;justify-content:center;text-align:center;white-space:normal}
 .btn-outline{background:transparent;border-color:color-mix(in oklab, var(--elev) 60%, transparent)}
 
 /* Floating Action Button */
@@ -789,19 +789,99 @@ body::before{
   align-items:center;
 }
 
+.meal-group{
+  gap:16px;
+}
+
+.meal-group-head{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:12px;
+  align-items:center;
+}
+
+.meal-entry{
+  padding:0;
+  border:none;
+  border-radius:0;
+  box-shadow:none;
+  background:transparent;
+}
+
+.meal-entry-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:0;
+  border:none;
+  background:transparent;
+  min-height:0;
+}
+
+.meal-entry-recipe{
+  align-items:flex-start;
+}
+
+.meal-entry::before{
+  display:none;
+}
+
+.workout-session-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:0;
+  border:none;
+  background:transparent;
+  min-height:0;
+}
+
+@media (min-width: 721px){
+  .meal-entry{
+    padding:16px;
+    border:1px solid var(--edge);
+    border-radius:24px;
+    box-shadow:var(--shadow);
+    background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 94%, transparent), color-mix(in oklab, var(--elev) 94%, transparent));
+  }
+
+  .meal-entry::before{
+    display:block;
+  }
+}
+
 .planner-head{font-weight:700;color:var(--text)}
 .meal-links,.page-hero-actions,.quick-actions,.selected-prefs{display:flex;flex-wrap:wrap;gap:10px}
 .meal-link{width:auto;min-width:136px;justify-content:center}
 
 .form{display:grid;gap:16px}
-.form label,.form-block{display:grid;gap:8px}
+.form label,.form-block{display:grid;gap:8px;min-width:0}
 .form label span{font-weight:600;color:var(--text)}
 .input,input,select,textarea{
+  width:100%;
+  min-width:0;
   border:1px solid var(--edge);
   border-radius:14px;
   background:var(--surface-soft);
   color:var(--text);
   padding:12px 14px;
+}
+
+.inline-field-row{
+  display:flex;
+  gap:8px;
+  min-width:0;
+}
+
+.inline-field-row > *{
+  min-width:0;
+}
+
+.inline-field-row .input,
+.inline-field-row input,
+.inline-field-row select,
+.inline-field-row textarea{
+  flex:1 1 0;
 }
 
 input::placeholder,textarea::placeholder{color:color-mix(in oklab, var(--text) 44%, transparent)}
@@ -832,6 +912,7 @@ input:focus,select:focus,textarea:focus{
   padding:11px 15px;
   border-radius:14px;
   transition:transform .08s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  min-width:0;
 }
 
 .btn:hover{transform:translateY(-1px)}
@@ -943,6 +1024,73 @@ input:focus,select:focus,textarea:focus{
   .stats,.prefs-grid,.dashboard-grid,.grid{grid-template-columns:1fr}
   .span-2,.span-3,.span-4{grid-column:1 / -1}
   .page-hero-actions,.quick-actions,.meal-links{display:grid;grid-template-columns:1fr}
+  .meal-group{
+    padding:0;
+    gap:10px;
+    border:none;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+  .meal-group-head{
+    grid-template-columns:1fr auto;
+    gap:8px;
+    padding:0 2px;
+  }
+  .meal-entry,
+  .meal-entry.card{
+    padding:0;
+    border:none;
+    border-radius:0;
+    box-shadow:none;
+    background:transparent;
+    overflow:visible;
+  }
+  .meal-entry + .meal-entry{
+    padding-top:10px;
+    border-top:1px solid var(--edge);
+  }
+  .meal-entry .card-head{
+    margin-bottom:8px;
+  }
+  .meal-entry .list-row{
+    padding:10px 12px;
+    border-radius:12px;
+  }
+  .meal-entry-toggle{
+    padding:0;
+    border:none;
+    background:transparent;
+    justify-content:flex-start;
+  }
+  .meal-entry .stack{
+    gap:10px;
+  }
+  .meal-entry .planner-head{
+    margin-bottom:2px;
+  }
+  .meal-entry-recipe{
+    padding:12px;
+  }
+  .workout-session-summary{
+    padding:12px 14px;
+  }
+  .workout-session-toggle{
+    padding:0;
+    border:none;
+    background:transparent;
+    justify-content:flex-start;
+  }
+  .workout-instruction-row{
+    padding:12px 14px;
+  }
+  .inline-field-row{
+    flex-wrap:wrap;
+  }
+  .inline-field-row .btn{
+    width:100%;
+    justify-content:center;
+  }
   .date-strip{overflow:hidden}
   .date-strip-scroll{
     display:flex;

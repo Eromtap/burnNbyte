@@ -159,8 +159,8 @@ export default function MealsPageClient({
               </div>
               <div className="planner">
                 {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                  <div key={type} className="planner-col">
-                    <div className="planner-col planner-col-row" style={{ padding: 0, border: 'none', background: 'transparent' }}>
+                  <div key={type} className="meal-group">
+                    <div className="planner-col-row meal-group-head">
                       <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
                       <ReplaceMealButton
                         dateISO={selectedISO}
@@ -172,7 +172,7 @@ export default function MealsPageClient({
                     </div>
                     {(grouped[type] || []).length ? (
                       grouped[type].map((meal) => (
-                        <article key={meal.id} className="card" style={{ padding: 16 }}>
+                        <article key={meal.id} className="card meal-entry">
                           <header className="card-head">
                             <div>
                               <h3>{meal.name}</h3>
@@ -181,6 +181,7 @@ export default function MealsPageClient({
                             <MealCompletionToggle
                               mealId={meal.id}
                               initialCompleted={meal.isCompleted}
+                              className="meal-entry-toggle"
                               onUpdated={(updatedMeal) => {
                                 if (!updatedMeal) return;
                                 setMealPlan((prev) => {
@@ -209,7 +210,7 @@ export default function MealsPageClient({
                             {meal.recipe && (
                               <div>
                                 <div className="planner-head">Recipe</div>
-                                <div className="list-row"><span style={{ whiteSpace: 'pre-wrap' }}>{meal.recipe}</span></div>
+                                <div className="list-row meal-entry-recipe"><span style={{ whiteSpace: 'pre-wrap' }}>{meal.recipe}</span></div>
                               </div>
                             )}
                           </div>

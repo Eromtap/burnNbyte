@@ -198,7 +198,7 @@ export default function WorkoutsPageClient({
           )}
           {workout && (
             <div className="stack">
-              <div className="list-row">
+              <div className="list-row workout-session-summary">
                 <div>
                   <strong>{workout.name}</strong>
                   <div className="muted" style={{ marginTop: 4 }}>{workout.muscleGroup || 'General training'} • {workout.duration} minutes</div>
@@ -207,6 +207,7 @@ export default function WorkoutsPageClient({
                   key={workout.id}
                   workoutId={workout.id}
                   initialCompleted={workout.isCompleted}
+                  className="workout-session-toggle"
                   onUpdated={(updatedWorkout) => {
                     if (!updatedWorkout) return;
                     setWorkout((prev) => (prev ? { ...prev, ...updatedWorkout } : updatedWorkout));
@@ -218,7 +219,7 @@ export default function WorkoutsPageClient({
                   <div className="planner-head">Instructions</div>
                   <ul className="list">
                     {workout.instructions.map((step, i) => (
-                      <li key={i} className="list-row" style={{ alignItems: 'flex-start' }}>
+                      <li key={i} className="list-row workout-instruction-row" style={{ alignItems: 'flex-start' }}>
                         <div>
                           <div className="instruction-text">{step}</div>
                           <a

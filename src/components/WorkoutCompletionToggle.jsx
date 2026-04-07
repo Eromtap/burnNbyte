@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function WorkoutCompletionToggle({ workoutId, initialCompleted = false, onUpdated }) {
+export default function WorkoutCompletionToggle({ workoutId, initialCompleted = false, onUpdated, className = '' }) {
   const router = useRouter();
   const [checked, setChecked] = useState(Boolean(initialCompleted));
   const [pending, startTransition] = useTransition();
@@ -39,7 +39,7 @@ export default function WorkoutCompletionToggle({ workoutId, initialCompleted = 
   };
 
   return (
-    <div className="list-row" style={{ gap: 8, alignItems: 'center' }}>
+    <div className={className || 'list-row'} style={{ gap: 8, alignItems: 'center' }}>
       <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <input type="checkbox" checked={checked} disabled={pending} onChange={(e) => toggle(e.target.checked)} />
         <span>Completed</span>

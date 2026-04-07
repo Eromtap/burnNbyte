@@ -177,7 +177,7 @@ export default function ProfileForm({ initial }){
 
       <label>
         <span>Height (ft / in)</span>
-        <div style={{display:'flex', gap:8}}>
+        <div className="inline-field-row">
           <input type="number" value={form.heightFt} onChange={e=>updateField('heightFt', e.target.value)} placeholder="ft" />
           <input type="number" value={form.heightIn} onChange={e=>updateField('heightIn', e.target.value)} placeholder="in" />
         </div>
@@ -232,11 +232,10 @@ export default function ProfileForm({ initial }){
         <label className="block mt-4">
           <span className="planner-head">Custom Goals</span>
           <p className="text-xs muted">Add race names, seasons, or anything not listed one at a time.</p>
-          <div style={{display:'flex', gap:8, marginTop:8}}>
+          <div className="inline-field-row" style={{ marginTop: 8 }}>
             <input
               type="text"
               className="input"
-              style={{width:'100%'}}
               placeholder="e.g. Boston qualifier"
               value={customGoalInput}
               onChange={e=>setCustomGoalInput(e.target.value)}
@@ -284,11 +283,10 @@ export default function ProfileForm({ initial }){
         <label className="block mt-4">
           <span className="planner-head">Other Equipment</span>
           <p className="text-xs muted">Add anything else one item at a time.</p>
-          <div style={{display:'flex', gap:8, marginTop:8}}>
+          <div className="inline-field-row" style={{ marginTop: 8 }}>
             <input
               type="text"
               className="input"
-              style={{width:'100%'}}
               placeholder="e.g. Peloton"
               value={customEquipmentInput}
               onChange={e=>setCustomEquipmentInput(e.target.value)}
@@ -366,11 +364,10 @@ export default function ProfileForm({ initial }){
         <label className="block mt-4">
           <span className="planner-head">Custom Preferences</span>
           <p className="text-xs muted">Add any cuisines or foods you want us to lean into one at a time.</p>
-          <div style={{display:'flex', gap:8, marginTop:8}}>
+          <div className="inline-field-row" style={{ marginTop: 8 }}>
             <input
               type="text"
               className="input"
-              style={{width:'100%'}}
               placeholder="e.g. Mediterranean"
               value={customPrefInput}
               onChange={e=>setCustomPrefInput(e.target.value)}
@@ -397,11 +394,10 @@ export default function ProfileForm({ initial }){
       <div className="mt-4">
         <div className="planner-head">Dislikes</div>
         <p className="text-xs muted">Soft avoid: add foods you prefer not to see one at a time.</p>
-        <div style={{display:'flex', gap:8, marginTop:8}}>
+        <div className="inline-field-row" style={{ marginTop: 8 }}>
           <input
             type="text"
             className="input"
-            style={{width:'100%'}}
             placeholder="e.g. olives"
             value={dislikeInput}
             onChange={e=>setDislikeInput(e.target.value)}
@@ -425,7 +421,7 @@ export default function ProfileForm({ initial }){
 
       <label>
         <span>Allergies</span>
-        <div style={{display:'flex', gap:8, marginTop:8}}>
+        <div className="inline-field-row" style={{ marginTop: 8 }}>
           <input
             value={allergyInput}
             onChange={e=>setAllergyInput(e.target.value)}
@@ -453,7 +449,7 @@ export default function ProfileForm({ initial }){
         <input type="number" value={form.mealsPerDay} onChange={e=>updateField('mealsPerDay', e.target.value)} />
       </label>
 
-      <div style={{display:'flex', gap:8, alignItems:'center'}}>
+      <div className="inline-field-row" style={{ alignItems: 'center' }}>
         <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
         {msg && <span className="muted">{msg}</span>}
       </div>
