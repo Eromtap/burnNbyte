@@ -165,6 +165,16 @@ export default async function HomePage() {
     <main>
       <div className="dashboard-shell stack">
         <section className="brand-hero span-full">
+          <div className="dashboard-mobile-bar">
+            <div>
+              <div className="metric-label">Today</div>
+              <div className="dashboard-mobile-date">{formatUTCDateForDisplay(today, timeZone)}</div>
+            </div>
+            <div className="dashboard-mobile-stats">
+              <div className="chip chip-success">{completionPct}% adherence</div>
+              <div className="chip">Goal: {primaryGoal}</div>
+            </div>
+          </div>
           <div className="brand-hero-copy">
             <div className="eyebrow">{hero.eyebrow}</div>
             <div className="brand-hero-date">{formatUTCDateForDisplay(today, timeZone)}</div>
@@ -206,127 +216,157 @@ export default async function HomePage() {
         </section>
 
         <section className="brand-dashboard-grid">
-          <article className="card span-2 brand-story-card">
-            <header className="card-head brand-story-head">
-              <div>
-                <div className="section-badge section-badge-workout">Workout spotlight</div>
-                <h3>{workout ? workout.name : "I haven’t built today’s session yet"}</h3>
-                <div className="sub">
-                  {workout
-                    ? `${workout.muscleGroup || "Full body focus"} • ${workout.duration} min • ${workout.difficulty || "beginner"}`
-                    : "Generate a workout and this becomes my featured training brief."}
-                </div>
-              </div>
-              {workout ? (
-                <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />
-              ) : (
-                <Link href="/workouts" className="btn btn-primary">Build my workout</Link>
-              )}
-            </header>
-            <div className="brand-story-body">
-              <div className="brand-story-copy">
-                <div className="metric-label">Training note</div>
-                <p className="brand-story-text">
-                  {workout
-                    ? `This session is built for ${primaryGoal.toLowerCase()}. Use today as a focused block instead of another generic gym day.`
-                    : "There’s no workout saved for today yet. Build one to turn the dashboard into a real coaching brief."}
-                </p>
-                <div className="brand-story-actions">
-                  <Link href={`/workouts?date=${todayISO}`} className="btn btn-outline">See my workout</Link>
-                  <Link href="/healthCalendar" className="btn btn-secondary">View calendar</Link>
-                </div>
-              </div>
-              <div className="brand-story-metrics">
-                <div className="brand-stat-panel">
-                  <div className="metric-label">Estimated burn</div>
-                  <div className="spotlight-mini">{workoutCalories ?? 0}</div>
-                  <div className="metric-detail">kcal if completed</div>
-                </div>
-                <div className="brand-stat-panel">
-                  <div className="metric-label">Session status</div>
-                  <div className="spotlight-mini">{workout?.isCompleted ? "Done" : "Pending"}</div>
-                  <div className="metric-detail">Track it when finished</div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article className="card span-2 brand-nutrition-card">
-            <header className="card-head">
-              <div>
-                <div className="section-badge section-badge-meal">Nutrition spotlight</div>
-                <h3>Macro rhythm for today</h3>
-                <div className="sub">A cleaner view of what I&apos;ve had today versus what the plan called for.</div>
-              </div>
-            </header>
-            <div className="stats brand-tight-stats">
-              <div className="stat">
-                <div className="stat-label">Calories so far</div>
-                <div className="stat-value">{consumedCalories}<span className="unit">/ {mealCalories || 0}</span></div>
-                <div className="progress"><span style={{ width: `${macroPct(consumedCalories, mealCalories || 1)}%` }} /></div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Protein so far</div>
-                <div className="stat-value">{formatMacro(consumedMacros.protein)}<span className="unit">g</span></div>
-                <div className="progress"><span style={{ width: `${macroPct(consumedMacros.protein, macroTargets.protein)}%` }} /></div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Carbs / Fat</div>
-                <div className="stat-value">{formatMacro(consumedMacros.carbs)} / {formatMacro(consumedMacros.fat)}<span className="unit">g</span></div>
-                <div className="sub">Planned {formatMacro(mealMacros.carbs)}g carbs and {formatMacro(mealMacros.fat)}g fat</div>
-              </div>
-            </div>
-            <div className="brand-meal-spotlight">
-              <div>
-                <div className="metric-label">Featured meal</div>
-                <div className="brand-meal-name">{spotlightMeal?.name || "No meals planned yet"}</div>
-                <div className="metric-detail">
-                  {spotlightMeal
-                    ? `${spotlightMeal.calories ?? 0} kcal • ${formatMacro(spotlightMeal.protein)}g protein`
-                    : "Generate a meal plan to see my first featured plate."}
-                </div>
-              </div>
-              <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See my meals</Link>
-            </div>
-          </article>
-
-          <article className="card span-2 brand-feed-card">
-            <header className="card-head">
-              <div>
-                <h3>What I&apos;m eating today</h3>
-                <div className="sub">Meal-by-meal tracking in a format that feels more like a curated daily feed.</div>
-              </div>
-              <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Adjust my meals</Link>
-            </header>
-            <div className="planner brand-feed-grid">
-              {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                <article key={type} className="brand-feed-item">
-                  <div className="brand-feed-head">
-                    <div>
-                      <div className="metric-label">{type}</div>
-                      <div className="planner-head" style={{ textTransform: 'capitalize' }}>My {type}</div>
+          <details className="mobile-disclosure dashboard-disclosure">
+            <summary className="mobile-disclosure-summary dashboard-summary">
+              <span className="planner-head">Workout spotlight</span>
+              <span className="mobile-disclosure-meta">{workout ? `${workout.duration} min` : "Not built"}</span>
+            </summary>
+            <div className="mobile-disclosure-panel">
+              <article className="card span-2 brand-story-card">
+                <header className="card-head brand-story-head">
+                  <div>
+                    <div className="section-badge section-badge-workout">Workout spotlight</div>
+                    <h3>{workout ? workout.name : "I haven’t built today’s session yet"}</h3>
+                    <div className="sub">
+                      {workout
+                        ? `${workout.muscleGroup || "Full body focus"} • ${workout.duration} min • ${workout.difficulty || "beginner"}`
+                        : "Generate a workout and this becomes my featured training brief."}
                     </div>
-                    <ReplaceMealButton dateISO={todayISO} type={type} className="btn btn-secondary" label="Swap it" />
                   </div>
-                  {(grouped[type] || []).length ? (
-                    (grouped[type] || []).map((meal) => (
-                      <div key={meal.id} className="list-row brand-feed-row">
-                        <div>
-                          <strong>{meal.name}</strong>
-                          <div className="muted brand-feed-meta">
-                            {meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat
-                          </div>
-                        </div>
-                        <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
-                      </div>
-                    ))
+                  {workout ? (
+                    <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />
                   ) : (
-                    <div className="list-row brand-feed-row"><span className="muted">No {type} planned.</span></div>
+                    <Link href="/workouts" className="btn btn-primary">Build my workout</Link>
                   )}
-                </article>
-              ))}
+                </header>
+                <div className="brand-story-body">
+                  <div className="brand-story-copy">
+                    <div className="metric-label">Training note</div>
+                    <p className="brand-story-text">
+                      {workout
+                        ? `This session is built for ${primaryGoal.toLowerCase()}. Use today as a focused block instead of another generic gym day.`
+                        : "There’s no workout saved for today yet. Build one to turn the dashboard into a real coaching brief."}
+                    </p>
+                    <div className="brand-story-actions">
+                      <Link href={`/workouts?date=${todayISO}`} className="btn btn-outline">See my workout</Link>
+                      <Link href="/healthCalendar" className="btn btn-secondary">View calendar</Link>
+                    </div>
+                  </div>
+                  <div className="brand-story-metrics">
+                    <div className="brand-stat-panel">
+                      <div className="metric-label">Estimated burn</div>
+                      <div className="spotlight-mini">{workoutCalories ?? 0}</div>
+                      <div className="metric-detail">kcal if completed</div>
+                    </div>
+                    <div className="brand-stat-panel">
+                      <div className="metric-label">Session status</div>
+                      <div className="spotlight-mini">{workout?.isCompleted ? "Done" : "Pending"}</div>
+                      <div className="metric-detail">Track it when finished</div>
+                    </div>
+                  </div>
+                </div>
+              </article>
             </div>
-          </article>
+          </details>
+
+          <details className="mobile-disclosure dashboard-disclosure">
+            <summary className="mobile-disclosure-summary dashboard-summary">
+              <span className="planner-head">Macro rhythm</span>
+              <span className="mobile-disclosure-meta">{consumedCalories} / {mealCalories || 0} kcal</span>
+            </summary>
+            <div className="mobile-disclosure-panel">
+              <article className="card span-2 brand-nutrition-card">
+                <header className="card-head">
+                  <div>
+                    <div className="section-badge section-badge-meal">Nutrition spotlight</div>
+                    <h3>Macro rhythm for today</h3>
+                    <div className="sub">A cleaner view of what I&apos;ve had today versus what the plan called for.</div>
+                  </div>
+                </header>
+                <div className="stats brand-tight-stats">
+                  <div className="stat">
+                    <div className="stat-label">Calories so far</div>
+                    <div className="stat-value">{consumedCalories}<span className="unit">/ {mealCalories || 0}</span></div>
+                    <div className="progress"><span style={{ width: `${macroPct(consumedCalories, mealCalories || 1)}%` }} /></div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-label">Protein so far</div>
+                    <div className="stat-value">{formatMacro(consumedMacros.protein)}<span className="unit">g</span></div>
+                    <div className="progress"><span style={{ width: `${macroPct(consumedMacros.protein, macroTargets.protein)}%` }} /></div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-label">Carbs / Fat</div>
+                    <div className="stat-value">{formatMacro(consumedMacros.carbs)} / {formatMacro(consumedMacros.fat)}<span className="unit">g</span></div>
+                    <div className="sub">Planned {formatMacro(mealMacros.carbs)}g carbs and {formatMacro(mealMacros.fat)}g fat</div>
+                  </div>
+                </div>
+                <div className="brand-meal-spotlight">
+                  <div>
+                    <div className="metric-label">Featured meal</div>
+                    <div className="brand-meal-name">{spotlightMeal?.name || "No meals planned yet"}</div>
+                    <div className="metric-detail">
+                      {spotlightMeal
+                        ? `${spotlightMeal.calories ?? 0} kcal • ${formatMacro(spotlightMeal.protein)}g protein`
+                        : "Generate a meal plan to see my first featured plate."}
+                    </div>
+                  </div>
+                  <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See my meals</Link>
+                </div>
+              </article>
+            </div>
+          </details>
+
+          <details className="mobile-disclosure dashboard-disclosure">
+            <summary className="mobile-disclosure-summary dashboard-summary">
+              <span className="planner-head">What I&apos;m eating today</span>
+              <span className="mobile-disclosure-meta">{mealPlan?.meals?.length || 0} meals</span>
+            </summary>
+            <div className="mobile-disclosure-panel">
+              <article className="card span-2 brand-feed-card">
+                <header className="card-head">
+                  <div>
+                    <h3>What I&apos;m eating today</h3>
+                    <div className="sub">Meal-by-meal tracking in a format that feels more like a curated daily feed.</div>
+                  </div>
+                  <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Adjust my meals</Link>
+                </header>
+                <div className="planner brand-feed-grid">
+                  {["breakfast", "lunch", "dinner", "snack"].map((type) => (
+                    <details key={type} className="brand-feed-item mobile-disclosure" open={type === "breakfast"}>
+                      <summary className="mobile-disclosure-summary brand-feed-item-summary">
+                        <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
+                        <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? "" : "s"}</span>
+                      </summary>
+                      <div className="mobile-disclosure-panel">
+                        <div className="brand-feed-head">
+                          <div>
+                            <div className="metric-label">{type}</div>
+                            <div className="planner-head" style={{ textTransform: 'capitalize' }}>My {type}</div>
+                          </div>
+                          <ReplaceMealButton dateISO={todayISO} type={type} className="btn btn-secondary" label="Swap it" />
+                        </div>
+                        {(grouped[type] || []).length ? (
+                          (grouped[type] || []).map((meal) => (
+                            <div key={meal.id} className="list-row brand-feed-row">
+                              <div>
+                                <strong>{meal.name}</strong>
+                                <div className="muted brand-feed-meta">
+                                  {meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat
+                                </div>
+                              </div>
+                              <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
+                            </div>
+                          ))
+                        ) : (
+                          <div className="list-row brand-feed-row"><span className="muted">No {type} planned.</span></div>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </article>
+            </div>
+          </details>
 
           <CheatPlanner currentDateISO={todayISO} />
         </section>

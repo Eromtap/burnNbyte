@@ -165,49 +165,60 @@ export default function ProfileForm({ initial }){
 
   return (
     <form className="form" onSubmit={onSubmit}>
-      <label>
-        <span>Gender</span>
-        <select value={form.gender} onChange={e=>updateField('gender', e.target.value)}>
-          <option value="">Select</option>
-          <option>male</option>
-          <option>female</option>
-          <option>other</option>
-        </select>
-      </label>
+      <details className="mobile-disclosure form-section-disclosure" open>
+        <summary className="mobile-disclosure-summary form-section-summary">
+          <span className="planner-head">Profile basics</span>
+          <span className="mobile-disclosure-meta">Body + activity</span>
+        </summary>
+        <div className="mobile-disclosure-panel form-section-panel">
+          <label>
+            <span>Gender</span>
+            <select value={form.gender} onChange={e=>updateField('gender', e.target.value)}>
+              <option value="">Select</option>
+              <option>male</option>
+              <option>female</option>
+              <option>other</option>
+            </select>
+          </label>
 
-      <label>
-        <span>Height (ft / in)</span>
-        <div className="inline-field-row">
-          <input type="number" value={form.heightFt} onChange={e=>updateField('heightFt', e.target.value)} placeholder="ft" />
-          <input type="number" value={form.heightIn} onChange={e=>updateField('heightIn', e.target.value)} placeholder="in" />
+          <label>
+            <span>Height (ft / in)</span>
+            <div className="inline-field-row">
+              <input type="number" value={form.heightFt} onChange={e=>updateField('heightFt', e.target.value)} placeholder="ft" />
+              <input type="number" value={form.heightIn} onChange={e=>updateField('heightIn', e.target.value)} placeholder="in" />
+            </div>
+          </label>
+
+          <label>
+            <span>Weight (lb)</span>
+            <input type="number" value={form.weight} onChange={e=>updateField('weight', e.target.value)} placeholder="180" />
+          </label>
+
+          <label>
+            <span>Goal Weight (lb)</span>
+            <input type="number" value={form.goalWeight} onChange={e=>updateField('goalWeight', e.target.value)} placeholder="Optional" />
+          </label>
+
+          <label>
+            <span>Activity Level</span>
+            <select value={form.activityLevel} onChange={e=>updateField('activityLevel', e.target.value)}>
+              <option value="">Select</option>
+              <option>sedentary</option>
+              <option>light</option>
+              <option>moderate</option>
+              <option>active</option>
+              <option>very active</option>
+            </select>
+          </label>
         </div>
-      </label>
+      </details>
 
-      <label>
-        <span>Weight (lb)</span>
-        <input type="number" value={form.weight} onChange={e=>updateField('weight', e.target.value)} placeholder="180" />
-      </label>
-
-      <label>
-        <span>Goal Weight (lb)</span>
-        <input type="number" value={form.goalWeight} onChange={e=>updateField('goalWeight', e.target.value)} placeholder="Optional" />
-      </label>
-
-      <label>
-        <span>Activity Level</span>
-        <select value={form.activityLevel} onChange={e=>updateField('activityLevel', e.target.value)}>
-          <option value="">Select</option>
-          <option>sedentary</option>
-          <option>light</option>
-          <option>moderate</option>
-          <option>active</option>
-          <option>very active</option>
-        </select>
-      </label>
-
-      <div className="divider" />
-      <div className="planner-head">Workouts</div>
-
+      <details className="mobile-disclosure form-section-disclosure">
+        <summary className="mobile-disclosure-summary form-section-summary">
+          <span className="planner-head">Workouts</span>
+          <span className="mobile-disclosure-meta">{form.workoutDuration || 30} min • {form.workoutDays.length} days</span>
+        </summary>
+        <div className="mobile-disclosure-panel form-section-panel">
       <div>
         <div className="planner-head">
           <span>Fitness Goals</span>
@@ -337,9 +348,15 @@ export default function ProfileForm({ initial }){
         </div>
       </div>
 
-      <div className="divider" />
-      <div className="planner-head">Meals</div>
+        </div>
+      </details>
 
+      <details className="mobile-disclosure form-section-disclosure">
+        <summary className="mobile-disclosure-summary form-section-summary">
+          <span className="planner-head">Meals</span>
+          <span className="mobile-disclosure-meta">{form.mealsPerDay || 3} per day • {form.dietaryPreferences.length} prefs</span>
+        </summary>
+        <div className="mobile-disclosure-panel form-section-panel">
       <div>
         <div className="planner-head">
           <span>Dietary Preferences</span>
@@ -448,6 +465,8 @@ export default function ProfileForm({ initial }){
         <span>Meals Per Day</span>
         <input type="number" value={form.mealsPerDay} onChange={e=>updateField('mealsPerDay', e.target.value)} />
       </label>
+        </div>
+      </details>
 
       <div className="inline-field-row" style={{ alignItems: 'center' }}>
         <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

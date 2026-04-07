@@ -159,67 +159,83 @@ export default function MealsPageClient({
               </div>
               <div className="planner">
                 {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                  <div key={type} className="meal-group">
-                    <div className="planner-col-row meal-group-head">
+                  <details key={type} className="meal-group mobile-disclosure" open={type === 'breakfast'}>
+                    <summary className="mobile-disclosure-summary meal-group-summary">
                       <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
-                      <ReplaceMealButton
-                        dateISO={selectedISO}
-                        type={type}
-                        className="btn btn-secondary"
-                        label="Swap it"
-                        onReplaced={() => refreshSelectedDay()}
-                      />
-                    </div>
-                    {(grouped[type] || []).length ? (
-                      grouped[type].map((meal) => (
-                        <article key={meal.id} className="card meal-entry">
-                          <header className="card-head">
-                            <div>
-                              <h3>{meal.name}</h3>
-                              <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat</div>
+                      <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? '' : 's'}</span>
+                    </summary>
+                    <div className="mobile-disclosure-panel">
+                      <div className="planner-col-row meal-group-head">
+                        <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
+                        <ReplaceMealButton
+                          dateISO={selectedISO}
+                          type={type}
+                          className="btn btn-secondary"
+                          label="Swap it"
+                          onReplaced={() => refreshSelectedDay()}
+                        />
+                      </div>
+                      {(grouped[type] || []).length ? (
+                        grouped[type].map((meal) => (
+                          <article key={meal.id} className="card meal-entry">
+                            <header className="card-head">
+                              <div>
+                                <h3>{meal.name}</h3>
+                                <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat</div>
+                              </div>
+                              <MealCompletionToggle
+                                mealId={meal.id}
+                                initialCompleted={meal.isCompleted}
+                                className="meal-entry-toggle"
+                                onUpdated={(updatedMeal) => {
+                                  if (!updatedMeal) return;
+                                  setMealPlan((prev) => {
+                                    if (!prev) return prev;
+                                    return {
+                                      ...prev,
+                                      meals: (prev.meals || []).map((mealItem) => (
+                                        mealItem.id === updatedMeal.id ? { ...mealItem, ...updatedMeal } : mealItem
+                                      )),
+                                    };
+                                  });
+                                }}
+                              />
+                            </header>
+                            <div className="stack">
+                              {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
+                                <details className="mobile-disclosure detail-disclosure">
+                                  <summary className="mobile-disclosure-summary detail-disclosure-summary">
+                                    <span className="planner-head">Ingredients</span>
+                                    <span className="mobile-disclosure-meta">{meal.ingredients.length}</span>
+                                  </summary>
+                                  <div className="mobile-disclosure-panel">
+                                    <ul className="list">
+                                      {meal.ingredients.map((ingredient, index) => (
+                                        <li key={index} className="list-row"><span>{ingredient}</span></li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </details>
+                              )}
+                              {meal.recipe && (
+                                <details className="mobile-disclosure detail-disclosure">
+                                  <summary className="mobile-disclosure-summary detail-disclosure-summary">
+                                    <span className="planner-head">Recipe</span>
+                                    <span className="mobile-disclosure-meta">Steps</span>
+                                  </summary>
+                                  <div className="mobile-disclosure-panel">
+                                    <div className="list-row meal-entry-recipe"><span style={{ whiteSpace: 'pre-wrap' }}>{meal.recipe}</span></div>
+                                  </div>
+                                </details>
+                              )}
                             </div>
-                            <MealCompletionToggle
-                              mealId={meal.id}
-                              initialCompleted={meal.isCompleted}
-                              className="meal-entry-toggle"
-                              onUpdated={(updatedMeal) => {
-                                if (!updatedMeal) return;
-                                setMealPlan((prev) => {
-                                  if (!prev) return prev;
-                                  return {
-                                    ...prev,
-                                    meals: (prev.meals || []).map((mealItem) => (
-                                      mealItem.id === updatedMeal.id ? { ...mealItem, ...updatedMeal } : mealItem
-                                    )),
-                                  };
-                                });
-                              }}
-                            />
-                          </header>
-                          <div className="stack">
-                            {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
-                              <div>
-                                <div className="planner-head">Ingredients</div>
-                                <ul className="list" style={{ marginTop: 8 }}>
-                                  {meal.ingredients.map((ingredient, index) => (
-                                    <li key={index} className="list-row"><span>{ingredient}</span></li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            {meal.recipe && (
-                              <div>
-                                <div className="planner-head">Recipe</div>
-                                <div className="list-row meal-entry-recipe"><span style={{ whiteSpace: 'pre-wrap' }}>{meal.recipe}</span></div>
-                              </div>
-                            )}
-                          </div>
-                        </article>
-                      ))
-                    ) : (
-                      <div className="list-row"><span className="muted">No {type} planned.</span></div>
-                    )}
-                  </div>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="list-row"><span className="muted">No {type} planned.</span></div>
+                      )}
+                    </div>
+                  </details>
                 ))}
               </div>
             </div>

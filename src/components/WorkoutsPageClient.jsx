@@ -215,35 +215,45 @@ export default function WorkoutsPageClient({
                 />
               </div>
               {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
-                <div className="stack">
-                  <div className="planner-head">Instructions</div>
-                  <ul className="list">
-                    {workout.instructions.map((step, i) => (
-                      <li key={i} className="list-row workout-instruction-row" style={{ alignItems: 'flex-start' }}>
-                        <div>
-                          <div className="instruction-text">{step}</div>
-                          <a
-                            style={{ display: 'inline-block', marginTop: 8, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}
-                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${normalizeInstructionForSearch(step) || step} exercise demo`)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Watch a demo on YouTube
-                          </a>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <details className="mobile-disclosure detail-disclosure">
+                  <summary className="mobile-disclosure-summary detail-disclosure-summary">
+                    <span className="planner-head">Instructions</span>
+                    <span className="mobile-disclosure-meta">{workout.instructions.length} steps</span>
+                  </summary>
+                  <div className="mobile-disclosure-panel">
+                    <ul className="list">
+                      {workout.instructions.map((step, i) => (
+                        <li key={i} className="list-row workout-instruction-row" style={{ alignItems: 'flex-start' }}>
+                          <div>
+                            <div className="instruction-text">{step}</div>
+                            <a
+                              style={{ display: 'inline-block', marginTop: 8, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}
+                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${normalizeInstructionForSearch(step) || step} exercise demo`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Watch a demo on YouTube
+                            </a>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </details>
               )}
-              <div className="stack">
-                <div className="planner-head">How it&apos;s going</div>
-                <ExerciseLogPanel
-                  workoutId={workout.id}
-                  initialLogs={exerciseLogs}
-                  exerciseSuggestions={exerciseSuggestions}
-                />
-              </div>
+              <details className="mobile-disclosure detail-disclosure">
+                <summary className="mobile-disclosure-summary detail-disclosure-summary">
+                  <span className="planner-head">How it&apos;s going</span>
+                  <span className="mobile-disclosure-meta">{exerciseLogs.length} logs</span>
+                </summary>
+                <div className="mobile-disclosure-panel">
+                  <ExerciseLogPanel
+                    workoutId={workout.id}
+                    initialLogs={exerciseLogs}
+                    exerciseSuggestions={exerciseSuggestions}
+                  />
+                </div>
+              </details>
             </div>
           )}
         </article>
