@@ -5,6 +5,7 @@ import DateStrip from '@/components/DateStrip';
 import ExerciseLogPanel from '@/components/ExerciseLogPanel';
 import GenerateWorkout from '@/components/GenerateWorkout';
 import WorkoutCompletionToggle from '@/components/WorkoutCompletionToggle';
+import MobileDisclosure from '@/components/MobileDisclosure';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -215,12 +216,17 @@ export default function WorkoutsPageClient({
                 />
               </div>
               {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
-                <details className="mobile-disclosure detail-disclosure">
-                  <summary className="mobile-disclosure-summary detail-disclosure-summary">
-                    <span className="planner-head">Instructions</span>
-                    <span className="mobile-disclosure-meta">{workout.instructions.length} steps</span>
-                  </summary>
-                  <div className="mobile-disclosure-panel">
+                <MobileDisclosure
+                  className="mobile-disclosure detail-disclosure"
+                  summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                  panelClassName="mobile-disclosure-panel"
+                  summary={
+                    <>
+                      <span className="planner-head">Instructions</span>
+                      <span className="mobile-disclosure-meta">{workout.instructions.length} steps</span>
+                    </>
+                  }
+                >
                     <ul className="list">
                       {workout.instructions.map((step, i) => (
                         <li key={i} className="list-row workout-instruction-row" style={{ alignItems: 'flex-start' }}>
@@ -238,22 +244,25 @@ export default function WorkoutsPageClient({
                         </li>
                       ))}
                     </ul>
-                  </div>
-                </details>
+                </MobileDisclosure>
               )}
-              <details className="mobile-disclosure detail-disclosure">
-                <summary className="mobile-disclosure-summary detail-disclosure-summary">
-                  <span className="planner-head">How it&apos;s going</span>
-                  <span className="mobile-disclosure-meta">{exerciseLogs.length} logs</span>
-                </summary>
-                <div className="mobile-disclosure-panel">
+              <MobileDisclosure
+                className="mobile-disclosure detail-disclosure"
+                summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                panelClassName="mobile-disclosure-panel"
+                summary={
+                  <>
+                    <span className="planner-head">How it&apos;s going</span>
+                    <span className="mobile-disclosure-meta">{exerciseLogs.length} logs</span>
+                  </>
+                }
+              >
                   <ExerciseLogPanel
                     workoutId={workout.id}
                     initialLogs={exerciseLogs}
                     exerciseSuggestions={exerciseSuggestions}
                   />
-                </div>
-              </details>
+              </MobileDisclosure>
             </div>
           )}
         </article>

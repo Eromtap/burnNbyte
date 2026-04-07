@@ -6,6 +6,7 @@ import { DIETARY_PREFERENCES } from '@/constants/dietaryPreferences';
 import { FITNESS_GOALS } from '@/constants/fitnessGoals';
 import { EQUIPMENT_OPTIONS } from '@/constants/equipmentAccess';
 import { WORKOUT_SPLITS } from '@/constants/workoutSplits';
+import MobileDisclosure from '@/components/MobileDisclosure';
 
 const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 const BUILT_IN_PREFS = new Set(DIETARY_PREFERENCES.map(p => p.id));
@@ -165,12 +166,18 @@ export default function ProfileForm({ initial }){
 
   return (
     <form className="form" onSubmit={onSubmit}>
-      <details className="mobile-disclosure form-section-disclosure" open>
-        <summary className="mobile-disclosure-summary form-section-summary">
-          <span className="planner-head">Profile basics</span>
-          <span className="mobile-disclosure-meta">Body + activity</span>
-        </summary>
-        <div className="mobile-disclosure-panel form-section-panel">
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        defaultOpenMobile
+        summary={
+          <>
+            <span className="planner-head">Profile basics</span>
+            <span className="mobile-disclosure-meta">Body + activity</span>
+          </>
+        }
+      >
           <label>
             <span>Gender</span>
             <select value={form.gender} onChange={e=>updateField('gender', e.target.value)}>
@@ -210,15 +217,19 @@ export default function ProfileForm({ initial }){
               <option>very active</option>
             </select>
           </label>
-        </div>
-      </details>
+      </MobileDisclosure>
 
-      <details className="mobile-disclosure form-section-disclosure">
-        <summary className="mobile-disclosure-summary form-section-summary">
-          <span className="planner-head">Workouts</span>
-          <span className="mobile-disclosure-meta">{form.workoutDuration || 30} min • {form.workoutDays.length} days</span>
-        </summary>
-        <div className="mobile-disclosure-panel form-section-panel">
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        summary={
+          <>
+            <span className="planner-head">Workouts</span>
+            <span className="mobile-disclosure-meta">{form.workoutDuration || 30} min • {form.workoutDays.length} days</span>
+          </>
+        }
+      >
       <div>
         <div className="planner-head">
           <span>Fitness Goals</span>
@@ -348,15 +359,19 @@ export default function ProfileForm({ initial }){
         </div>
       </div>
 
-        </div>
-      </details>
+      </MobileDisclosure>
 
-      <details className="mobile-disclosure form-section-disclosure">
-        <summary className="mobile-disclosure-summary form-section-summary">
-          <span className="planner-head">Meals</span>
-          <span className="mobile-disclosure-meta">{form.mealsPerDay || 3} per day • {form.dietaryPreferences.length} prefs</span>
-        </summary>
-        <div className="mobile-disclosure-panel form-section-panel">
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        summary={
+          <>
+            <span className="planner-head">Meals</span>
+            <span className="mobile-disclosure-meta">{form.mealsPerDay || 3} per day • {form.dietaryPreferences.length} prefs</span>
+          </>
+        }
+      >
       <div>
         <div className="planner-head">
           <span>Dietary Preferences</span>
@@ -465,8 +480,7 @@ export default function ProfileForm({ initial }){
         <span>Meals Per Day</span>
         <input type="number" value={form.mealsPerDay} onChange={e=>updateField('mealsPerDay', e.target.value)} />
       </label>
-        </div>
-      </details>
+      </MobileDisclosure>
 
       <div className="inline-field-row" style={{ alignItems: 'center' }}>
         <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>

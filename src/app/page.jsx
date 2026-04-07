@@ -11,6 +11,7 @@ import ReplaceMealButton from "@/components/ReplaceMealButton";
 import MealCompletionToggle from "@/components/MealCompletionToggle";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import CheatPlanner from "@/components/CheatPlanner";
+import MobileDisclosure from "@/components/MobileDisclosure";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -216,12 +217,17 @@ export default async function HomePage() {
         </section>
 
         <section className="brand-dashboard-grid">
-          <details className="mobile-disclosure dashboard-disclosure">
-            <summary className="mobile-disclosure-summary dashboard-summary">
-              <span className="planner-head">Workout spotlight</span>
-              <span className="mobile-disclosure-meta">{workout ? `${workout.duration} min` : "Not built"}</span>
-            </summary>
-            <div className="mobile-disclosure-panel">
+          <MobileDisclosure
+            className="mobile-disclosure dashboard-disclosure"
+            summaryClassName="mobile-disclosure-summary dashboard-summary"
+            panelClassName="mobile-disclosure-panel"
+            summary={
+              <>
+                <span className="planner-head">Workout spotlight</span>
+                <span className="mobile-disclosure-meta">{workout ? `${workout.duration} min` : "Not built"}</span>
+              </>
+            }
+          >
               <article className="card span-2 brand-story-card">
                 <header className="card-head brand-story-head">
                   <div>
@@ -266,15 +272,19 @@ export default async function HomePage() {
                   </div>
                 </div>
               </article>
-            </div>
-          </details>
+          </MobileDisclosure>
 
-          <details className="mobile-disclosure dashboard-disclosure">
-            <summary className="mobile-disclosure-summary dashboard-summary">
-              <span className="planner-head">Macro rhythm</span>
-              <span className="mobile-disclosure-meta">{consumedCalories} / {mealCalories || 0} kcal</span>
-            </summary>
-            <div className="mobile-disclosure-panel">
+          <MobileDisclosure
+            className="mobile-disclosure dashboard-disclosure"
+            summaryClassName="mobile-disclosure-summary dashboard-summary"
+            panelClassName="mobile-disclosure-panel"
+            summary={
+              <>
+                <span className="planner-head">Macro rhythm</span>
+                <span className="mobile-disclosure-meta">{consumedCalories} / {mealCalories || 0} kcal</span>
+              </>
+            }
+          >
               <article className="card span-2 brand-nutrition-card">
                 <header className="card-head">
                   <div>
@@ -313,15 +323,19 @@ export default async function HomePage() {
                   <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See my meals</Link>
                 </div>
               </article>
-            </div>
-          </details>
+          </MobileDisclosure>
 
-          <details className="mobile-disclosure dashboard-disclosure">
-            <summary className="mobile-disclosure-summary dashboard-summary">
-              <span className="planner-head">What I&apos;m eating today</span>
-              <span className="mobile-disclosure-meta">{mealPlan?.meals?.length || 0} meals</span>
-            </summary>
-            <div className="mobile-disclosure-panel">
+          <MobileDisclosure
+            className="mobile-disclosure dashboard-disclosure"
+            summaryClassName="mobile-disclosure-summary dashboard-summary"
+            panelClassName="mobile-disclosure-panel"
+            summary={
+              <>
+                <span className="planner-head">What I&apos;m eating today</span>
+                <span className="mobile-disclosure-meta">{mealPlan?.meals?.length || 0} meals</span>
+              </>
+            }
+          >
               <article className="card span-2 brand-feed-card">
                 <header className="card-head">
                   <div>
@@ -332,12 +346,19 @@ export default async function HomePage() {
                 </header>
                 <div className="planner brand-feed-grid">
                   {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                    <details key={type} className="brand-feed-item mobile-disclosure" open={type === "breakfast"}>
-                      <summary className="mobile-disclosure-summary brand-feed-item-summary">
-                        <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
-                        <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? "" : "s"}</span>
-                      </summary>
-                      <div className="mobile-disclosure-panel">
+                    <MobileDisclosure
+                      key={type}
+                      className="brand-feed-item mobile-disclosure"
+                      summaryClassName="mobile-disclosure-summary brand-feed-item-summary"
+                      panelClassName="mobile-disclosure-panel"
+                      defaultOpenMobile={type === "breakfast"}
+                      summary={
+                        <>
+                          <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
+                          <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? "" : "s"}</span>
+                        </>
+                      }
+                    >
                         <div className="brand-feed-head">
                           <div>
                             <div className="metric-label">{type}</div>
@@ -360,13 +381,11 @@ export default async function HomePage() {
                         ) : (
                           <div className="list-row brand-feed-row"><span className="muted">No {type} planned.</span></div>
                         )}
-                      </div>
-                    </details>
+                    </MobileDisclosure>
                   ))}
                 </div>
               </article>
-            </div>
-          </details>
+          </MobileDisclosure>
 
           <CheatPlanner currentDateISO={todayISO} />
         </section>

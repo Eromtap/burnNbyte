@@ -8,6 +8,7 @@ import MealPhotoReplace from '@/components/MealPhotoReplace';
 import ReplaceMealButton from '@/components/ReplaceMealButton';
 import MealCompletionToggle from '@/components/MealCompletionToggle';
 import { useState } from 'react';
+import MobileDisclosure from '@/components/MobileDisclosure';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -159,12 +160,19 @@ export default function MealsPageClient({
               </div>
               <div className="planner">
                 {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                  <details key={type} className="meal-group mobile-disclosure" open={type === 'breakfast'}>
-                    <summary className="mobile-disclosure-summary meal-group-summary">
-                      <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
-                      <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? '' : 's'}</span>
-                    </summary>
-                    <div className="mobile-disclosure-panel">
+                  <MobileDisclosure
+                    key={type}
+                    className="meal-group mobile-disclosure"
+                    summaryClassName="mobile-disclosure-summary meal-group-summary"
+                    panelClassName="mobile-disclosure-panel"
+                    defaultOpenMobile={type === 'breakfast'}
+                    summary={
+                      <>
+                        <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
+                        <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? '' : 's'}</span>
+                      </>
+                    }
+                  >
                       <div className="planner-col-row meal-group-head">
                         <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
                         <ReplaceMealButton
@@ -203,30 +211,38 @@ export default function MealsPageClient({
                             </header>
                             <div className="stack">
                               {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
-                                <details className="mobile-disclosure detail-disclosure">
-                                  <summary className="mobile-disclosure-summary detail-disclosure-summary">
-                                    <span className="planner-head">Ingredients</span>
-                                    <span className="mobile-disclosure-meta">{meal.ingredients.length}</span>
-                                  </summary>
-                                  <div className="mobile-disclosure-panel">
+                                <MobileDisclosure
+                                  className="mobile-disclosure detail-disclosure"
+                                  summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                                  panelClassName="mobile-disclosure-panel"
+                                  summary={
+                                    <>
+                                      <span className="planner-head">Ingredients</span>
+                                      <span className="mobile-disclosure-meta">{meal.ingredients.length}</span>
+                                    </>
+                                  }
+                                >
                                     <ul className="list">
                                       {meal.ingredients.map((ingredient, index) => (
                                         <li key={index} className="list-row"><span>{ingredient}</span></li>
                                       ))}
                                     </ul>
-                                  </div>
-                                </details>
+                                </MobileDisclosure>
                               )}
                               {meal.recipe && (
-                                <details className="mobile-disclosure detail-disclosure">
-                                  <summary className="mobile-disclosure-summary detail-disclosure-summary">
-                                    <span className="planner-head">Recipe</span>
-                                    <span className="mobile-disclosure-meta">Steps</span>
-                                  </summary>
-                                  <div className="mobile-disclosure-panel">
+                                <MobileDisclosure
+                                  className="mobile-disclosure detail-disclosure"
+                                  summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                                  panelClassName="mobile-disclosure-panel"
+                                  summary={
+                                    <>
+                                      <span className="planner-head">Recipe</span>
+                                      <span className="mobile-disclosure-meta">Steps</span>
+                                    </>
+                                  }
+                                >
                                     <div className="list-row meal-entry-recipe"><span style={{ whiteSpace: 'pre-wrap' }}>{meal.recipe}</span></div>
-                                  </div>
-                                </details>
+                                </MobileDisclosure>
                               )}
                             </div>
                           </article>
@@ -234,8 +250,7 @@ export default function MealsPageClient({
                       ) : (
                         <div className="list-row"><span className="muted">No {type} planned.</span></div>
                       )}
-                    </div>
-                  </details>
+                  </MobileDisclosure>
                 ))}
               </div>
             </div>

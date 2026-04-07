@@ -863,15 +863,23 @@ body::before{
 
 @media (min-width: 721px){
   .mobile-disclosure-summary{
-    display:none;
+    display:none !important;
   }
 
   .mobile-disclosure-panel{
-    display:block;
+    display:block !important;
+  }
+
+  .mobile-disclosure:not([open]) > .mobile-disclosure-panel{
+    display:block !important;
+  }
+
+  .mobile-disclosure:not([open]) > *:not(summary){
+    display:block !important;
   }
 
   .form-section-panel{
-    display:grid;
+    display:grid !important;
   }
 
   .meal-entry{
@@ -1325,6 +1333,46 @@ input:focus,select:focus,textarea:focus{
   }
   .date-pill .dow{font-size:.72rem}
   .date-pill .dom{font-size:1.3rem}
+}
+
+@media (min-width: 721px){
+  .dashboard-disclosure{
+    gap:18px !important;
+  }
+
+  .dashboard-disclosure > .mobile-disclosure-panel{
+    padding:0 !important;
+    border:none !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+
+  .dashboard-disclosure > .mobile-disclosure-panel > .card,
+  .dashboard-disclosure > .mobile-disclosure-panel > .cheat-card{
+    display:block !important;
+  }
+
+  .brand-feed-item.mobile-disclosure{
+    display:grid !important;
+    gap:12px !important;
+    padding:18px !important;
+    border-radius:22px !important;
+    border:1px solid var(--edge) !important;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.04), transparent),
+      rgba(255,255,255,.02) !important;
+  }
+
+  .brand-feed-item.mobile-disclosure > .mobile-disclosure-panel{
+    display:grid !important;
+    gap:10px !important;
+    padding:0 !important;
+    border:none !important;
+    border-radius:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
 }
 
 .onboard-hero{
