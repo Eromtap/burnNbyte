@@ -159,7 +159,7 @@ export default function ExerciseLogPanel({ workoutId, initialLogs = [], exercise
           </label>
         )}
         {isWeighted && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="inline-field-row">
             <label style={{ flex: 1 }}>
               <span>Sets</span>
               <input

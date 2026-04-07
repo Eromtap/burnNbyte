@@ -5,6 +5,7 @@ import DateStrip from '@/components/DateStrip';
 import ExerciseLogPanel from '@/components/ExerciseLogPanel';
 import GenerateWorkout from '@/components/GenerateWorkout';
 import WorkoutCompletionToggle from '@/components/WorkoutCompletionToggle';
+import MobileDisclosure from '@/components/MobileDisclosure';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -198,7 +199,7 @@ export default function WorkoutsPageClient({
           )}
           {workout && (
             <div className="stack">
-              <div className="list-row">
+              <div className="list-row workout-session-summary">
                 <div>
                   <strong>{workout.name}</strong>
                   <div className="muted" style={{ marginTop: 4 }}>{workout.muscleGroup || 'General training'} • {workout.duration} minutes</div>
@@ -207,6 +208,7 @@ export default function WorkoutsPageClient({
                   key={workout.id}
                   workoutId={workout.id}
                   initialCompleted={workout.isCompleted}
+                  className="workout-session-toggle"
                   onUpdated={(updatedWorkout) => {
                     if (!updatedWorkout) return;
                     setWorkout((prev) => (prev ? { ...prev, ...updatedWorkout } : updatedWorkout));
@@ -214,35 +216,53 @@ export default function WorkoutsPageClient({
                 />
               </div>
               {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
-                <div className="stack">
-                  <div className="planner-head">Instructions</div>
-                  <ul className="list">
-                    {workout.instructions.map((step, i) => (
-                      <li key={i} className="list-row" style={{ alignItems: 'flex-start' }}>
-                        <div>
-                          <div className="instruction-text">{step}</div>
-                          <a
-                            style={{ display: 'inline-block', marginTop: 8, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}
-                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${normalizeInstructionForSearch(step) || step} exercise demo`)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Watch a demo on YouTube
-                          </a>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <MobileDisclosure
+                  className="mobile-disclosure detail-disclosure"
+                  summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                  panelClassName="mobile-disclosure-panel"
+                  summary={
+                    <>
+                      <span className="planner-head">Instructions</span>
+                      <span className="mobile-disclosure-meta">{workout.instructions.length} steps</span>
+                    </>
+                  }
+                >
+                    <ul className="list">
+                      {workout.instructions.map((step, i) => (
+                        <li key={i} className="list-row workout-instruction-row" style={{ alignItems: 'flex-start' }}>
+                          <div>
+                            <div className="instruction-text">{step}</div>
+                            <a
+                              style={{ display: 'inline-block', marginTop: 8, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}
+                              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${normalizeInstructionForSearch(step) || step} exercise demo`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Watch a demo on YouTube
+                            </a>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                </MobileDisclosure>
               )}
-              <div className="stack">
-                <div className="planner-head">How it&apos;s going</div>
-                <ExerciseLogPanel
-                  workoutId={workout.id}
-                  initialLogs={exerciseLogs}
-                  exerciseSuggestions={exerciseSuggestions}
-                />
-              </div>
+              <MobileDisclosure
+                className="mobile-disclosure detail-disclosure"
+                summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                panelClassName="mobile-disclosure-panel"
+                summary={
+                  <>
+                    <span className="planner-head">How it&apos;s going</span>
+                    <span className="mobile-disclosure-meta">{exerciseLogs.length} logs</span>
+                  </>
+                }
+              >
+                  <ExerciseLogPanel
+                    workoutId={workout.id}
+                    initialLogs={exerciseLogs}
+                    exerciseSuggestions={exerciseSuggestions}
+                  />
+              </MobileDisclosure>
             </div>
           )}
         </article>

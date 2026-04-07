@@ -30,7 +30,7 @@ const WORKOUT_SCHEMA = {
             difficulty: { enum: ["beginner","intermediate","advanced"] },
             duration: { anyOf: [{ type: "integer" }, { type: "string" }] },
             equipment: { type: "array", items: { type: "string" } },
-            instructions: { type: "array", items: { type: "string" } },
+            instructions: { type: "array", minItems: 5, items: { type: "string" } },
             muscleGroup: { type: "string" },
             date: { type: "string" } // ISO yyyy-mm-dd
           }
@@ -41,6 +41,103 @@ const WORKOUT_SCHEMA = {
   },
   strict: true,
 };
+
+function cleanInstructionStep(step) {
+  if (typeof step !== "string") return "";
+  return step.replace(/\s+/g, " ").trim();
+}
+
+function splitExerciseNames(value) {
+  return String(value || "")
+    .split(/,|\/|&|\band\b/gi)
+    .map((item) => item.replace(/^\s*[-•]\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function normalizeSharedPrescription(step) {
+  const cleaned = cleanInstructionStep(step);
+  if (!cleaned) return "";
+  const withoutLead = cleaned
+    .replace(/^perform\s+/i, "")
+    .replace(/^do\s+/i, "")
+    .replace(/\s+for each exercise\b/i, "")
+    .replace(/\s+on each exercise\b/i, "")
+    .trim();
+  return withoutLead.replace(/\.$/, "").trim();
+}
+
+function expandWorkoutInstructions(instructions) {
+  if (!Array.isArray(instructions)) return [];
+
+  const normalized = [];
+  let sharedPrescription = "";
+
+  for (const rawStep of instructions) {
+    const step = cleanInstructionStep(rawStep);
+    if (!step) continue;
+
+    const exerciseListMatch = step.match(/^Exercises?\s*:\s*(.+)$/i);
+    if (exerciseListMatch) {
+      const exerciseNames = splitExerciseNames(exerciseListMatch[1]);
+      if (exerciseNames.length) {
+        for (const exerciseName of exerciseNames) {
+          normalized.push(
+            sharedPrescription
+              ? `${exerciseName}: ${sharedPrescription}.`
+              : `${exerciseName}.`
+          );
+        }
+        sharedPrescription = "";
+        continue;
+      }
+    }
+
+    if (/\b(each|every)\s+exercise\b/i.test(step) && /\bsets?\b/i.test(step)) {
+      sharedPrescription = normalizeSharedPrescription(step);
+      continue;
+    }
+
+    normalized.push(step);
+  }
+
+  return normalized;
+}
+
+function looksLikeExerciseInstruction(step) {
+  const cleaned = cleanInstructionStep(step).toLowerCase();
+  if (!cleaned) return false;
+  return (
+    cleaned.includes(":") ||
+    /\b\d+\s+sets?\b/.test(cleaned) ||
+    /\b\d+\s+reps?\b/.test(cleaned) ||
+    /\bminutes?\b/.test(cleaned) ||
+    /\bseconds?\b/.test(cleaned) ||
+    /\bcardio\b/.test(cleaned)
+  );
+}
+
+function workoutHasUsableInstructions(workout) {
+  const instructions = expandWorkoutInstructions(workout?.instructions);
+  if (instructions.length < 5) return false;
+  const detailedCount = instructions.filter(looksLikeExerciseInstruction).length;
+  return detailedCount >= 3;
+}
+
+async function generateStructuredWorkouts(messages) {
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages,
+    response_format: { type: "json_schema", json_schema: WORKOUT_SCHEMA },
+    temperature: 0.7,
+  });
+
+  let content = completion.choices?.[0]?.message?.content ?? "";
+  if (content.trim().startsWith("```")) {
+    content = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  }
+
+  return JSON.parse(content);
+}
 
 export async function POST(req) {
   const todayDate = new Date();
@@ -166,6 +263,13 @@ export async function POST(req) {
       - If you include a previously logged weighted exercise, increase weight slightly (2.5-5 lb) and keep sets/reps similar.
       - If you include a previously logged cardio exercise, increase distance slightly (0.1-0.25 mi) OR improve pace slightly (5-10 sec/mi), not both.
       - Include the target weight/distance/pace in the instructions array so the user can follow the progression.
+      - Every entry in "instructions" must be a single discrete step or a single discrete exercise. One exercise per array item.
+      - Never combine multiple exercises into one instruction.
+      - Never say "for each exercise", "repeat for all exercises", or "Exercises: squat, lunge, curl" in one item.
+      - If a workout includes 5 exercises, there should be at least 5 separate exercise instruction items.
+      - Each workout must have at least 5 instruction items total.
+      - At least 3 instruction items must be actual exercise prescriptions with sets/reps/weight/distance/pace.
+      - Good format examples: "Squats: 3 sets of 8 reps at 135 lb.", "Walking Lunges: 3 sets of 10 reps per leg.", "Cool down with 5 minutes of stretching."
       - Treat the preferred split as a real constraint when it fits the requested number of days. For example: "full_body" should bias toward full-body sessions, "push_pull_legs" should bias toward a PPL rotation, "upper_lower" should bias toward upper/lower alternation, and "body_part" should bias toward dedicated muscle-group days.
       - If the preferred split does not fit the number of target days exactly, honor the spirit of it as closely as possible instead of ignoring it.
 
@@ -189,28 +293,45 @@ export async function POST(req) {
       - If only one workout is generated, it still must be inside the "workouts" array.
       - Do not include any extra keys or commentary.`
     };
-    console.log(prompt);
-    // Use JSON mode for safer parsing
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [prompt],
-      response_format: { type: "json_schema", json_schema: WORKOUT_SCHEMA },
-      temperature: 0.7,
-    });
-
-    let content = completion.choices?.[0]?.message?.content ?? "";
-    console.log(content);
-    // Fallback: strip accidental ```json fences if the model ever includes them
-    if (content.trim().startsWith("```")) {
-      content = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
-    }
 
     let ai;
     try {
-      ai = JSON.parse(content);
+      ai = await generateStructuredWorkouts([prompt]);
     } catch (err) {
-      console.error("❌ Failed to parse AI JSON:", content);
+      console.error("❌ Failed to parse AI JSON:", err);
       return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
+    }
+
+    const needsRepair =
+      !Array.isArray(ai?.workouts) ||
+      ai.workouts.length !== targetDates.length ||
+      ai.workouts.some((workout) => !workoutHasUsableInstructions(workout));
+
+    if (needsRepair) {
+      const repairPrompt = {
+        role: "user",
+        content:
+          `Repair this workout JSON so every workout has usable instructions.
+          Requirements:
+          - Keep the same dates and overall workout intent.
+          - Return one workout per input workout.
+          - Every workout must have at least 5 instruction items.
+          - At least 3 instruction items must be concrete exercise prescriptions.
+          - One exercise per instruction item.
+          - Never group multiple exercises into one step.
+          - Replace vague outputs like "Upper Body Strength" with actual exercise-by-exercise instructions.
+          - Return only JSON matching the required schema.
+
+          Input JSON:
+          ${JSON.stringify(ai)}`
+      };
+
+      try {
+        ai = await generateStructuredWorkouts([prompt, repairPrompt]);
+      } catch (err) {
+        console.error("❌ Failed to repair AI workout JSON:", err);
+        return NextResponse.json({ error: "Failed to repair workout instructions" }, { status: 500 });
+      }
     }
 
     const normalizedDate = (d) => {
@@ -249,7 +370,7 @@ export async function POST(req) {
           duration: Number(w.duration) || 60,
           isCompleted: false,
           equipment: Array.isArray(w.equipment) ? w.equipment : [],
-          instructions: Array.isArray(w.instructions) ? w.instructions : [],
+          instructions: expandWorkoutInstructions(w.instructions),
           muscleGroup: w.muscleGroup || null,
         };
         if (existing) {

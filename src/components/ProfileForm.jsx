@@ -6,6 +6,7 @@ import { DIETARY_PREFERENCES } from '@/constants/dietaryPreferences';
 import { FITNESS_GOALS } from '@/constants/fitnessGoals';
 import { EQUIPMENT_OPTIONS } from '@/constants/equipmentAccess';
 import { WORKOUT_SPLITS } from '@/constants/workoutSplits';
+import MobileDisclosure from '@/components/MobileDisclosure';
 
 const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 const BUILT_IN_PREFS = new Set(DIETARY_PREFERENCES.map(p => p.id));
@@ -165,49 +166,70 @@ export default function ProfileForm({ initial }){
 
   return (
     <form className="form" onSubmit={onSubmit}>
-      <label>
-        <span>Gender</span>
-        <select value={form.gender} onChange={e=>updateField('gender', e.target.value)}>
-          <option value="">Select</option>
-          <option>male</option>
-          <option>female</option>
-          <option>other</option>
-        </select>
-      </label>
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        defaultOpenMobile
+        summary={
+          <>
+            <span className="planner-head">Profile basics</span>
+            <span className="mobile-disclosure-meta">Body + activity</span>
+          </>
+        }
+      >
+          <label>
+            <span>Gender</span>
+            <select value={form.gender} onChange={e=>updateField('gender', e.target.value)}>
+              <option value="">Select</option>
+              <option>male</option>
+              <option>female</option>
+              <option>other</option>
+            </select>
+          </label>
 
-      <label>
-        <span>Height (ft / in)</span>
-        <div style={{display:'flex', gap:8}}>
-          <input type="number" value={form.heightFt} onChange={e=>updateField('heightFt', e.target.value)} placeholder="ft" />
-          <input type="number" value={form.heightIn} onChange={e=>updateField('heightIn', e.target.value)} placeholder="in" />
-        </div>
-      </label>
+          <label>
+            <span>Height (ft / in)</span>
+            <div className="inline-field-row">
+              <input type="number" value={form.heightFt} onChange={e=>updateField('heightFt', e.target.value)} placeholder="ft" />
+              <input type="number" value={form.heightIn} onChange={e=>updateField('heightIn', e.target.value)} placeholder="in" />
+            </div>
+          </label>
 
-      <label>
-        <span>Weight (lb)</span>
-        <input type="number" value={form.weight} onChange={e=>updateField('weight', e.target.value)} placeholder="180" />
-      </label>
+          <label>
+            <span>Weight (lb)</span>
+            <input type="number" value={form.weight} onChange={e=>updateField('weight', e.target.value)} placeholder="180" />
+          </label>
 
-      <label>
-        <span>Goal Weight (lb)</span>
-        <input type="number" value={form.goalWeight} onChange={e=>updateField('goalWeight', e.target.value)} placeholder="Optional" />
-      </label>
+          <label>
+            <span>Goal Weight (lb)</span>
+            <input type="number" value={form.goalWeight} onChange={e=>updateField('goalWeight', e.target.value)} placeholder="Optional" />
+          </label>
 
-      <label>
-        <span>Activity Level</span>
-        <select value={form.activityLevel} onChange={e=>updateField('activityLevel', e.target.value)}>
-          <option value="">Select</option>
-          <option>sedentary</option>
-          <option>light</option>
-          <option>moderate</option>
-          <option>active</option>
-          <option>very active</option>
-        </select>
-      </label>
+          <label>
+            <span>Activity Level</span>
+            <select value={form.activityLevel} onChange={e=>updateField('activityLevel', e.target.value)}>
+              <option value="">Select</option>
+              <option>sedentary</option>
+              <option>light</option>
+              <option>moderate</option>
+              <option>active</option>
+              <option>very active</option>
+            </select>
+          </label>
+      </MobileDisclosure>
 
-      <div className="divider" />
-      <div className="planner-head">Workouts</div>
-
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        summary={
+          <>
+            <span className="planner-head">Workouts</span>
+            <span className="mobile-disclosure-meta">{form.workoutDuration || 30} min • {form.workoutDays.length} days</span>
+          </>
+        }
+      >
       <div>
         <div className="planner-head">
           <span>Fitness Goals</span>
@@ -232,11 +254,10 @@ export default function ProfileForm({ initial }){
         <label className="block mt-4">
           <span className="planner-head">Custom Goals</span>
           <p className="text-xs muted">Add race names, seasons, or anything not listed one at a time.</p>
-          <div style={{display:'flex', gap:8, marginTop:8}}>
+          <div className="inline-field-row" style={{ marginTop: 8 }}>
             <input
               type="text"
               className="input"
-              style={{width:'100%'}}
               placeholder="e.g. Boston qualifier"
               value={customGoalInput}
               onChange={e=>setCustomGoalInput(e.target.value)}
@@ -284,11 +305,10 @@ export default function ProfileForm({ initial }){
         <label className="block mt-4">
           <span className="planner-head">Other Equipment</span>
           <p className="text-xs muted">Add anything else one item at a time.</p>
-          <div style={{display:'flex', gap:8, marginTop:8}}>
+          <div className="inline-field-row" style={{ marginTop: 8 }}>
             <input
               type="text"
               className="input"
-              style={{width:'100%'}}
               placeholder="e.g. Peloton"
               value={customEquipmentInput}
               onChange={e=>setCustomEquipmentInput(e.target.value)}
@@ -339,9 +359,19 @@ export default function ProfileForm({ initial }){
         </div>
       </div>
 
-      <div className="divider" />
-      <div className="planner-head">Meals</div>
+      </MobileDisclosure>
 
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        summary={
+          <>
+            <span className="planner-head">Meals</span>
+            <span className="mobile-disclosure-meta">{form.mealsPerDay || 3} per day • {form.dietaryPreferences.length} prefs</span>
+          </>
+        }
+      >
       <div>
         <div className="planner-head">
           <span>Dietary Preferences</span>
@@ -366,11 +396,10 @@ export default function ProfileForm({ initial }){
         <label className="block mt-4">
           <span className="planner-head">Custom Preferences</span>
           <p className="text-xs muted">Add any cuisines or foods you want us to lean into one at a time.</p>
-          <div style={{display:'flex', gap:8, marginTop:8}}>
+          <div className="inline-field-row" style={{ marginTop: 8 }}>
             <input
               type="text"
               className="input"
-              style={{width:'100%'}}
               placeholder="e.g. Mediterranean"
               value={customPrefInput}
               onChange={e=>setCustomPrefInput(e.target.value)}
@@ -397,11 +426,10 @@ export default function ProfileForm({ initial }){
       <div className="mt-4">
         <div className="planner-head">Dislikes</div>
         <p className="text-xs muted">Soft avoid: add foods you prefer not to see one at a time.</p>
-        <div style={{display:'flex', gap:8, marginTop:8}}>
+        <div className="inline-field-row" style={{ marginTop: 8 }}>
           <input
             type="text"
             className="input"
-            style={{width:'100%'}}
             placeholder="e.g. olives"
             value={dislikeInput}
             onChange={e=>setDislikeInput(e.target.value)}
@@ -425,7 +453,7 @@ export default function ProfileForm({ initial }){
 
       <label>
         <span>Allergies</span>
-        <div style={{display:'flex', gap:8, marginTop:8}}>
+        <div className="inline-field-row" style={{ marginTop: 8 }}>
           <input
             value={allergyInput}
             onChange={e=>setAllergyInput(e.target.value)}
@@ -452,8 +480,9 @@ export default function ProfileForm({ initial }){
         <span>Meals Per Day</span>
         <input type="number" value={form.mealsPerDay} onChange={e=>updateField('mealsPerDay', e.target.value)} />
       </label>
+      </MobileDisclosure>
 
-      <div style={{display:'flex', gap:8, alignItems:'center'}}>
+      <div className="inline-field-row" style={{ alignItems: 'center' }}>
         <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
         {msg && <span className="muted">{msg}</span>}
       </div>

@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/workouts', label: 'Workouts' },
   { href: '/meals', label: 'Meals' },
   { href: '/progress', label: 'Progress' },
+  { href: '/healthCalendar', label: 'Calendar' },
   { href: '/profile', label: 'Profile' },
 ];
 
@@ -20,13 +21,17 @@ export default function AppFrame({ children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isActive = (href) => pathname === href;
+  const drawerItems = [
+    ...NAV_ITEMS,
+    { href: '/groceries', label: 'Groceries' },
+  ];
 
   return (
     <div id="app">
       <div className="app-shell">
         <header className="app-header">
           <div className="header-main">
-            <button className="btn btn-ghost" aria-label="Open menu" onClick={() => setDrawerOpen(true)}>
+            <button className="btn btn-ghost mobile-menu-trigger" aria-label="Open menu" onClick={() => setDrawerOpen(true)}>
               <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Z"/></svg>
             </button>
             <div className="brand">
@@ -44,6 +49,12 @@ export default function AppFrame({ children }) {
                   </Link>
                 ))}
               </nav>
+              <button
+                className="desktop-logout"
+                onClick={() => signOut({ callbackUrl: '/signin' })}
+              >
+                Log out
+              </button>
               <button className="btn btn-outline" aria-label="Toggle theme" onClick={toggle}>
                 <span className="icon" aria-hidden>
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -56,7 +67,7 @@ export default function AppFrame({ children }) {
           </div>
         </header>
 
-        <div className={`drawer ${drawerOpen ? 'drawer-open' : ''}`} aria-hidden={!drawerOpen}>
+        <div className={`drawer mobile-only ${drawerOpen ? 'drawer-open' : ''}`} aria-hidden={!drawerOpen}>
           <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />
           <aside className="drawer-panel" role="dialog" aria-modal="true" aria-label="Navigation">
             <div className="drawer-head">
@@ -72,13 +83,11 @@ export default function AppFrame({ children }) {
               </button>
             </div>
             <nav className="drawer-nav">
-              {NAV_ITEMS.map((item) => (
+              {drawerItems.map((item) => (
                 <Link key={item.href} className={`drawer-link ${isActive(item.href) ? 'active' : ''}`} href={item.href} onClick={() => setDrawerOpen(false)}>
                   {item.label}
                 </Link>
               ))}
-              <Link className={`drawer-link ${isActive('/healthCalendar') ? 'active' : ''}`} href="/healthCalendar" onClick={() => setDrawerOpen(false)}>Calendar</Link>
-              <Link className={`drawer-link ${isActive('/groceries') ? 'active' : ''}`} href="/groceries" onClick={() => setDrawerOpen(false)}>Groceries</Link>
             </nav>
             <div className="drawer-foot">
               <button
@@ -102,4 +111,3 @@ export default function AppFrame({ children }) {
     </div>
   );
 }
-
