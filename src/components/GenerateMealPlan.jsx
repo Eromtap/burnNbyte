@@ -53,6 +53,7 @@ export default function GenerateMealPlan({ initialPreferences = null, selectedIS
           mealsPerDay: prefs.mealsPerDay || 3,
           dietaryPreferences: prefs.dietaryPreferences || [],
           dislikedFoods: prefs.dislikedFoods || [],
+          mealPrepMode: Boolean(prefs.mealPrepMode),
           allergies: prefs.allergies || [],
           startDate,
           endDate

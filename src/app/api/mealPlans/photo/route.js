@@ -73,10 +73,11 @@ export async function POST(req) {
       schema: {
         type: "object",
         additionalProperties: false,
-        required: ["name", "calories", "protein", "carbs", "fat", "ingredients", "notes"],
+        required: ["name", "calories", "costPerServing", "protein", "carbs", "fat", "ingredients", "notes"],
         properties: {
           name: { type: "string" },
           calories: { anyOf: [{ type: "integer" }, { type: "number" }] },
+          costPerServing: { anyOf: [{ type: "integer" }, { type: "number" }] },
           protein: { anyOf: [{ type: "integer" }, { type: "number" }] },
           carbs: { anyOf: [{ type: "integer" }, { type: "number" }] },
           fat: { anyOf: [{ type: "integer" }, { type: "number" }] },
@@ -94,6 +95,7 @@ export async function POST(req) {
           text: [
             "You are a nutrition assistant.",
             "Analyze the meal photo and estimate macros for the photographed portion only: calories, protein, carbs, fat (grams).",
+            "Estimate an approximate costPerServing in USD for the photographed portion using typical U.S. grocery pricing.",
             "Infer portion size from visual cues (plate size, utensils, hands, container) and DO NOT assume a default serving; scale strictly to the amount visible.",
             "Base calories on estimated portion mass/volume. When uncertain, pick a mid-point estimate and avoid extreme under-counts.",
             "Return a short meal name, key ingredients (2-6), and a brief note that states the portion assumption (e.g., '~320g total (~1.3 cups)').",
@@ -155,6 +157,7 @@ export async function POST(req) {
           name: parsed.name,
           type,
           calories: Number(parsed.calories) || null,
+          costPerServing: Number(parsed.costPerServing) || null,
           protein: Number(parsed.protein) || null,
           carbs: Number(parsed.carbs) || null,
           fat: Number(parsed.fat) || null,

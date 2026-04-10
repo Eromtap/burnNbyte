@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import OpenAI from "openai";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
 import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
+import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,7 @@ export async function POST(req) {
     const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
     const dietaryPreferences = Array.isArray(profile?.dietaryPreferences) ? profile.dietaryPreferences : [];
     const dislikedFoods = Array.isArray(profile?.dislikedFoods) ? profile.dislikedFoods : [];
+    const mealPrepMode = Boolean(profile?.mealPrepMode);
     const dietaryPrefFriendly = describeDietaryPreferences(dietaryPreferences);
     // allergies stored as string in schema; split to array defensively
     const allergies = typeof profile?.allergies === "string"
@@ -47,6 +49,18 @@ export async function POST(req) {
     const goalList = normalizeFitnessGoals(fitnessGoals.length ? fitnessGoals : fitnessGoal);
     const goalFriendly = describeFitnessGoals(goalList);
     const goalForPrompt = goalFriendly.length ? goalFriendly : (goalList.length ? goalList : (fitnessGoal ? [fitnessGoal] : []));
+    const mealFeedback = typeof prisma.mealFeedback?.findMany === "function"
+      ? await prisma.mealFeedback.findMany({
+          where: { userId: session.user.id },
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        })
+      : [];
+    const {
+      dislikedMeals,
+      likedMeals,
+      recentLikedMeals,
+    } = summarizeMealFeedbackForPrompt(mealFeedback);
 
     // Convert images to data URLs
     const dataUrls = [];
@@ -109,11 +123,12 @@ export async function POST(req) {
               type: "object",
               additionalProperties: false,
               // Strict schema: required must include every key in properties
-              required: ["name", "type", "calories", "protein", "carbs", "fat", "ingredients", "recipe"],
+              required: ["name", "type", "calories", "costPerServing", "protein", "carbs", "fat", "ingredients", "recipe"],
               properties: {
                 name: { type: "string" },
                 type: { enum: ["breakfast", "lunch", "dinner", "snack"] },
                 calories: { anyOf: [{ type: "integer" }, { type: "number" }] },
+                costPerServing: { anyOf: [{ type: "integer" }, { type: "number" }] },
                 protein: { anyOf: [{ type: "integer" }, { type: "number" }] },
                 carbs:   { anyOf: [{ type: "integer" }, { type: "number" }] },
                 fat:     { anyOf: [{ type: "integer" }, { type: "number" }] },
@@ -137,7 +152,13 @@ export async function POST(req) {
           `- dietaryPreferences (soft): ${JSON.stringify(dietaryPrefFriendly.length ? dietaryPrefFriendly : dietaryPreferences)}`,
           `- dislikedFoods (soft avoid): ${JSON.stringify(dislikedFoods)}`,
           `- allergies (HARD AVOID): ${JSON.stringify(allergies)}`,
+          `- mealPrepMode: ${JSON.stringify(mealPrepMode)}`,
+          `- dislikedMeals from explicit feedback (strong soft avoid): ${JSON.stringify(dislikedMeals)}`,
+          `- likedMeals older than 14 days: ${JSON.stringify(likedMeals)}`,
+          `- recentLikedMeals to avoid repeating unless mealPrepMode is true: ${JSON.stringify(recentLikedMeals)}`,
           `- units: ${unitSystem}`,
+          `- if mealPrepMode is true, prefer batch-cook, storage-friendly pantry meals that can be repeated for several weekday servings`,
+          `- include a realistic AI-estimated costPerServing in USD for every meal`,
           `- recipe instructions: provide a single string of 3-6 numbered steps so the cook can follow prep, cooking, and serving without guesswork`,
           "Respond ONLY with JSON that matches the provided schema; no prose."
         ].join("\n") },

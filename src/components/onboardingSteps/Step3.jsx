@@ -8,6 +8,7 @@ export default function Step3({ formData, updateForm }) {
   const [customDislike, setCustomDislike] = useState('');
   const preferences = Array.isArray(formData.dietaryPreferences) ? formData.dietaryPreferences : [];
   const dislikes = Array.isArray(formData.dislikedFoods) ? formData.dislikedFoods : [];
+  const mealPrepMode = Boolean(formData.mealPrepMode);
 
   const togglePreference = (value) => {
     const exists = preferences.includes(value);
@@ -120,6 +121,20 @@ export default function Step3({ formData, updateForm }) {
         </div>
 
         <div className="onboard-info-stack">
+          <label className="list-row" style={{ alignItems: 'flex-start', gap: 12 }}>
+            <input
+              type="checkbox"
+              checked={mealPrepMode}
+              onChange={(e) => updateForm({ mealPrepMode: e.target.checked })}
+              style={{ marginTop: 4 }}
+            />
+            <span>
+              <strong>Meal prep mode</strong>
+              <span className="muted text-xs" style={{ display: 'block', marginTop: 4 }}>
+                Bias toward batch-cook meals that can be repeated across the work week.
+              </span>
+            </span>
+          </label>
           <label>
             <span>Allergies</span>
             <input

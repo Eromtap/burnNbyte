@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
 import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
+import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -38,6 +39,7 @@ const MEALPLAN_SCHEMA = {
                   "name",
                   "type",
                   "calories",
+                  "costPerServing",
                   "protein",
                   "carbs",
                   "fat",
@@ -48,6 +50,7 @@ const MEALPLAN_SCHEMA = {
                   name: { type: "string" },
                   type: { enum: ["breakfast", "lunch", "dinner", "snack"] },
                   calories: { anyOf: [{ type: "integer" }, { type: "number" }] },
+                  costPerServing: { anyOf: [{ type: "integer" }, { type: "number" }] },
                   protein: { anyOf: [{ type: "integer" }, { type: "number" }] },
                   carbs:   { anyOf: [{ type: "integer" }, { type: "number" }] },
                   fat:     { anyOf: [{ type: "integer" }, { type: "number" }] },
@@ -117,6 +120,7 @@ export async function POST(req) {
       mealsPerDay = 3,
       dietaryPreferences = [],
       dislikedFoods = [],
+      mealPrepMode = false,
       allergies = [],
       // range controls: pass either (startDate+endDate) or numDays
       startDate,         // "yyyy-mm-dd" optional
@@ -135,6 +139,18 @@ export async function POST(req) {
     const goalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
     const primaryGoal = goalList[0] || (typeof fitnessGoal === "string" ? fitnessGoal : "");
     const goalFriendly = describeFitnessGoals(goalList);
+    const mealFeedback = typeof prisma.mealFeedback?.findMany === "function"
+      ? await prisma.mealFeedback.findMany({
+          where: { userId: session.user.id },
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        })
+      : [];
+    const {
+      dislikedMeals,
+      likedMeals,
+      recentLikedMeals,
+    } = summarizeMealFeedbackForPrompt(mealFeedback);
 
     if (!primaryGoal) {
       return NextResponse.json({ error: "Missing required field: fitnessGoal" }, { status: 400 });
@@ -158,15 +174,26 @@ User:
 - weight: ${JSON.stringify(weight ?? null)}
 - fitnessGoals: ${JSON.stringify(goalFriendly.length ? goalFriendly : goalList.length ? goalList : [primaryGoal])}
 - mealsPerDay: ${mealsPerDay}
+- mealPrepMode: ${JSON.stringify(Boolean(mealPrepMode))}
 - dietaryPreferences (soft, emphasize these foods/cuisines): ${JSON.stringify(prefsDietFriendly.length ? prefsDietFriendly : prefsDiet)}
 - dislikedFoods (soft avoid): ${JSON.stringify(prefsDislikes)}
 - allergies/exclusions (HARD AVOID): ${JSON.stringify(prefsAllergies)}
+- dislikedMeals from direct user feedback (soft avoid strongly): ${JSON.stringify(dislikedMeals)}
+- likedMeals older than 14 days (good candidates to bring back selectively): ${JSON.stringify(likedMeals)}
+- likedMeals from the last 14 days (avoid exact repeats unless mealPrepMode is true): ${JSON.stringify(recentLikedMeals)}
 
 Rules:
 - For EVERY listed date, return EXACTLY ${mealsPerDay} meals.
 - Absolutely avoid any allergens. NEVER include any of: ${prefsAllergies.join(', ')}.
 - Prefer dietaryPreferences without violating allergies and try to spotlight at least one of them in each day's plan.
 - Soft-avoid any dislikedFoods while still meeting the other constraints.
+- If the user has a cost-conscious preference, bias toward budget-friendly ingredients like oats, rice, beans, eggs, potatoes, yogurt, frozen vegetables, canned tuna, and economical proteins when they fit the rest of the goals.
+- Include a realistic AI-estimated "costPerServing" in USD for every meal.
+- Strongly avoid meals the user explicitly disliked unless a close variant is necessary to satisfy hard constraints.
+- If mealPrepMode is false, do not repeat the exact same recently liked meals from the last 14 days.
+- If mealPrepMode is true, prefer batch-cook, fridge-friendly, reheat-friendly meals that can be eaten repeatedly through the work week.
+- If mealPrepMode is true, it is acceptable for lunches and dinners to repeat across multiple weekdays when that improves meal prep practicality.
+- If mealPrepMode is false, you may reuse older liked meals selectively, but keep the plan feeling varied.
 - Each recipe must be a single string of 3-6 numbered steps (e.g., "1. Preheat skillet...") separated by line breaks so a beginner can follow prep through serving.
 - Dates MUST match the provided list and use ISO yyyy-mm-dd.
 - Respond ONLY with JSON that matches the provided schema (no prose, no fences).
@@ -184,6 +211,7 @@ Output shape:
           "name": "string",
           "type": "breakfast|lunch|dinner|snack",
           "calories": 0,
+          "costPerServing": 0,
           "protein": 0,
           "carbs": 0,
           "fat": 0,
@@ -259,6 +287,7 @@ Output shape:
           name: m.name,
           type: m.type,
           calories: Number(m.calories) || null,
+          costPerServing: Number(m.costPerServing) || null,
           protein: Number(m.protein) || null,
           carbs: Number(m.carbs) || null,
           fat: Number(m.fat) || null,

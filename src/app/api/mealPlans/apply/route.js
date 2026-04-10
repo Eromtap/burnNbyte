@@ -35,6 +35,7 @@ export async function POST(req){
         name: meal.name,
         type,
         calories: Number(meal.calories) || null,
+        costPerServing: meal.costPerServing != null ? Number(meal.costPerServing) : null,
         protein: meal.protein != null ? Number(meal.protein) : null,
         carbs: meal.carbs != null ? Number(meal.carbs) : null,
         fat: meal.fat != null ? Number(meal.fat) : null,
@@ -49,4 +50,3 @@ export async function POST(req){
     return NextResponse.json({ error:'Server error' }, { status:500 });
   }
 }
-
