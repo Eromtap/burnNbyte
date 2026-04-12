@@ -134,7 +134,7 @@ export default function PantryCapture() {
               <article key={idx} className="card">
                 <header className="card-head">
                   <h3>{m.name}</h3>
-                  <div className="sub">{m.type}{typeof m.calories !== 'undefined' ? ` • ${m.calories} kcal` : ''}</div>
+                  <div className="sub">{m.type}{typeof m.calories !== 'undefined' ? ` • ${m.calories} kcal` : ''}{typeof m.costPerServing !== 'undefined' ? ` • ~$${Number(m.costPerServing).toFixed(2)}/serving` : ''}</div>
                 </header>
                 <div className="stack">
                   {Array.isArray(m.ingredients) && m.ingredients.length > 0 && (

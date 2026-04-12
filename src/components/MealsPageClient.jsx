@@ -9,6 +9,8 @@ import ReplaceMealButton from '@/components/ReplaceMealButton';
 import MealCompletionToggle from '@/components/MealCompletionToggle';
 import { useState } from 'react';
 import MobileDisclosure from '@/components/MobileDisclosure';
+import MealFeedbackButtons from '@/components/MealFeedbackButtons';
+import { normalizeMealIdentity } from '@/lib/mealFeedback';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -39,15 +41,36 @@ function groupMeals(meals){
   }, {});
 }
 
+function getInitialOpenMealType(groupedMeals) {
+  const orderedTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const firstIncomplete = orderedTypes.find((type) =>
+    (groupedMeals[type] || []).some((meal) => !meal?.isCompleted)
+  );
+  if (firstIncomplete) return firstIncomplete;
+
+  const firstAvailable = orderedTypes.find((type) => (groupedMeals[type] || []).length > 0);
+  return firstAvailable || 'breakfast';
+}
+
+function formatCost(value) {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  return `$${Number(value).toFixed(2)}`;
+}
+
 export default function MealsPageClient({
   profile,
   initialSelectedISO,
   initialMealPlan = null,
+  initialMealFeedback = {},
 }){
   const [selectedISO, setSelectedISO] = useState(initialSelectedISO);
   const [mealPlan, setMealPlan] = useState(initialMealPlan);
+  const [mealFeedback, setMealFeedback] = useState(initialMealFeedback || {});
   const [loadingDay, setLoadingDay] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [defaultOpenMealType, setDefaultOpenMealType] = useState(
+    getInitialOpenMealType(groupMeals(initialMealPlan?.meals || []))
+  );
 
   const meals = mealPlan?.meals || [];
   const mealMacros = sumMealMacros(meals);
@@ -70,7 +93,10 @@ export default function MealsPageClient({
         syncUrl(nextISO);
         setSelectedISO(nextISO);
       }
-      setMealPlan(data?.mealPlan || null);
+      const nextMealPlan = data?.mealPlan || null;
+      setMealPlan(nextMealPlan);
+      setMealFeedback(data?.mealFeedback || {});
+      setDefaultOpenMealType(getInitialOpenMealType(groupMeals(nextMealPlan?.meals || [])));
     } catch (err) {
       setLoadError(err?.message || 'Failed to load meal plan');
     } finally {
@@ -165,7 +191,7 @@ export default function MealsPageClient({
                     className="meal-group mobile-disclosure"
                     summaryClassName="mobile-disclosure-summary meal-group-summary"
                     panelClassName="mobile-disclosure-panel"
-                    defaultOpenMobile={type === 'breakfast'}
+                    defaultOpenMobile={type === defaultOpenMealType}
                     anchorId={`meal-${type}`}
                     summary={
                       <>
@@ -190,7 +216,7 @@ export default function MealsPageClient({
                             <header className="card-head">
                               <div>
                                 <h3>{meal.name}</h3>
-                                <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat</div>
+                                <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat{formatCost(meal.costPerServing) ? ` • ~${formatCost(meal.costPerServing)}/serving` : ''}</div>
                               </div>
                               <MealCompletionToggle
                                 mealId={meal.id}
@@ -210,6 +236,28 @@ export default function MealsPageClient({
                                 }}
                               />
                             </header>
+                            <div className="list-row" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+                              <span className="muted" style={{ fontSize: 12 }}>
+                                Teach the planner what to bring back and what to stop suggesting.
+                              </span>
+                              <MealFeedbackButtons
+                                mealId={meal.id}
+                                initialFeedback={mealFeedback[normalizeMealIdentity({ mealName: meal.name, mealType: meal.type })]?.feedback || null}
+                                onUpdated={(savedFeedback) => {
+                                  if (!savedFeedback) return;
+                                  const key = normalizeMealIdentity(savedFeedback);
+                                  setMealFeedback((prev) => ({
+                                    ...prev,
+                                    [key]: {
+                                      feedback: savedFeedback.feedback,
+                                      mealName: savedFeedback.mealName,
+                                      mealType: savedFeedback.mealType || null,
+                                      createdAt: savedFeedback.createdAt,
+                                    },
+                                  }));
+                                }}
+                              />
+                            </div>
                             <div className="stack">
                               {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
                                 <MobileDisclosure

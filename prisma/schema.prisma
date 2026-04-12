@@ -37,6 +37,7 @@ model User {
   profile          UserProfile?
   workouts         Workout[]
   exerciseLogs     ExerciseLog[]
+  mealFeedback     MealFeedback[]
   mealPlans        MealPlan[]
   socialPosts      SocialPost[]
   subscription     Subscription?
@@ -64,6 +65,7 @@ model UserProfile {
   fitnessGoals       String[] @default([])
   dietaryPreferences String[]
   dislikedFoods      String[] @default([])
+  mealPrepMode       Boolean  @default(false)
   workoutPreference  String?
   workoutDuration    Int?      @default(30) // minutes
 
@@ -198,6 +200,7 @@ model Meal {
   name        String
   type        String // breakfast, lunch, dinner, snack
   calories    Int?
+  costPerServing Float?
   protein     Float? // in grams
   carbs       Float? // in grams
   fat         Float? // in grams
@@ -208,6 +211,26 @@ model Meal {
 
   // Relations
   mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+}
+
+model MealFeedback {
+  id          String   @id @default(uuid())
+  userId      String
+  mealName    String
+  mealType    String?
+  feedback    String // like | dislike
+  ingredients String[] @default([])
+  calories    Int?
+  protein     Float?
+  carbs       Float?
+  fat         Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, mealName, createdAt])
 }
 
 // SocialPost - social media posts

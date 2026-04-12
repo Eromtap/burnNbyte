@@ -38,6 +38,11 @@ function resolveTimeZone(candidate) {
 
 const ALLOWED_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 
+function formatCost(value) {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  return `$${Number(value).toFixed(2)}`;
+}
+
 export default async function MealTypePage({ params, searchParams }) {
   const rawType = (params?.type || "").toLowerCase();
   if (!ALLOWED_TYPES.includes(rawType)) {
@@ -97,7 +102,7 @@ export default async function MealTypePage({ params, searchParams }) {
                     <header className="card-head">
                       <h3>{m.name}</h3>
                       <div className="sub">
-                        {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat
+                        {(m.calories ?? 0)} kcal | {formatMacro(m.protein)}g Protein | {formatMacro(m.carbs)}g Carbs | {formatMacro(m.fat)}g Fat{formatCost(m.costPerServing) ? ` | ~${formatCost(m.costPerServing)}/serving` : ''}
                       </div>
                     </header>
                     <div className="stack">

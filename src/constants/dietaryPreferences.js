@@ -69,6 +69,11 @@ export const DIETARY_PREFERENCES = [
     label: "Anti-Inflammatory",
     description: "Focus on berries, greens, omega-3s",
   },
+  {
+    id: "cost_conscious",
+    label: "Cost Conscious",
+    description: "Favor lower-cost ingredients and budget-friendly meals",
+  },
 ];
 
 const PREF_LOOKUP = DIETARY_PREFERENCES.reduce((acc, pref) => {

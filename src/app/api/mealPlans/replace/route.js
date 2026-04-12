@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import OpenAI from 'openai';
 import { describeDietaryPreferences } from '@/constants/dietaryPreferences';
 import { describeFitnessGoals, normalizeFitnessGoals } from '@/constants/fitnessGoals';
+import { summarizeMealFeedbackForPrompt } from '@/lib/mealFeedback';
 
 function toUTC(ymd){
   const [y,m,d] = String(ymd||'').split('-').map(Number);
@@ -24,6 +25,7 @@ export async function POST(req){
     const prefs = {
       dietaryPreferences: Array.isArray(profile?.dietaryPreferences) ? profile.dietaryPreferences : [],
       dislikedFoods: Array.isArray(profile?.dislikedFoods) ? profile.dislikedFoods : [],
+      mealPrepMode: Boolean(profile?.mealPrepMode),
       allergies: typeof profile?.allergies === 'string' ? profile.allergies.split(',').map(s=>s.trim()).filter(Boolean) : (Array.isArray(profile?.allergies) ? profile.allergies : []),
       fitnessGoal: profile?.fitnessGoal || null,
       fitnessGoals: Array.isArray(profile?.fitnessGoals) ? profile.fitnessGoals : [],
@@ -34,6 +36,18 @@ export async function POST(req){
     const goalForPrompt = goalFriendly.length ? goalFriendly : (goalList.length ? goalList : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []));
     const dietPrompt = describeDietaryPreferences(prefs.dietaryPreferences);
     const dietForPrompt = dietPrompt.length ? dietPrompt : prefs.dietaryPreferences;
+    const mealFeedback = typeof prisma.mealFeedback?.findMany === 'function'
+      ? await prisma.mealFeedback.findMany({
+          where: { userId: session.user.id },
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+        })
+      : [];
+    const {
+      dislikedMeals,
+      likedMeals,
+      recentLikedMeals,
+    } = summarizeMealFeedbackForPrompt(mealFeedback);
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -51,11 +65,12 @@ export async function POST(req){
             items: {
               type: 'object',
               additionalProperties: false,
-              required: ['name','type','calories','protein','carbs','fat','ingredients','recipe'],
+              required: ['name','type','calories','costPerServing','protein','carbs','fat','ingredients','recipe'],
               properties: {
                 name:{ type:'string' },
                 type:{ enum: ['breakfast','lunch','dinner','snack'] },
                 calories:{ anyOf:[{type:'integer'},{type:'number'}] },
+                costPerServing:{ anyOf:[{type:'integer'},{type:'number'}] },
                 protein:{ anyOf:[{type:'integer'},{type:'number'}] },
                 carbs:{ anyOf:[{type:'integer'},{type:'number'}] },
                 fat:{ anyOf:[{type:'integer'},{type:'number'}] },
@@ -81,7 +96,7 @@ export async function POST(req){
         // Regenerate full day using generateMealPlan-like behavior with single date
         const prompt = {
           role: 'user',
-          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}. Lean into the preferences wherever possible. Output JSON { meals:[...] } with the required meal fields; no prose. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook has clear guidance.`,
+          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}, mealPrepMode=${JSON.stringify(prefs.mealPrepMode)}, dislikedMeals=${JSON.stringify(dislikedMeals)}, likedMealsOlderThan14Days=${JSON.stringify(likedMeals)}, recentLikedMealsAvoidRepeat=${JSON.stringify(recentLikedMeals)}. Lean into the preferences wherever possible. If the user has a cost-conscious preference, favor lower-cost ingredients and budget-friendly meals. If mealPrepMode is true, prefer batch-cook meals that hold up for repeated weekday servings. If mealPrepMode is false, avoid exact repeats from recentLikedMealsAvoidRepeat. Include a realistic AI-estimated costPerServing in USD for every meal. Output JSON { meals:[...] } with the required meal fields; no prose. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook has clear guidance.`,
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.6 });
         let content = completion.choices?.[0]?.message?.content ?? '';
@@ -92,7 +107,7 @@ export async function POST(req){
           if (!existing) return;
           await tx.meal.deleteMany({ where:{ mealPlanId: existing.id } });
           if (Array.isArray(out.meals) && out.meals.length){
-            await tx.meal.createMany({ data: out.meals.map(m=>({ mealPlanId: existing.id, name:m.name, type:m.type, calories:Number(m.calories)||null, protein:Number(m.protein)||null, carbs:Number(m.carbs)||null, fat:Number(m.fat)||null, ingredients:Array.isArray(m.ingredients)?m.ingredients:[], recipe:m.recipe||'' })) });
+            await tx.meal.createMany({ data: out.meals.map(m=>({ mealPlanId: existing.id, name:m.name, type:m.type, calories:Number(m.calories)||null, costPerServing:Number(m.costPerServing)||null, protein:Number(m.protein)||null, carbs:Number(m.carbs)||null, fat:Number(m.fat)||null, ingredients:Array.isArray(m.ingredients)?m.ingredients:[], recipe:m.recipe||'' })) });
           }
         });
       } else {
@@ -100,7 +115,7 @@ export async function POST(req){
         const fixed = (plan?.meals||[]).filter(m=> !types?.includes(m.type)).map(m=>({ name:m.name, type:m.type, calories:m.calories, protein:m.protein, carbs:m.carbs, fat:m.fat }));
         const prompt = {
           role: 'user',
-          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook can follow each meal.`
+          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}, mealPrepMode=${JSON.stringify(prefs.mealPrepMode)}, dislikedMeals=${JSON.stringify(dislikedMeals)}, likedMealsOlderThan14Days=${JSON.stringify(likedMeals)}, recentLikedMealsAvoidRepeat=${JSON.stringify(recentLikedMeals)}. Strongly avoid explicitly disliked meals. If the user has a cost-conscious preference, favor lower-cost ingredients and budget-friendly meals. If mealPrepMode is true, prefer batch-cook friendly meals that can repeat well. If mealPrepMode is false, avoid exact repeats from recentLikedMealsAvoidRepeat. Include a realistic AI-estimated costPerServing in USD for every meal. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook can follow each meal.`
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.5 });
         let content = completion.choices?.[0]?.message?.content ?? '';
@@ -112,7 +127,7 @@ export async function POST(req){
           await tx.meal.deleteMany({ where:{ mealPlanId: existing.id, type: { in: types } } });
           const toAdd = (out.meals||[]).filter(m=> types.includes(m.type));
           if (toAdd.length){
-            await tx.meal.createMany({ data: toAdd.map(m=>({ mealPlanId: existing.id, name:m.name, type:m.type, calories:Number(m.calories)||null, protein:Number(m.protein)||null, carbs:Number(m.carbs)||null, fat:Number(m.fat)||null, ingredients:Array.isArray(m.ingredients)?m.ingredients:[], recipe:m.recipe||'' })) });
+            await tx.meal.createMany({ data: toAdd.map(m=>({ mealPlanId: existing.id, name:m.name, type:m.type, calories:Number(m.calories)||null, costPerServing:Number(m.costPerServing)||null, protein:Number(m.protein)||null, carbs:Number(m.carbs)||null, fat:Number(m.fat)||null, ingredients:Array.isArray(m.ingredients)?m.ingredients:[], recipe:m.recipe||'' })) });
           }
         });
       }

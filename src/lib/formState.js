@@ -20,6 +20,7 @@ export function OnboardingProvider({ children }) {
     equipmentAccess: [],
     dietaryPreferences: [],
     dislikedFoods: [],
+    mealPrepMode: false,
     allergies: "",
     mealsPerDay: 3,
     workoutPreference: "auto",

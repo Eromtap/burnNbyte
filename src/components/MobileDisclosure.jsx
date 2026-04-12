@@ -36,10 +36,15 @@ export default function MobileDisclosure({
 
     const syncToHash = () => {
       const hash = normalize(window.location.hash);
-      if (!hash) return;
-      if (hash !== target) return;
+      if (!hash) {
+        setIsOpen(defaultOpenMobile);
+        return;
+      }
 
-      setIsOpen(true);
+      const matches = hash === target;
+      setIsOpen(matches);
+      if (!matches) return;
+
       window.requestAnimationFrame(() => {
         const el = document.getElementById(target);
         if (el) {
@@ -51,7 +56,7 @@ export default function MobileDisclosure({
     syncToHash();
     window.addEventListener('hashchange', syncToHash);
     return () => window.removeEventListener('hashchange', syncToHash);
-  }, [mounted, isMobile, anchorId]);
+  }, [mounted, isMobile, anchorId, defaultOpenMobile]);
 
   if (!mounted || !isMobile) {
     return (

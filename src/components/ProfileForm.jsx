@@ -30,6 +30,7 @@ export default function ProfileForm({ initial }){
     equipmentAccess: Array.isArray(initial.equipmentAccess) ? initial.equipmentAccess : [],
     dietaryPreferences: Array.isArray(initial.dietaryPreferences) ? initial.dietaryPreferences : [],
     dislikedFoods: Array.isArray(initial.dislikedFoods) ? initial.dislikedFoods : [],
+    mealPrepMode: Boolean(initial.mealPrepMode),
     workoutPreference: initial.workoutPreference || 'auto',
     workoutDuration: initial.workoutDuration ?? 30,
     workoutDays: Array.isArray(initial.workoutDays) ? initial.workoutDays : [],
@@ -141,6 +142,7 @@ export default function ProfileForm({ initial }){
             : (data.profile.fitnessGoal ? [data.profile.fitnessGoal] : []),
           dietaryPreferences: Array.isArray(data.profile.dietaryPreferences) ? data.profile.dietaryPreferences : [],
           dislikedFoods: Array.isArray(data.profile.dislikedFoods) ? data.profile.dislikedFoods : [],
+          mealPrepMode: Boolean(data.profile.mealPrepMode),
           workoutPreference: data.profile.workoutPreference || 'auto',
           workoutDuration: data.profile.workoutDuration ?? 30,
           workoutDays: Array.isArray(data.profile.workoutDays) ? data.profile.workoutDays : [],
@@ -450,6 +452,21 @@ export default function ProfileForm({ initial }){
           </div>
         )}
       </div>
+
+      <label className="list-row" style={{ alignItems: 'flex-start', gap: 12 }}>
+        <input
+          type="checkbox"
+          checked={Boolean(form.mealPrepMode)}
+          onChange={e => updateField('mealPrepMode', e.target.checked)}
+          style={{ marginTop: 4 }}
+        />
+        <span>
+          <strong>Meal Prep Mode</strong>
+          <span className="muted text-xs" style={{ display: 'block', marginTop: 4 }}>
+            Prefer repeatable, batch-cook meals that hold up for multiple work days.
+          </span>
+        </span>
+      </label>
 
       <label>
         <span>Allergies</span>

@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import MealsPageClient from "@/components/MealsPageClient";
+import { buildMealFeedbackMap } from "@/lib/mealFeedback";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -52,6 +53,17 @@ export default async function MealsPage({ searchParams }){
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
   const mealPlan = await prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } });
+  const canReadMealFeedback = typeof prisma.mealFeedback?.findMany === "function";
+  const feedbackRows = canReadMealFeedback && mealPlan?.meals?.length
+    ? await prisma.mealFeedback.findMany({
+        where: {
+          userId: session.user.id,
+          OR: mealPlan.meals.map((meal) => ({ mealName: meal.name, mealType: meal.type })),
+        },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+  const mealFeedback = buildMealFeedbackMap(feedbackRows);
 
   return (
     <main>
@@ -60,6 +72,7 @@ export default async function MealsPage({ searchParams }){
           profile={profile}
           initialSelectedISO={selectedISO}
           initialMealPlan={mealPlan}
+          initialMealFeedback={mealFeedback}
         />
       </div>
     </main>

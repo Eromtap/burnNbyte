@@ -111,7 +111,7 @@ export default function MealPhotoReplace({ selectedISO, onReplaced }) {
           <div className="list-row">
             <span>Macros (per meal)</span>
             <span className="muted">
-              {result.calories ?? "?"} kcal | {formatMacro(result.protein)}g Protein | {formatMacro(result.carbs)}g Carbs | {formatMacro(result.fat)}g Fat
+              {result.calories ?? "?"} kcal | {formatMacro(result.protein)}g Protein | {formatMacro(result.carbs)}g Carbs | {formatMacro(result.fat)}g Fat{result.costPerServing != null ? ` | ~$${Number(result.costPerServing).toFixed(2)}/serving` : ''}
             </span>
           </div>
           {Array.isArray(result.ingredients) && result.ingredients.length > 0 && (

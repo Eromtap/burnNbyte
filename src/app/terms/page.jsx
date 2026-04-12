@@ -31,6 +31,11 @@ export default async function TermsPage() {
                   inappropriate for your personal circumstances.
                 </p>
                 <p className="muted">
+                  Any meal cost or cost-per-serving figures shown in the app are AI-generated estimates,
+                  not quotes or guarantees. Actual prices vary by store, region, brand, season, taxes,
+                  and package size.
+                </p>
+                <p className="muted">
                   You are responsible for your own decisions and for using your best judgment.
                   Consult a qualified professional if you have any medical conditions, injuries,
                   dietary restrictions, or other concerns.

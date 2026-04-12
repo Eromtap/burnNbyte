@@ -99,6 +99,22 @@ function buildHeroContent({ workout, mealPlan, completionPct, primaryGoal }) {
   };
 }
 
+function getInitialOpenMealType(groupedMeals) {
+  const orderedTypes = ["breakfast", "lunch", "dinner", "snack"];
+  const firstIncomplete = orderedTypes.find((type) =>
+    (groupedMeals[type] || []).some((meal) => !meal?.isCompleted)
+  );
+  if (firstIncomplete) return firstIncomplete;
+
+  const firstAvailable = orderedTypes.find((type) => (groupedMeals[type] || []).length > 0);
+  return firstAvailable || "breakfast";
+}
+
+function formatCost(value) {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  return `$${Number(value).toFixed(2)}`;
+}
+
 export default async function HomePage() {
   const headerStore = await headers();
   const timeZoneCandidate =
@@ -132,6 +148,7 @@ export default async function HomePage() {
     acc[type].push(meal);
     return acc;
   }, {});
+  const initialOpenMealType = getInitialOpenMealType(grouped);
 
   const mealCalories = mealMacros.calories;
   const consumedCalories = consumedMacros.calories;
@@ -326,7 +343,7 @@ export default async function HomePage() {
                     <h3>What I&apos;m eating today</h3>
                     <div className="sub">Meal-by-meal tracking in a format that feels more like a curated daily feed.</div>
                   </div>
-                  <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Adjust my meals</Link>
+                  <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Go to meal page</Link>
                 </header>
                 <div className="planner brand-feed-grid">
                   {["breakfast", "lunch", "dinner", "snack"].map((type) => (
@@ -335,7 +352,7 @@ export default async function HomePage() {
                       className="brand-feed-item mobile-disclosure"
                       summaryClassName="mobile-disclosure-summary brand-feed-item-summary"
                       panelClassName="mobile-disclosure-panel"
-                      defaultOpenMobile={type === "breakfast"}
+                      defaultOpenMobile={type === initialOpenMealType}
                       summary={
                         <>
                           <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
@@ -356,7 +373,7 @@ export default async function HomePage() {
                               <Link href={`/meals?date=${todayISO}#meal-${type}`} className="brand-feed-link">
                                 <strong>{meal.name}</strong>
                                 <div className="muted brand-feed-meta">
-                                  {meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat
+                                  {meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat{formatCost(meal.costPerServing) ? ` • ~${formatCost(meal.costPerServing)}/serving` : ''}
                                 </div>
                               </Link>
                               <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
