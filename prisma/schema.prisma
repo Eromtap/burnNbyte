@@ -66,6 +66,14 @@ model UserProfile {
   dietaryPreferences String[]
   dislikedFoods      String[] @default([])
   mealPrepMode       Boolean  @default(false)
+  macroTargetMode    String?   @default("grams")
+  calorieTarget      Int?
+  proteinTarget      Float?
+  carbsTarget        Float?
+  fatTarget          Float?
+  proteinPctTarget   Float?
+  carbsPctTarget     Float?
+  fatPctTarget       Float?
   workoutPreference  String?
   workoutDuration    Int?      @default(30) // minutes
 

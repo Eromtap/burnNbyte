@@ -6,6 +6,7 @@ import OpenAI from "openai";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
 import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
 import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
+import { deriveNutritionTargets } from "@/lib/nutritionTargets";
 
 export const runtime = "nodejs";
 
@@ -49,6 +50,7 @@ export async function POST(req) {
     const goalList = normalizeFitnessGoals(fitnessGoals.length ? fitnessGoals : fitnessGoal);
     const goalFriendly = describeFitnessGoals(goalList);
     const goalForPrompt = goalFriendly.length ? goalFriendly : (goalList.length ? goalList : (fitnessGoal ? [fitnessGoal] : []));
+    const macroTargets = deriveNutritionTargets(profile || {});
     const mealFeedback = typeof prisma.mealFeedback?.findMany === "function"
       ? await prisma.mealFeedback.findMany({
           where: { userId: session.user.id },
@@ -149,6 +151,8 @@ export async function POST(req) {
           `Analyze the pantry photo and list recognizable edible items (ingredients).`,
           `Then propose ${days} meals that primarily use those items and respect these constraints:`,
           `- fitnessGoals: ${JSON.stringify(goalForPrompt)}`,
+          `- dailyCalorieTarget: ${JSON.stringify(macroTargets.calories)}`,
+          `- dailyMacroTargetsInGrams: ${JSON.stringify({ protein: macroTargets.protein, carbs: macroTargets.carbs, fat: macroTargets.fat })}`,
           `- dietaryPreferences (soft): ${JSON.stringify(dietaryPrefFriendly.length ? dietaryPrefFriendly : dietaryPreferences)}`,
           `- dislikedFoods (soft avoid): ${JSON.stringify(dislikedFoods)}`,
           `- allergies (HARD AVOID): ${JSON.stringify(allergies)}`,
@@ -158,6 +162,9 @@ export async function POST(req) {
           `- recentLikedMeals to avoid repeating unless mealPrepMode is true: ${JSON.stringify(recentLikedMeals)}`,
           `- units: ${unitSystem}`,
           `- if mealPrepMode is true, prefer batch-cook, storage-friendly pantry meals that can be repeated for several weekday servings`,
+          `- treat calorie and macro targets as goals to get close to, not exact hard requirements`,
+          `- if a calorie target is provided, keep each meal day's total calories reasonably close to it`,
+          `- if macro targets are provided, keep the combined protein/carbs/fat reasonably close to them while staying realistic`,
           `- include a realistic AI-estimated costPerServing in USD for every meal`,
           `- recipe instructions: provide a single string of 3-6 numbered steps so the cook can follow prep, cooking, and serving without guesswork`,
           "Respond ONLY with JSON that matches the provided schema; no prose."

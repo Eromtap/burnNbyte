@@ -1,0 +1,5 @@
+ALTER TABLE "UserProfile"
+ADD COLUMN "macroTargetMode" TEXT DEFAULT 'grams',
+ADD COLUMN "proteinPctTarget" DOUBLE PRECISION,
+ADD COLUMN "carbsPctTarget" DOUBLE PRECISION,
+ADD COLUMN "fatPctTarget" DOUBLE PRECISION;

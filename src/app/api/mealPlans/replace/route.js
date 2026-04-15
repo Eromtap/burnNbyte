@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 import { describeDietaryPreferences } from '@/constants/dietaryPreferences';
 import { describeFitnessGoals, normalizeFitnessGoals } from '@/constants/fitnessGoals';
 import { summarizeMealFeedbackForPrompt } from '@/lib/mealFeedback';
+import { deriveNutritionTargets } from '@/lib/nutritionTargets';
 
 function toUTC(ymd){
   const [y,m,d] = String(ymd||'').split('-').map(Number);
@@ -30,12 +31,23 @@ export async function POST(req){
       fitnessGoal: profile?.fitnessGoal || null,
       fitnessGoals: Array.isArray(profile?.fitnessGoals) ? profile.fitnessGoals : [],
       mealsPerDay: profile?.mealsPerDay || 4,
+      macroTargetMode: profile?.macroTargetMode || 'grams',
+      weight: profile?.weight ?? null,
+      activityLevel: profile?.activityLevel || null,
+      calorieTarget: profile?.calorieTarget ?? null,
+      proteinTarget: profile?.proteinTarget ?? null,
+      carbsTarget: profile?.carbsTarget ?? null,
+      fatTarget: profile?.fatTarget ?? null,
+      proteinPctTarget: profile?.proteinPctTarget ?? null,
+      carbsPctTarget: profile?.carbsPctTarget ?? null,
+      fatPctTarget: profile?.fatPctTarget ?? null,
     };
     const goalList = normalizeFitnessGoals(prefs.fitnessGoals ?? prefs.fitnessGoal);
     const goalFriendly = describeFitnessGoals(goalList);
     const goalForPrompt = goalFriendly.length ? goalFriendly : (goalList.length ? goalList : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []));
     const dietPrompt = describeDietaryPreferences(prefs.dietaryPreferences);
     const dietForPrompt = dietPrompt.length ? dietPrompt : prefs.dietaryPreferences;
+    const targetPrompt = deriveNutritionTargets(prefs);
     const mealFeedback = typeof prisma.mealFeedback?.findMany === 'function'
       ? await prisma.mealFeedback.findMany({
           where: { userId: session.user.id },
@@ -96,7 +108,7 @@ export async function POST(req){
         // Regenerate full day using generateMealPlan-like behavior with single date
         const prompt = {
           role: 'user',
-          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}, mealPrepMode=${JSON.stringify(prefs.mealPrepMode)}, dislikedMeals=${JSON.stringify(dislikedMeals)}, likedMealsOlderThan14Days=${JSON.stringify(likedMeals)}, recentLikedMealsAvoidRepeat=${JSON.stringify(recentLikedMeals)}. Lean into the preferences wherever possible. If the user has a cost-conscious preference, favor lower-cost ingredients and budget-friendly meals. If mealPrepMode is true, prefer batch-cook meals that hold up for repeated weekday servings. If mealPrepMode is false, avoid exact repeats from recentLikedMealsAvoidRepeat. Include a realistic AI-estimated costPerServing in USD for every meal. Output JSON { meals:[...] } with the required meal fields; no prose. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook has clear guidance.`,
+          content: `Create a complete daily meal plan for ${date} with ${prefs.mealsPerDay} meals that respects: fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}, mealPrepMode=${JSON.stringify(prefs.mealPrepMode)}, dailyTargets=${JSON.stringify(targetPrompt)}, dislikedMeals=${JSON.stringify(dislikedMeals)}, likedMealsOlderThan14Days=${JSON.stringify(likedMeals)}, recentLikedMealsAvoidRepeat=${JSON.stringify(recentLikedMeals)}. Lean into the preferences wherever possible. Treat dailyTargets as goals to get close to, not exact hard requirements. If dailyTargets.calories is provided, keep the day total close to it. If dailyTargets protein/carbs/fat are provided, keep the day's macros reasonably close while still producing realistic meals. If the user has a cost-conscious preference, favor lower-cost ingredients and budget-friendly meals. If mealPrepMode is true, prefer batch-cook meals that hold up for repeated weekday servings. If mealPrepMode is false, avoid exact repeats from recentLikedMealsAvoidRepeat. Include a realistic AI-estimated costPerServing in USD for every meal. Output JSON { meals:[...] } with the required meal fields; no prose. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook has clear guidance.`,
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.6 });
         let content = completion.choices?.[0]?.message?.content ?? '';
@@ -115,7 +127,7 @@ export async function POST(req){
         const fixed = (plan?.meals||[]).filter(m=> !types?.includes(m.type)).map(m=>({ name:m.name, type:m.type, calories:m.calories, protein:m.protein, carbs:m.carbs, fat:m.fat }));
         const prompt = {
           role: 'user',
-          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}, mealPrepMode=${JSON.stringify(prefs.mealPrepMode)}, dislikedMeals=${JSON.stringify(dislikedMeals)}, likedMealsOlderThan14Days=${JSON.stringify(likedMeals)}, recentLikedMealsAvoidRepeat=${JSON.stringify(recentLikedMeals)}. Strongly avoid explicitly disliked meals. If the user has a cost-conscious preference, favor lower-cost ingredients and budget-friendly meals. If mealPrepMode is true, prefer batch-cook friendly meals that can repeat well. If mealPrepMode is false, avoid exact repeats from recentLikedMealsAvoidRepeat. Include a realistic AI-estimated costPerServing in USD for every meal. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook can follow each meal.`
+          content: `Propose replacement meals for ${date} for these types: ${JSON.stringify(types)}. Keep daily calories roughly consistent with remaining fixed meals: ${JSON.stringify(fixed)}. Respect fitnessGoals=${JSON.stringify(goalForPrompt)}, preferences=${JSON.stringify(dietForPrompt)}, dislikedFoods (soft avoid)=${JSON.stringify(prefs.dislikedFoods)}, allergies=${JSON.stringify(prefs.allergies)}, mealPrepMode=${JSON.stringify(prefs.mealPrepMode)}, dailyTargets=${JSON.stringify(targetPrompt)}, dislikedMeals=${JSON.stringify(dislikedMeals)}, likedMealsOlderThan14Days=${JSON.stringify(likedMeals)}, recentLikedMealsAvoidRepeat=${JSON.stringify(recentLikedMeals)}. Strongly avoid explicitly disliked meals. Treat dailyTargets as goals to get close to, not exact hard requirements. If dailyTargets.calories is provided, keep the rebuilt day close to it. If dailyTargets protein/carbs/fat are provided, use the replacement meals to help the whole day land reasonably near those macro targets. If the user has a cost-conscious preference, favor lower-cost ingredients and budget-friendly meals. If mealPrepMode is true, prefer batch-cook friendly meals that can repeat well. If mealPrepMode is false, avoid exact repeats from recentLikedMealsAvoidRepeat. Include a realistic AI-estimated costPerServing in USD for every meal. Output ONLY JSON { meals:[...] } matching schema with exactly one meal per requested type. Recipe fields must contain 3-6 numbered cooking steps separated by line breaks so the cook can follow each meal.`
         };
         const completion = await openai.chat.completions.create({ model:'gpt-4o-mini', messages:[prompt], response_format:{ type:'json_schema', json_schema: REPLACE_SCHEMA }, temperature:0.5 });
         let content = completion.choices?.[0]?.message?.content ?? '';

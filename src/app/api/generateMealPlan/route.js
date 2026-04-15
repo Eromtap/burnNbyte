@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
 import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
 import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
+import { deriveNutritionTargets } from "@/lib/nutritionTargets";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -101,6 +102,12 @@ function datesInclusive({ startDate, endDate, numDays }) {
   return out;
 }
 
+function normalizeOptionalTarget(value, { integer = false } = {}) {
+  const parsed = integer ? parseInt(value, 10) : parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return integer ? Math.round(parsed) : parsed;
+}
+
 export async function POST(req) {
   try {
     const session = await getServerSession(authOptions);
@@ -115,9 +122,18 @@ export async function POST(req) {
       heightFt,
       heightIn,
       weight,
+      activityLevel,
       fitnessGoal,
       fitnessGoals,
       mealsPerDay = 3,
+      macroTargetMode,
+      calorieTarget,
+      proteinTarget,
+      carbsTarget,
+      fatTarget,
+      proteinPctTarget,
+      carbsPctTarget,
+      fatPctTarget,
       dietaryPreferences = [],
       dislikedFoods = [],
       mealPrepMode = false,
@@ -137,6 +153,20 @@ export async function POST(req) {
     const prefsDislikes = normArray(dislikedFoods);
     const prefsAllergies = normArray(allergies);
     const goalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    const macroTargets = deriveNutritionTargets({
+      weight,
+      activityLevel,
+      fitnessGoal,
+      fitnessGoals: goalList,
+      macroTargetMode,
+      calorieTarget: normalizeOptionalTarget(calorieTarget, { integer: true }),
+      proteinTarget: normalizeOptionalTarget(proteinTarget),
+      carbsTarget: normalizeOptionalTarget(carbsTarget),
+      fatTarget: normalizeOptionalTarget(fatTarget),
+      proteinPctTarget: normalizeOptionalTarget(proteinPctTarget),
+      carbsPctTarget: normalizeOptionalTarget(carbsPctTarget),
+      fatPctTarget: normalizeOptionalTarget(fatPctTarget),
+    });
     const primaryGoal = goalList[0] || (typeof fitnessGoal === "string" ? fitnessGoal : "");
     const goalFriendly = describeFitnessGoals(goalList);
     const mealFeedback = typeof prisma.mealFeedback?.findMany === "function"
@@ -174,6 +204,18 @@ User:
 - weight: ${JSON.stringify(weight ?? null)}
 - fitnessGoals: ${JSON.stringify(goalFriendly.length ? goalFriendly : goalList.length ? goalList : [primaryGoal])}
 - mealsPerDay: ${mealsPerDay}
+- macroTargetMode: ${JSON.stringify(macroTargetMode || macroTargets.mode || 'grams')}
+- dailyCalorieTarget: ${JSON.stringify(macroTargets.calories)}
+- dailyMacroTargetsInGrams: ${JSON.stringify({
+  protein: macroTargets.protein,
+  carbs: macroTargets.carbs,
+  fat: macroTargets.fat,
+})}
+- dailyMacroTargetsPercent: ${JSON.stringify({
+  protein: macroTargets.proteinPct,
+  carbs: macroTargets.carbsPct,
+  fat: macroTargets.fatPct,
+})}
 - mealPrepMode: ${JSON.stringify(Boolean(mealPrepMode))}
 - dietaryPreferences (soft, emphasize these foods/cuisines): ${JSON.stringify(prefsDietFriendly.length ? prefsDietFriendly : prefsDiet)}
 - dislikedFoods (soft avoid): ${JSON.stringify(prefsDislikes)}
@@ -184,6 +226,10 @@ User:
 
 Rules:
 - For EVERY listed date, return EXACTLY ${mealsPerDay} meals.
+- Treat dailyCalorieTarget and dailyMacroTargetsInGrams as planning goals, not exact hard requirements.
+- If dailyCalorieTarget is provided, keep each day's totalCalories close to that goal, usually within about 5-10%.
+- If any daily macro targets are provided, keep the day's summed protein/carbs/fat close to those goals while still making realistic meals.
+- If no explicit calorie or macro target is provided, infer a sensible distribution from the user's goals.
 - Absolutely avoid any allergens. NEVER include any of: ${prefsAllergies.join(', ')}.
 - Prefer dietaryPreferences without violating allergies and try to spotlight at least one of them in each day's plan.
 - Soft-avoid any dislikedFoods while still meeting the other constraints.
