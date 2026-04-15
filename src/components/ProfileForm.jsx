@@ -7,11 +7,70 @@ import { FITNESS_GOALS } from '@/constants/fitnessGoals';
 import { EQUIPMENT_OPTIONS } from '@/constants/equipmentAccess';
 import { WORKOUT_SPLITS } from '@/constants/workoutSplits';
 import MobileDisclosure from '@/components/MobileDisclosure';
+import { deriveNutritionTargets, derivePercentageTargets, getMinimumSafeCalories } from '@/lib/nutritionTargets';
 
 const DAYS = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 const BUILT_IN_PREFS = new Set(DIETARY_PREFERENCES.map(p => p.id));
 const BUILT_IN_GOALS = new Set(FITNESS_GOALS.map(g => g.id));
 const BUILT_IN_EQUIPMENT = new Set(EQUIPMENT_OPTIONS.map(e => e.id));
+
+function normalizeNumber(value) {
+  if (value === '' || value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatDelta(delta, unit) {
+  if (delta === 0) return `On target`;
+  if (delta > 0) return `${delta}${unit} over`;
+  return `${Math.abs(delta)}${unit} under`;
+}
+
+function validateMacroTargets(form) {
+  const minimumCalories = getMinimumSafeCalories(form.gender);
+  const mode = String(form.macroTargetMode || 'grams');
+  const calorieTarget = normalizeNumber(form.calorieTarget);
+  const proteinTarget = normalizeNumber(form.proteinTarget);
+  const carbsTarget = normalizeNumber(form.carbsTarget);
+  const fatTarget = normalizeNumber(form.fatTarget);
+  const proteinPctTarget = normalizeNumber(form.proteinPctTarget);
+  const carbsPctTarget = normalizeNumber(form.carbsPctTarget);
+  const fatPctTarget = normalizeNumber(form.fatPctTarget);
+  const hasAnyMacro = [proteinTarget, carbsTarget, fatTarget].some((value) => value != null);
+  const hasAnyPct = [proteinPctTarget, carbsPctTarget, fatPctTarget].some((value) => value != null);
+
+  if (!hasAnyMacro && !hasAnyPct && calorieTarget == null) return { error: null, macroCalories: null };
+  if (calorieTarget == null) {
+    return { error: `Add a calorie target when setting ${mode === 'percentages' ? 'macro percentages' : 'protein, carbs, and fat targets'}.`, macroCalories: null };
+  }
+  if (calorieTarget < minimumCalories) {
+    return { error: `Calorie targets cannot go below ${minimumCalories}.`, macroCalories: null };
+  }
+  if (mode === 'percentages') {
+    if ([proteinPctTarget, carbsPctTarget, fatPctTarget].some((value) => value == null)) {
+      return { error: 'Protein, carbs, and fat percentages all need values when using percentage targets.', macroCalories: null };
+    }
+    const totalPct = proteinPctTarget + carbsPctTarget + fatPctTarget;
+    if (totalPct !== 100) {
+      return { error: `Protein, carbs, and fat percentages currently add up to ${totalPct}%. That is ${formatDelta(totalPct - 100, '%')} from 100%.`, macroCalories: null };
+    }
+    return { error: null, macroCalories: calorieTarget };
+  }
+  if ([proteinTarget, carbsTarget, fatTarget].some((value) => value == null)) {
+    return { error: 'Protein, carbs, and fat all need values when you set calorie and macro targets.', macroCalories: null };
+  }
+
+  const macroCalories = proteinTarget * 4 + carbsTarget * 4 + fatTarget * 9;
+  const allowedDelta = calorieTarget * 0.05;
+  if (Math.abs(macroCalories - calorieTarget) > allowedDelta) {
+    return {
+      error: `Protein, carbs, and fat currently add up to ${macroCalories} calories. That is ${formatDelta(macroCalories - calorieTarget, ' calories')} versus the ${calorieTarget} calorie target, which is outside the allowed 5% range.`,
+      macroCalories,
+    };
+  }
+
+  return { error: null, macroCalories };
+}
 
 export default function ProfileForm({ initial }){
   const router = useRouter();
@@ -31,6 +90,14 @@ export default function ProfileForm({ initial }){
     dietaryPreferences: Array.isArray(initial.dietaryPreferences) ? initial.dietaryPreferences : [],
     dislikedFoods: Array.isArray(initial.dislikedFoods) ? initial.dislikedFoods : [],
     mealPrepMode: Boolean(initial.mealPrepMode),
+    macroTargetMode: initial.macroTargetMode || 'grams',
+    calorieTarget: initial.calorieTarget ?? '',
+    proteinTarget: initial.proteinTarget ?? '',
+    carbsTarget: initial.carbsTarget ?? '',
+    fatTarget: initial.fatTarget ?? '',
+    proteinPctTarget: initial.proteinPctTarget ?? '',
+    carbsPctTarget: initial.carbsPctTarget ?? '',
+    fatPctTarget: initial.fatPctTarget ?? '',
     workoutPreference: initial.workoutPreference || 'auto',
     workoutDuration: initial.workoutDuration ?? 30,
     workoutDays: Array.isArray(initial.workoutDays) ? initial.workoutDays : [],
@@ -44,6 +111,23 @@ export default function ProfileForm({ initial }){
   const [dislikeInput, setDislikeInput] = useState('');
   const [allergyInput, setAllergyInput] = useState('');
   const [msg, setMsg] = useState(null);
+  const macroValidation = validateMacroTargets(form);
+  const suggestedTargets = deriveNutritionTargets(form);
+  const suggestedPctTargets = derivePercentageTargets(form);
+  const minimumCalories = getMinimumSafeCalories(form.gender);
+  const calorieTargetValue = normalizeNumber(form.calorieTarget);
+  const proteinTargetValue = normalizeNumber(form.proteinTarget);
+  const carbsTargetValue = normalizeNumber(form.carbsTarget);
+  const fatTargetValue = normalizeNumber(form.fatTarget);
+  const proteinPctValue = normalizeNumber(form.proteinPctTarget);
+  const carbsPctValue = normalizeNumber(form.carbsPctTarget);
+  const fatPctValue = normalizeNumber(form.fatPctTarget);
+  const macroCaloriesValue = [proteinTargetValue, carbsTargetValue, fatTargetValue].some((value) => value != null)
+    ? ((proteinTargetValue || 0) * 4) + ((carbsTargetValue || 0) * 4) + ((fatTargetValue || 0) * 9)
+    : null;
+  const percentTotalValue = [proteinPctValue, carbsPctValue, fatPctValue].some((value) => value != null)
+    ? (proteinPctValue || 0) + (carbsPctValue || 0) + (fatPctValue || 0)
+    : null;
   function updateField(key, val){ setForm(f => ({...f, [key]: val})); }
   function toggleDay(day){ setForm(f => ({...f, workoutDays: f.workoutDays.includes(day) ? f.workoutDays.filter(d=>d!==day) : [...f.workoutDays, day]})); }
   const customDietaryPreferences = form.dietaryPreferences.filter(p => !BUILT_IN_PREFS.has(p));
@@ -123,6 +207,7 @@ export default function ProfileForm({ initial }){
   async function onSubmit(e){
     e.preventDefault(); setSaving(true); setMsg(null);
     try{
+      if (macroValidation.error) throw new Error(macroValidation.error);
       const payload = buildPayload();
       const res = await fetch('/api/onboarding', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -143,6 +228,14 @@ export default function ProfileForm({ initial }){
           dietaryPreferences: Array.isArray(data.profile.dietaryPreferences) ? data.profile.dietaryPreferences : [],
           dislikedFoods: Array.isArray(data.profile.dislikedFoods) ? data.profile.dislikedFoods : [],
           mealPrepMode: Boolean(data.profile.mealPrepMode),
+          macroTargetMode: data.profile.macroTargetMode || 'grams',
+          calorieTarget: data.profile.calorieTarget ?? '',
+          proteinTarget: data.profile.proteinTarget ?? '',
+          carbsTarget: data.profile.carbsTarget ?? '',
+          fatTarget: data.profile.fatTarget ?? '',
+          proteinPctTarget: data.profile.proteinPctTarget ?? '',
+          carbsPctTarget: data.profile.carbsPctTarget ?? '',
+          fatPctTarget: data.profile.fatPctTarget ?? '',
           workoutPreference: data.profile.workoutPreference || 'auto',
           workoutDuration: data.profile.workoutDuration ?? 30,
           workoutDays: Array.isArray(data.profile.workoutDays) ? data.profile.workoutDays : [],
@@ -497,6 +590,97 @@ export default function ProfileForm({ initial }){
         <span>Meals Per Day</span>
         <input type="number" value={form.mealsPerDay} onChange={e=>updateField('mealsPerDay', e.target.value)} />
       </label>
+
+      <div className="mt-4">
+        <div className="planner-head">Optional daily calorie and macro targets</div>
+        <p className="text-xs muted" style={{ marginTop: 4 }}>
+          Leave these blank if you want burnNbyte to infer targets from your goals. If you fill them in, protein and carbs count as 4 cal/g and fat counts as 9 cal/g, gram targets need to land within 5% of the calorie goal, percentage targets still need to total 100%, and calories cannot go below {minimumCalories}.
+        </p>
+        <div className="inline-field-row" style={{ marginTop: 12 }}>
+          <button type="button" className={`btn ${form.macroTargetMode === 'grams' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => updateField('macroTargetMode', 'grams')}>Use grams</button>
+          <button type="button" className={`btn ${form.macroTargetMode === 'percentages' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => updateField('macroTargetMode', 'percentages')}>Use percentages</button>
+        </div>
+        <div className="prefs-grid mt-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <label>
+            <span>Calories</span>
+            <input
+              type="number"
+              value={form.calorieTarget}
+              onChange={e=>updateField('calorieTarget', e.target.value)}
+              placeholder={String(suggestedTargets.calories)}
+              min={minimumCalories}
+            />
+          </label>
+          {form.macroTargetMode === 'percentages' ? (
+            <>
+              <label>
+                <span>Protein (%)</span>
+                <input type="number" value={form.proteinPctTarget} onChange={e=>updateField('proteinPctTarget', e.target.value)} placeholder={String(suggestedPctTargets.proteinPct)} min="0" max="100" />
+              </label>
+              <label>
+                <span>Carbs (%)</span>
+                <input type="number" value={form.carbsPctTarget} onChange={e=>updateField('carbsPctTarget', e.target.value)} placeholder={String(suggestedPctTargets.carbsPct)} min="0" max="100" />
+              </label>
+              <label>
+                <span>Fat (%)</span>
+                <input type="number" value={form.fatPctTarget} onChange={e=>updateField('fatPctTarget', e.target.value)} placeholder={String(suggestedPctTargets.fatPct)} min="0" max="100" />
+              </label>
+            </>
+          ) : (
+            <>
+              <label>
+                <span>Protein (g)</span>
+                <input type="number" value={form.proteinTarget} onChange={e=>updateField('proteinTarget', e.target.value)} placeholder={String(suggestedTargets.protein)} min="0" />
+              </label>
+              <label>
+                <span>Carbs (g)</span>
+                <input type="number" value={form.carbsTarget} onChange={e=>updateField('carbsTarget', e.target.value)} placeholder={String(suggestedTargets.carbs)} min="0" />
+              </label>
+              <label>
+                <span>Fat (g)</span>
+                <input type="number" value={form.fatTarget} onChange={e=>updateField('fatTarget', e.target.value)} placeholder={String(suggestedTargets.fat)} min="0" />
+              </label>
+            </>
+          )}
+        </div>
+        {!form.calorieTarget && !form.proteinTarget && !form.carbsTarget && !form.fatTarget && !form.proteinPctTarget && !form.carbsPctTarget && !form.fatPctTarget && (
+          <div className="list-row" style={{ marginTop: 12 }}>
+            <span>Suggested default</span>
+            <span className="muted">
+              {form.macroTargetMode === 'percentages'
+                ? `${suggestedPctTargets.calories} kcal • ${suggestedPctTargets.proteinPct}% protein • ${suggestedPctTargets.carbsPct}% carbs • ${suggestedPctTargets.fatPct}% fat`
+                : `${suggestedTargets.calories} kcal • ${suggestedTargets.protein}g protein • ${suggestedTargets.carbs}g carbs • ${suggestedTargets.fat}g fat`}
+            </span>
+          </div>
+        )}
+        {form.macroTargetMode === 'grams' && calorieTargetValue != null && macroCaloriesValue != null && (
+          <div className="list-row" style={{ marginTop: 12 }}>
+            <span>Current macro calories</span>
+            <span className="muted">{macroCaloriesValue} kcal • {formatDelta(macroCaloriesValue - calorieTargetValue, ' calories')}</span>
+          </div>
+        )}
+        {form.macroTargetMode === 'percentages' && percentTotalValue != null && (
+          <div className="list-row" style={{ marginTop: 12 }}>
+            <span>Current macro percentages</span>
+            <span className="muted">{percentTotalValue}% • {formatDelta(percentTotalValue - 100, '%')}</span>
+          </div>
+        )}
+        {form.macroTargetMode === 'grams' && form.calorieTarget !== '' && form.proteinTarget !== '' && form.carbsTarget !== '' && form.fatTarget !== '' && !macroValidation.error && (
+          <div className="alert alert-success" style={{ marginTop: 12 }}>
+            Macro calories are within 5% of target: {form.proteinTarget}g protein, {form.carbsTarget}g carbs, {form.fatTarget}g fat = {macroValidation.macroCalories} calories.
+          </div>
+        )}
+        {form.macroTargetMode === 'percentages' && form.calorieTarget !== '' && form.proteinPctTarget !== '' && form.carbsPctTarget !== '' && form.fatPctTarget !== '' && !macroValidation.error && (
+          <div className="alert alert-success" style={{ marginTop: 12 }}>
+            Macro percentages match the target exactly: {form.proteinPctTarget}% protein, {form.carbsPctTarget}% carbs, {form.fatPctTarget}% fat = 100%.
+          </div>
+        )}
+        {macroValidation.error && (
+          <div className="alert alert-error" style={{ marginTop: 12 }}>
+            {macroValidation.error}
+          </div>
+        )}
+      </div>
       </MobileDisclosure>
 
       <div className="inline-field-row" style={{ alignItems: 'center' }}>

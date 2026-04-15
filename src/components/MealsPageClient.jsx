@@ -151,7 +151,7 @@ export default function MealsPageClient({
           <header className="card-head">
             <div>
               <h3>Plan my meals</h3>
-              <div className="sub">Create and save the plan for the selected date.</div>
+              <div className="sub">Create the selected day only, or generate the next 7 days starting from it.</div>
             </div>
           </header>
           <GenerateMealPlan

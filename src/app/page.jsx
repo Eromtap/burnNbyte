@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
 import { labelForFitnessGoal } from "@/constants/fitnessGoals";
+import { deriveNutritionTargets } from "@/lib/nutritionTargets";
 import ReplaceMealButton from "@/components/ReplaceMealButton";
 import MealCompletionToggle from "@/components/MealCompletionToggle";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
@@ -164,11 +165,7 @@ export default async function HomePage() {
   const completionDone = completedMeals.length + (workout?.isCompleted ? 1 : 0);
   const completionPct = completionTotal ? Math.round((completionDone / completionTotal) * 100) : 0;
 
-  const macroTargets = {
-    protein: Number(profile?.weight || 0) || 160,
-    carbs: Math.max(150, Math.round((mealMacros.carbs || 0) || 220)),
-    fat: Math.max(50, Math.round((mealMacros.fat || 0) || 70)),
-  };
+  const macroTargets = deriveNutritionTargets(profile);
   const primaryGoalId = profile.fitnessGoal || profile.fitnessGoals?.[0] || "general_fitness";
   const primaryGoal = labelForFitnessGoal(primaryGoalId) || "General fitness";
   const hero = buildHeroContent({ workout, mealPlan, completionPct, primaryGoal });

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getMinimumSafeCalories } from "@/lib/nutritionTargets";
 
 
 
@@ -36,9 +37,64 @@ export async function POST(req) {
       const n = typeof v === 'string' && v.trim() === '' ? NaN : parseInt(v);
       return Number.isFinite(n) ? n : null;
     };
+    const toPositiveIntOrNull = (v) => {
+      const n = toIntOrNull(v);
+      return n != null && n >= 0 ? n : null;
+    };
+    const toPositiveFloatOrNull = (v) => {
+      const n = toFloatOrNull(v);
+      return n != null && n >= 0 ? n : null;
+    };
+    const validateMacroTargets = (payload) => {
+      const minimumCalories = getMinimumSafeCalories(payload.gender);
+      const mode = String(payload.macroTargetMode || 'grams');
+      const calorieTarget = toPositiveIntOrNull(payload.calorieTarget);
+      const proteinTarget = toPositiveFloatOrNull(payload.proteinTarget);
+      const carbsTarget = toPositiveFloatOrNull(payload.carbsTarget);
+      const fatTarget = toPositiveFloatOrNull(payload.fatTarget);
+      const proteinPctTarget = toPositiveFloatOrNull(payload.proteinPctTarget);
+      const carbsPctTarget = toPositiveFloatOrNull(payload.carbsPctTarget);
+      const fatPctTarget = toPositiveFloatOrNull(payload.fatPctTarget);
+      const hasAnyMacro = [proteinTarget, carbsTarget, fatTarget].some((value) => value != null);
+      const hasAnyPct = [proteinPctTarget, carbsPctTarget, fatPctTarget].some((value) => value != null);
+
+      if (!hasAnyMacro && !hasAnyPct && calorieTarget == null) return null;
+      if (calorieTarget == null) {
+        return `Add a calorie target when setting ${mode === 'percentages' ? 'macro percentages' : 'protein, carbs, and fat targets'}.`;
+      }
+      if (calorieTarget < minimumCalories) {
+        return `Calorie targets cannot go below ${minimumCalories}.`;
+      }
+      if (mode === 'percentages') {
+        if ([proteinPctTarget, carbsPctTarget, fatPctTarget].some((value) => value == null)) {
+          return "Protein, carbs, and fat percentages all need values when using percentage targets.";
+        }
+        const totalPct = proteinPctTarget + carbsPctTarget + fatPctTarget;
+        if (totalPct !== 100) {
+          return `Protein, carbs, and fat percentages currently add up to ${totalPct}%. They need to equal 100%.`;
+        }
+        return null;
+      }
+      if ([proteinTarget, carbsTarget, fatTarget].some((value) => value == null)) {
+        return "Protein, carbs, and fat all need values when you set calorie and macro targets.";
+      }
+
+      const macroCalories = proteinTarget * 4 + carbsTarget * 4 + fatTarget * 9;
+      const allowedDelta = calorieTarget * 0.05;
+      if (Math.abs(macroCalories - calorieTarget) > allowedDelta) {
+        return `Protein, carbs, and fat currently add up to ${macroCalories} calories. That needs to land within 5% of the calorie target (${calorieTarget}).`;
+      }
+
+      return null;
+    };
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const macroValidationError = validateMacroTargets(data);
+    if (macroValidationError) {
+      return NextResponse.json({ error: macroValidationError }, { status: 400 });
     }
 
     // Upsert UserProfile with onboarding data
@@ -121,6 +177,14 @@ export async function POST(req) {
       dietaryPreferences,
       dislikedFoods,
       mealPrepMode: Boolean(data.mealPrepMode),
+      macroTargetMode: data.macroTargetMode || 'grams',
+      calorieTarget: toPositiveIntOrNull(data.calorieTarget),
+      proteinTarget: toPositiveFloatOrNull(data.proteinTarget),
+      carbsTarget: toPositiveFloatOrNull(data.carbsTarget),
+      fatTarget: toPositiveFloatOrNull(data.fatTarget),
+      proteinPctTarget: toPositiveFloatOrNull(data.proteinPctTarget),
+      carbsPctTarget: toPositiveFloatOrNull(data.carbsPctTarget),
+      fatPctTarget: toPositiveFloatOrNull(data.fatPctTarget),
       workoutPreference: data.workoutPreference,
       workoutDuration: toIntOrNull(data.workoutDuration),
       workoutDays,
@@ -156,6 +220,14 @@ export async function POST(req) {
       dietaryPreferences,
       dislikedFoods,
       mealPrepMode: Boolean(data.mealPrepMode),
+      macroTargetMode: data.macroTargetMode || 'grams',
+      calorieTarget: toPositiveIntOrNull(data.calorieTarget),
+      proteinTarget: toPositiveFloatOrNull(data.proteinTarget),
+      carbsTarget: toPositiveFloatOrNull(data.carbsTarget),
+      fatTarget: toPositiveFloatOrNull(data.fatTarget),
+      proteinPctTarget: toPositiveFloatOrNull(data.proteinPctTarget),
+      carbsPctTarget: toPositiveFloatOrNull(data.carbsPctTarget),
+      fatPctTarget: toPositiveFloatOrNull(data.fatPctTarget),
       workoutPreference: data.workoutPreference,
       workoutDuration: toIntOrNull(data.workoutDuration),
       workoutDays,
