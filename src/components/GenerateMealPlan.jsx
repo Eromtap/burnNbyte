@@ -1,127 +1,347 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+
+import { useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { deriveNutritionTargets } from '@/lib/nutritionTargets';
 
-export default function GenerateMealPlan({ initialPreferences = null, selectedISO = null, onGenerated }) {
-  const router = useRouter();
+const SOURCE_OPTIONS = [
+  { id: 'standard', label: 'Planner suggestions' },
+  { id: 'pantry', label: 'Pantry / fridge assisted' },
+];
+
+function parseYMDLocal(ymd) {
+  const [year, month, day] = String(ymd || '').split('-').map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+function toYMDLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addDaysLocal(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export default function GenerateMealPlan({ initialPreferences = null, onGenerated }) {
   const { data: session, update } = useSession();
+  const pantryCameraRef = useRef(null);
+  const pantryLibraryRef = useRef(null);
+  const plannerStartISO = toYMDLocal(new Date());
+  const plannerStartDate = useMemo(() => parseYMDLocal(plannerStartISO), [plannerStartISO]);
+  const plannerDateOptions = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => toYMDLocal(addDaysLocal(plannerStartDate, index))),
+    [plannerStartDate]
+  );
+  const [open, setOpen] = useState(false);
+  const [sourceMode, setSourceMode] = useState('standard');
+  const [selectedDates, setSelectedDates] = useState(plannerDateOptions);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [pantryFiles, setPantryFiles] = useState([]);
+  const [sourcingMode, setSourcingMode] = useState('pantry_plus_groceries');
 
-  function toYMDLocal(d){
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    const day = String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${day}`;
-  }
-  function parseYMDLocal(ymd){
-    const [y, m, d] = String(ymd || '').split('-').map(Number);
-    return new Date(y, (m || 1) - 1, d || 1);
-  }
-  function addDaysLocal(date, days){
-    const next = new Date(date);
-    next.setDate(next.getDate() + days);
-    return next;
-  }
-
-  const todayISO = toYMDLocal(new Date());
-  const activeISO = selectedISO || todayISO;
-  const selectedLabel = new Date(`${activeISO}T00:00:00`).toLocaleDateString(undefined, {
+  const selectedLabel = new Date(`${plannerStartISO}T00:00:00`).toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
   });
+  const rangeLabel = selectedDates.length
+    ? `${selectedDates[0]} through ${selectedDates[selectedDates.length - 1]}`
+    : 'No days selected';
 
-  async function handleClick({ selectedOnly }) {
+  function toggleDate(dateISO) {
+    setSelectedDates((current) => (
+      current.includes(dateISO)
+        ? current.filter((item) => item !== dateISO)
+        : plannerDateOptions.filter((item) => current.includes(item) || item === dateISO)
+    ));
+  }
+
+  function dedupeAppend(list, extras) {
+    const out = [...list];
+    for (const file of extras) {
+      const exists = out.some((item) => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified);
+      if (!exists) out.push(file);
+      if (out.length >= 3) break;
+    }
+    return out.slice(0, 3);
+  }
+
+  function resetState() {
+    setSourceMode('standard');
+    setSelectedDates(plannerDateOptions);
+    setLoading(false);
+    setError('');
+    setPantryFiles([]);
+    setSourcingMode('pantry_plus_groceries');
+  }
+
+  async function handleGenerate() {
     setLoading(true);
-    setResult(null);
+    setError('');
+
     try {
-      // Refresh session to ensure latest preferences (e.g., updated allergies)
-      let fresh = null;
-      try { fresh = await update(); } catch {}
-      const prefs = fresh?.user?.preferences || session?.user?.preferences || initialPreferences || {};
-      const targets = deriveNutritionTargets(prefs);
-      const goalList = Array.isArray(prefs.fitnessGoals)
-        ? prefs.fitnessGoals
-        : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []);
-      const selectedDate = parseYMDLocal(activeISO);
-      const startDate = activeISO;
-      const endDate = selectedOnly ? activeISO : toYMDLocal(addDaysLocal(selectedDate, 6));
-      const res = await fetch('/api/generateMealPlan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gender: prefs.gender,
-          heightFt: prefs.heightFt,
-          heightIn: prefs.heightIn,
-          weight: prefs.weight,
-          activityLevel: prefs.activityLevel,
-          fitnessGoal: prefs.fitnessGoal || goalList[0],
-          fitnessGoals: goalList,
-          mealsPerDay: prefs.mealsPerDay || 3,
-          macroTargetMode: prefs.macroTargetMode || targets.mode || 'grams',
-          calorieTarget: targets.calories,
-          proteinTarget: targets.protein,
-          carbsTarget: targets.carbs,
-          fatTarget: targets.fat,
-          proteinPctTarget: targets.proteinPct,
-          carbsPctTarget: targets.carbsPct,
-          fatPctTarget: targets.fatPct,
-          dietaryPreferences: prefs.dietaryPreferences || [],
-          dislikedFoods: prefs.dislikedFoods || [],
-          mealPrepMode: Boolean(prefs.mealPrepMode),
-          allergies: prefs.allergies || [],
-          startDate,
-          endDate
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        if (typeof onGenerated === 'function') {
-          try { await onGenerated({ ...data, selectedOnly, startDate, endDate }); } catch {}
-        } else {
-          try { router.refresh(); } catch {}
-        }
-        setResult({
-          ok: true,
-          count: Number(data?.count || 0) || (selectedOnly ? 1 : 7),
-          selectedOnly: !!selectedOnly,
-          startDate,
-          endDate,
-          selectedLabel,
-        });
-      } else {
-        setResult({ error: data?.error || 'Failed to generate meal plan.' });
+      if (!selectedDates.length) {
+        throw new Error('Select at least one day in the next week.');
       }
-    } catch (e) {
-      setResult({ error: e?.message || 'Failed to generate meal plan.' });
+
+      if (sourceMode === 'standard') {
+        let fresh = null;
+        try { fresh = await update(); } catch {}
+        const prefs = fresh?.user?.preferences || session?.user?.preferences || initialPreferences || {};
+        const targets = deriveNutritionTargets(prefs);
+        const goalList = Array.isArray(prefs.fitnessGoals)
+          ? prefs.fitnessGoals
+          : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []);
+
+        const res = await fetch('/api/generateMealPlan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gender: prefs.gender,
+            heightFt: prefs.heightFt,
+            heightIn: prefs.heightIn,
+            weight: prefs.weight,
+            activityLevel: prefs.activityLevel,
+            fitnessGoal: prefs.fitnessGoal || goalList[0],
+            fitnessGoals: goalList,
+            mealsPerDay: prefs.mealsPerDay || 3,
+            macroTargetMode: prefs.macroTargetMode || targets.mode || 'grams',
+            calorieTarget: targets.calories,
+            proteinTarget: targets.protein,
+            carbsTarget: targets.carbs,
+            fatTarget: targets.fat,
+            proteinPctTarget: targets.proteinPct,
+            carbsPctTarget: targets.carbsPct,
+            fatPctTarget: targets.fatPct,
+            dietaryPreferences: prefs.dietaryPreferences || [],
+            dislikedFoods: prefs.dislikedFoods || [],
+            mealPrepMode: Boolean(prefs.mealPrepMode),
+            allergies: prefs.allergies || [],
+            targetDates: selectedDates,
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Failed to generate meal plan.');
+        if (typeof onGenerated === 'function') {
+          await onGenerated({
+            ...data,
+            startDate: selectedDates[0],
+            endDate: selectedDates[selectedDates.length - 1],
+            targetDates: selectedDates,
+          });
+        }
+      } else {
+        if (!pantryFiles.length) {
+          throw new Error('Add 1-3 pantry or fridge photos first.');
+        }
+        const formData = new FormData();
+        pantryFiles.slice(0, 3).forEach((file) => formData.append('photos', file));
+        selectedDates.forEach((dateISO) => formData.append('targetDates', dateISO));
+        formData.append('sourcingMode', sourcingMode);
+        formData.append('unitSystem', 'imperial');
+
+        const res = await fetch('/api/pantry/generateMealPlan', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (data?.code === 'moderation_blocked') {
+            throw new Error('Image blocked by content safety checks. Please upload pantry or fridge photos.');
+          }
+          throw new Error(data?.error || 'Failed to generate pantry or fridge meal plan.');
+        }
+        if (typeof onGenerated === 'function') {
+          await onGenerated({
+            ...data,
+            startDate: selectedDates[0],
+            endDate: selectedDates[selectedDates.length - 1],
+            targetDates: selectedDates,
+          });
+        }
+      }
+
+      setOpen(false);
+      resetState();
+    } catch (err) {
+      setError(err.message || 'Failed to generate meal plan.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="stack">
-      <button className="btn btn-primary btn-full" onClick={() => handleClick({ selectedOnly: true })} disabled={loading}>
-        {loading ? 'Generating…' : `Create or Replace Meal Plan for ${selectedLabel}`}
+    <>
+      <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
+        Generate meals
       </button>
-      <button className="btn btn-secondary btn-full" onClick={() => handleClick({ selectedOnly: false })} disabled={loading}>
-        {loading ? 'Generating…' : `Create Meal Plans for ${selectedLabel} + Next 6 Days`}
-      </button>
-      {result?.ok && (
-        <div className="alert alert-success">
-          {result.selectedOnly
-            ? `Created or replaced meals for ${result.selectedLabel}.`
-            : `Created or replaced meal plans for ${result.count} days, from ${result.startDate} through ${result.endDate}.`}
+
+      <div className="modal" aria-hidden={!open} role="dialog" aria-modal="true" aria-labelledby="generateMealPlanTitle">
+        <div className="modal-backdrop" onClick={() => setOpen(false)} />
+        <div className="modal-dialog tracker-modal tracker-modal-soft">
+          <header className="modal-head tracker-modal-head">
+            <div>
+              <div className="eyebrow">Meal planner</div>
+              <h3 id="generateMealPlanTitle">Generate meals</h3>
+              <div className="sub">Build meals for the next 7 days starting {selectedLabel}. Leave the full week checked or uncheck any days you do not want.</div>
+            </div>
+            <button type="button" className="modal-close-icon" onClick={() => setOpen(false)} aria-label="Close meal planner">
+              <span aria-hidden="true">✕</span>
+            </button>
+          </header>
+
+          <div className="modal-body tracker-modal-body">
+            <section className="tracker-section">
+              <div className="tracker-label-row">
+                <span className="planner-head">Which days?</span>
+                <span className="muted text-xs">{selectedDates.length} selected</span>
+              </div>
+              <div className="planner-date-strip-scroll">
+                {plannerDateOptions.map((dateISO) => {
+                  const active = selectedDates.includes(dateISO);
+                  const date = new Date(`${dateISO}T00:00:00`);
+                  const weekday = date.toLocaleDateString(undefined, { weekday: 'short' });
+                  const dayNumber = date.toLocaleDateString(undefined, { day: 'numeric' });
+                  return (
+                    <button
+                      key={dateISO}
+                      type="button"
+                      className={`planner-date-pill${active ? ' planner-date-pill-active' : ''}`}
+                      onClick={() => toggleDate(dateISO)}
+                      aria-pressed={active}
+                    >
+                      <span className="dow">{weekday}</span>
+                      <span className="dom">{dayNumber}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="muted text-xs">
+                {rangeLabel}
+              </div>
+            </section>
+
+            <section className="tracker-section">
+              <div className="planner-head">What should this plan use?</div>
+              <div className="tracker-mode-grid">
+                {SOURCE_OPTIONS.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`exercise-pill ${sourceMode === option.id ? 'exercise-pill-active' : ''}`}
+                    onClick={() => setSourceMode(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <div className="muted text-xs">
+                Both options still use your saved calorie, macro, and food preferences. Pantry / fridge assisted also looks at your uploaded photos.
+              </div>
+            </section>
+
+            {sourceMode === 'pantry' && (
+              <section className="tracker-section">
+                <div className="tracker-capture-card">
+                  <div className="page-hero-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => pantryCameraRef.current?.click()}
+                      disabled={pantryFiles.length >= 3}
+                    >
+                      Take pantry / fridge photo
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => pantryLibraryRef.current?.click()}
+                      disabled={pantryFiles.length >= 3}
+                    >
+                      Choose photos
+                    </button>
+                    <span className="muted text-xs">{pantryFiles.length}/3 selected</span>
+                  </div>
+
+                  <input
+                    ref={pantryCameraRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const nextFiles = Array.from(e.target.files || []);
+                      setPantryFiles((current) => dedupeAppend(current, nextFiles));
+                      if (e.target) e.target.value = '';
+                    }}
+                  />
+                  <input
+                    ref={pantryLibraryRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const nextFiles = Array.from(e.target.files || []);
+                      setPantryFiles((current) => dedupeAppend(current, nextFiles));
+                      if (e.target) e.target.value = '';
+                    }}
+                  />
+
+                  {pantryFiles.length > 0 && (
+                    <div className="tracker-library-list">
+                      {pantryFiles.map((file, index) => (
+                        <div key={`${file.name}-${index}`} className="tracker-library-item">
+                          <div>
+                            <div className="planner-head">{file.name}</div>
+                            <div className="sub">Pantry or fridge photo</div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={() => setPantryFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="tracker-label-row">
+                    <span className="muted">Source ingredients</span>
+                    <select value={sourcingMode} onChange={(e) => setSourcingMode(e.target.value)} style={{ minWidth: 200 }}>
+                      <option value="pantry_plus_groceries">What I have + groceries</option>
+                      <option value="pantry_only">Just what I have</option>
+                    </select>
+                  </div>
+                  <div className="muted text-xs">
+                    {sourcingMode === 'pantry_only'
+                      ? 'Just what I have keeps the plan constrained to visible pantry or fridge items, plus only minimal staples when necessary.'
+                      : 'What I have + groceries starts with visible pantry or fridge items and lets the planner round out meals with realistic shopping.'}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {error && <div className="muted" style={{ color: 'var(--danger)' }}>{error}</div>}
+          </div>
+
+          <footer className="modal-foot tracker-modal-foot">
+            <button type="button" className="btn btn-ghost" onClick={resetState}>Reset</button>
+            <button type="button" className="btn btn-primary" disabled={loading} onClick={handleGenerate}>
+              {loading ? 'Generating…' : `Generate ${selectedDates.length} ${selectedDates.length === 1 ? 'day' : 'days'}`}
+            </button>
+          </footer>
         </div>
-      )}
-      {result?.error && (
-        <div className="alert alert-error">
-          {String(result.error)}
-        </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }

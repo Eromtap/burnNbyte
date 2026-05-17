@@ -8,11 +8,10 @@ import Link from "next/link";
 import { sumMealMacros, formatMacro } from "@/lib/macros";
 import { labelForFitnessGoal } from "@/constants/fitnessGoals";
 import { deriveNutritionTargets } from "@/lib/nutritionTargets";
-import ReplaceMealButton from "@/components/ReplaceMealButton";
-import MealCompletionToggle from "@/components/MealCompletionToggle";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import CheatPlanner from "@/components/CheatPlanner";
 import MobileDisclosure from "@/components/MobileDisclosure";
+import HomeMealsCard from "@/components/HomeMealsCard";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -100,22 +99,6 @@ function buildHeroContent({ workout, mealPlan, completionPct, primaryGoal }) {
   };
 }
 
-function getInitialOpenMealType(groupedMeals) {
-  const orderedTypes = ["breakfast", "lunch", "dinner", "snack"];
-  const firstIncomplete = orderedTypes.find((type) =>
-    (groupedMeals[type] || []).some((meal) => !meal?.isCompleted)
-  );
-  if (firstIncomplete) return firstIncomplete;
-
-  const firstAvailable = orderedTypes.find((type) => (groupedMeals[type] || []).length > 0);
-  return firstAvailable || "breakfast";
-}
-
-function formatCost(value) {
-  if (value == null || Number.isNaN(Number(value))) return null;
-  return `$${Number(value).toFixed(2)}`;
-}
-
 export default async function HomePage() {
   const headerStore = await headers();
   const timeZoneCandidate =
@@ -135,22 +118,19 @@ export default async function HomePage() {
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
   const today = toUTCDateFromLocalYMD(todayISO);
 
-  const [workout, mealPlan] = await Promise.all([
+  const [workout, mealPlan, libraryItems] = await Promise.all([
     prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } }),
+    prisma.mealLibraryItem.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 24,
+    }),
   ]);
 
   const mealMacros = sumMealMacros(mealPlan?.meals || []);
   const completedMeals = (mealPlan?.meals || []).filter((m) => m.isCompleted);
   const consumedMacros = sumMealMacros(completedMeals);
-  const grouped = (mealPlan?.meals || []).reduce((acc, meal) => {
-    const type = (meal.type || "").toLowerCase();
-    acc[type] = acc[type] || [];
-    acc[type].push(meal);
-    return acc;
-  }, {});
-  const initialOpenMealType = getInitialOpenMealType(grouped);
-
   const mealCalories = mealMacros.calories;
   const consumedCalories = consumedMacros.calories;
 
@@ -323,67 +303,11 @@ export default async function HomePage() {
               </article>
           </MobileDisclosure>
 
-          <MobileDisclosure
-            className="mobile-disclosure dashboard-disclosure"
-            summaryClassName="mobile-disclosure-summary dashboard-summary"
-            panelClassName="mobile-disclosure-panel"
-            summary={
-              <>
-                <span className="planner-head">What I&apos;m eating today</span>
-                <span className="mobile-disclosure-meta">{mealPlan?.meals?.length || 0} meals</span>
-              </>
-            }
-          >
-              <article className="card span-2 brand-feed-card">
-                <header className="card-head">
-                  <div>
-                    <h3>What I&apos;m eating today</h3>
-                    <div className="sub">Meal-by-meal tracking in a format that feels more like a curated daily feed.</div>
-                  </div>
-                  <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Go to meal page</Link>
-                </header>
-                <div className="planner brand-feed-grid">
-                  {["breakfast", "lunch", "dinner", "snack"].map((type) => (
-                    <MobileDisclosure
-                      key={type}
-                      className="brand-feed-item mobile-disclosure"
-                      summaryClassName="mobile-disclosure-summary brand-feed-item-summary"
-                      panelClassName="mobile-disclosure-panel"
-                      defaultOpenMobile={type === initialOpenMealType}
-                      summary={
-                        <>
-                          <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
-                          <span className="mobile-disclosure-meta">{(grouped[type] || []).length} item{(grouped[type] || []).length === 1 ? "" : "s"}</span>
-                        </>
-                      }
-                    >
-                        <div className="brand-feed-head">
-                          <div>
-                            <div className="metric-label">{type}</div>
-                            <div className="planner-head" style={{ textTransform: 'capitalize' }}>My {type}</div>
-                          </div>
-                          <ReplaceMealButton dateISO={todayISO} type={type} className="btn btn-secondary" label="Swap it" />
-                        </div>
-                        {(grouped[type] || []).length ? (
-                          (grouped[type] || []).map((meal) => (
-                            <div key={meal.id} className="list-row brand-feed-row">
-                              <Link href={`/meals?date=${todayISO}#meal-${type}`} className="brand-feed-link">
-                                <strong>{meal.name}</strong>
-                                <div className="muted brand-feed-meta">
-                                  {meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat{formatCost(meal.costPerServing) ? ` • ~${formatCost(meal.costPerServing)}/serving` : ''}
-                                </div>
-                              </Link>
-                              <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
-                            </div>
-                          ))
-                        ) : (
-                          <div className="list-row brand-feed-row"><span className="muted">No {type} planned.</span></div>
-                        )}
-                    </MobileDisclosure>
-                  ))}
-                </div>
-              </article>
-          </MobileDisclosure>
+          <HomeMealsCard
+            todayISO={todayISO}
+            initialMealPlan={mealPlan}
+            initialLibraryItems={libraryItems}
+          />
 
           <CheatPlanner currentDateISO={todayISO} />
         </section>

@@ -32,6 +32,7 @@ export async function POST(req) {
     const dateIso = (form.get("date") || "").toString().slice(0, 10);
     const baseUtc = toUTCDateFromLocalYMD(dateIso);
     const portion = (form.get("portion") || "medium").toString().toLowerCase();
+    const foodDescription = (form.get("foodDescription") || "").toString().trim();
     const portionNote = (form.get("portionNote") || "").toString();
     const portionHint = (() => {
       if (portion === "small") return "Portion size hint: small / light portion (~0.6x standard).";
@@ -99,8 +100,8 @@ export async function POST(req) {
             "Infer portion size from visual cues (plate size, utensils, hands, container) and DO NOT assume a default serving; scale strictly to the amount visible.",
             "Base calories on estimated portion mass/volume. When uncertain, pick a mid-point estimate and avoid extreme under-counts.",
             "Return a short meal name, key ingredients (2-6), and a brief note that states the portion assumption (e.g., '~320g total (~1.3 cups)').",
+            foodDescription ? `User's description of the food: ${foodDescription}` : "",
             portionHint,
-            portionNote ? `User description: ${portionNote}` : "",
             "Respond ONLY with JSON that matches the schema."
           ].join("\n")
         },

@@ -52,7 +52,14 @@ export default async function MealsPage({ searchParams }){
   const selectedISO = paramDate ? String(paramDate) : todayISO;
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
-  const mealPlan = await prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } });
+  const [mealPlan, libraryItems] = await Promise.all([
+    prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } }),
+    prisma.mealLibraryItem.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      take: 24,
+    }),
+  ]);
   const canReadMealFeedback = typeof prisma.mealFeedback?.findMany === "function";
   const feedbackRows = canReadMealFeedback && mealPlan?.meals?.length
     ? await prisma.mealFeedback.findMany({
@@ -73,6 +80,7 @@ export default async function MealsPage({ searchParams }){
           initialSelectedISO={selectedISO}
           initialMealPlan={mealPlan}
           initialMealFeedback={mealFeedback}
+          initialLibraryItems={libraryItems}
         />
       </div>
     </main>
