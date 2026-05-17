@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Dashboard' },
   { href: '/workouts', label: 'Workouts' },
   { href: '/meals', label: 'Meals' },
+  { href: '/meal-library', label: 'Meal Library' },
   { href: '/progress', label: 'Progress' },
   { href: '/healthCalendar', label: 'Calendar' },
   { href: '/profile', label: 'Profile' },
