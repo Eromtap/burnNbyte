@@ -27,22 +27,6 @@ function emptyDraft(type = 'snack') {
   };
 }
 
-function buildDraftFromLibraryItem(item, fallbackType = 'snack') {
-  return {
-    type: item?.defaultMealType || fallbackType,
-    name: item?.name || '',
-    description: item?.description || '',
-    portionNote: '',
-    calories: item?.calories ?? '',
-    costPerServing: item?.costPerServing ?? '',
-    protein: item?.protein ?? '',
-    carbs: item?.carbs ?? '',
-    fat: item?.fat ?? '',
-    ingredientsText: Array.isArray(item?.ingredients) ? item.ingredients.join('\n') : '',
-    recipe: item?.recipe || '',
-  };
-}
-
 function libraryKindLabel(kind) {
   return kind === 'FOOD' ? 'Food' : 'Meal';
 }
@@ -66,34 +50,59 @@ export default function AddFoodPanel({
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [estimateNotes, setEstimateNotes] = useState('');
+  const [hasEstimateResult, setHasEstimateResult] = useState(false);
+  const [saveAttempted, setSaveAttempted] = useState(false);
   const [error, setError] = useState('');
   const [saveToLibrary, setSaveToLibrary] = useState(false);
   const [libraryKind, setLibraryKind] = useState('FOOD');
   const [markCompleted, setMarkCompleted] = useState(true);
   const [libraryItems, setLibraryItems] = useState(initialLibraryItems);
   const [libraryFilter, setLibraryFilter] = useState('ALL');
+  const [librarySearch, setLibrarySearch] = useState('');
+  const [selectedLibraryItemId, setSelectedLibraryItemId] = useState('');
+  const [savedPortionNote, setSavedPortionNote] = useState('');
 
   useEffect(() => {
     setLibraryItems(initialLibraryItems);
   }, [initialLibraryItems]);
 
   useEffect(() => {
-    setDraft((current) => ({ ...current, type: initialType || current.type }));
     if (open) {
-      setMode('text');
-      setError('');
+      resetComposer(initialType || 'snack');
     }
   }, [initialType, typeSignal, open]);
 
   const filteredLibraryItems = useMemo(() => (
-    libraryItems.filter((item) => libraryFilter === 'ALL' || item.kind === libraryFilter)
-  ), [libraryFilter, libraryItems]);
+    libraryItems.filter((item) => {
+      if (libraryFilter !== 'ALL' && item.kind !== libraryFilter) return false;
+      const search = librarySearch.trim().toLowerCase();
+      if (!search) return true;
+      const haystack = [
+        item?.name,
+        item?.description,
+        Array.isArray(item?.ingredients) ? item.ingredients.join(' ') : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(search);
+    })
+  ), [libraryFilter, libraryItems, librarySearch]);
+  const selectedLibraryItem = useMemo(
+    () => libraryItems.find((item) => item.id === selectedLibraryItemId) || null,
+    [libraryItems, selectedLibraryItemId]
+  );
 
   const hasEstimateInput = Boolean(photoFile || draft.description.trim());
   const showNameField = mode === 'saved' || Boolean(draft.name.trim());
-  const reviewReady = Boolean(draft.name.trim());
+  const reviewReady = hasEstimateResult && Boolean(draft.name.trim());
+  const needsEstimateBeforeSave = mode !== 'saved' && !hasEstimateResult;
 
   function updateDraft(key, value) {
+    if (['type', 'description', 'portionNote'].includes(key)) {
+      setHasEstimateResult(false);
+      setSaveAttempted(false);
+    }
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
@@ -103,11 +112,16 @@ export default function AddFoodPanel({
     setPhotoFile(null);
     setPantryFiles([]);
     setEstimateNotes('');
+    setHasEstimateResult(false);
+    setSaveAttempted(false);
     setError('');
     setSaveToLibrary(false);
     setLibraryKind('FOOD');
     setMarkCompleted(true);
     setLibraryFilter('ALL');
+    setLibrarySearch('');
+    setSelectedLibraryItemId('');
+    setSavedPortionNote('');
   }
 
   async function handleEstimate() {
@@ -141,6 +155,8 @@ export default function AddFoodPanel({
         recipe: data?.recipe ?? current.recipe,
       }));
       setEstimateNotes(data?.notes || '');
+      setHasEstimateResult(true);
+      setSaveAttempted(false);
     } catch (err) {
       setError(err.message || 'Failed to estimate meal.');
     } finally {
@@ -190,6 +206,8 @@ export default function AddFoodPanel({
         recipe: meal?.recipe ?? current.recipe,
       }));
       setEstimateNotes(`Built from ${pantryFiles.length} pantry or fridge photo${pantryFiles.length === 1 ? '' : 's'}.`);
+      setHasEstimateResult(true);
+      setSaveAttempted(false);
     } catch (err) {
       setError(err.message || 'Failed to generate pantry or fridge meal.');
     } finally {
@@ -217,6 +235,11 @@ export default function AddFoodPanel({
   }
 
   async function handleSave() {
+    if (!reviewReady) {
+      setSaveAttempted(true);
+      return;
+    }
+
     setSaveLoading(true);
     setError('');
 
@@ -247,21 +270,50 @@ export default function AddFoodPanel({
     }
   }
 
-  async function quickAddLibraryItem(item) {
+  async function handleAddSavedItem() {
+    if (!selectedLibraryItem) {
+      setError('Choose a saved food or meal first.');
+      return;
+    }
+
     setSaveLoading(true);
     setError('');
+    setEstimateNotes('');
 
     try {
+      const descriptionParts = [
+        `Saved ${libraryKindLabel(selectedLibraryItem.kind).toLowerCase()}: ${selectedLibraryItem.name}.`,
+        selectedLibraryItem.description ? `Saved description: ${selectedLibraryItem.description}.` : '',
+        `Reference nutrition for the usual saved portion: ${selectedLibraryItem.calories ?? 0} kcal, ${formatMacro(selectedLibraryItem.protein)}g protein, ${formatMacro(selectedLibraryItem.carbs)}g carbs, ${formatMacro(selectedLibraryItem.fat)}g fat.`,
+        Array.isArray(selectedLibraryItem.ingredients) && selectedLibraryItem.ingredients.length
+          ? `Likely ingredients: ${selectedLibraryItem.ingredients.join(', ')}.`
+          : '',
+      ].filter(Boolean).join(' ');
+
+      const formData = new FormData();
+      formData.append('description', descriptionParts);
+      formData.append('portionNote', savedPortionNote.trim() || 'Use the standard saved portion.');
+      formData.append('type', draft.type);
+
+      const estimateRes = await fetch('/api/mealPlans/estimate', {
+        method: 'POST',
+        body: formData,
+      });
+      const estimateData = await estimateRes.json().catch(() => ({}));
+      if (!estimateRes.ok) {
+        throw new Error(estimateData?.error || 'Failed to estimate saved item.');
+      }
+
       const data = await saveMeal({
-        type: item?.defaultMealType || draft.type,
-        name: item?.name,
-        calories: item?.calories,
-        costPerServing: item?.costPerServing,
-        protein: item?.protein,
-        carbs: item?.carbs,
-        fat: item?.fat,
-        ingredients: item?.ingredients || [],
-        recipe: item?.recipe || '',
+        type: draft.type,
+        name: estimateData?.name || selectedLibraryItem.name,
+        calories: estimateData?.calories ?? selectedLibraryItem.calories,
+        costPerServing: estimateData?.costPerServing ?? selectedLibraryItem.costPerServing,
+        protein: estimateData?.protein ?? selectedLibraryItem.protein,
+        carbs: estimateData?.carbs ?? selectedLibraryItem.carbs,
+        fat: estimateData?.fat ?? selectedLibraryItem.fat,
+        ingredients: estimateData?.ingredients || selectedLibraryItem.ingredients || [],
+        recipe: estimateData?.recipe || selectedLibraryItem.recipe || '',
       }, {
         saveToLibrary: false,
       });
@@ -269,7 +321,7 @@ export default function AddFoodPanel({
       if (typeof onSaved === 'function') {
         await onSaved(data);
       }
-      resetComposer(item?.defaultMealType || draft.type);
+      resetComposer(draft.type);
     } catch (err) {
       setError(err.message || 'Failed to add saved item.');
     } finally {
@@ -369,6 +421,8 @@ export default function AddFoodPanel({
                   onChange={(event) => {
                     const nextFile = event.target.files?.[0] || null;
                     setPhotoFile(nextFile);
+                    setHasEstimateResult(false);
+                    setSaveAttempted(false);
                     if (event.target) event.target.value = '';
                   }}
                 />
@@ -425,6 +479,8 @@ export default function AddFoodPanel({
                   onChange={(event) => {
                     const nextFiles = Array.from(event.target.files || []);
                     setPantryFiles((current) => dedupeAppend(current, nextFiles));
+                    setHasEstimateResult(false);
+                    setSaveAttempted(false);
                     if (event.target) event.target.value = '';
                   }}
                 />
@@ -437,6 +493,8 @@ export default function AddFoodPanel({
                   onChange={(event) => {
                     const nextFiles = Array.from(event.target.files || []);
                     setPantryFiles((current) => dedupeAppend(current, nextFiles));
+                    setHasEstimateResult(false);
+                    setSaveAttempted(false);
                     if (event.target) event.target.value = '';
                   }}
                 />
@@ -481,183 +539,226 @@ export default function AddFoodPanel({
                     <option value="MEAL">Meals</option>
                   </select>
                 </div>
-                <div className="tracker-library-list">
+                <input
+                  type="text"
+                  placeholder="Search saved foods and meals"
+                  value={librarySearch}
+                  onChange={(event) => setLibrarySearch(event.target.value)}
+                />
+                <div className="tracker-library-list tracker-library-list-scroll">
                   {filteredLibraryItems.length ? filteredLibraryItems.map((item) => (
-                    <div key={item.id} className="tracker-library-item">
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`tracker-library-item tracker-library-item-select${selectedLibraryItemId === item.id ? ' tracker-library-item-active' : ''}`}
+                      onClick={() => setSelectedLibraryItemId(item.id)}
+                    >
                       <div>
                         <div className="planner-head">{item.name}</div>
-                        <div className="sub">{libraryKindLabel(item.kind)}{item.defaultMealType ? ` • ${item.defaultMealType}` : ''}</div>
+                        <div className="sub">{libraryKindLabel(item.kind)}</div>
                         <div className="muted text-xs">
                           {item.calories ?? 0} kcal • {formatMacro(item.protein)}g protein • {formatMacro(item.carbs)}g carbs • {formatMacro(item.fat)}g fat
                         </div>
                       </div>
-                      <div className="page-hero-actions">
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setDraft(buildDraftFromLibraryItem(item, draft.type));
-                            setMode('text');
-                          }}
-                        >
-                          Review
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          onClick={() => quickAddLibraryItem(item)}
-                          disabled={saveLoading}
-                        >
-                          Quick add
-                        </button>
-                      </div>
-                    </div>
+                    </button>
                   )) : (
-                    <div className="muted">Save foods or meals during logging and they will appear here.</div>
+                    <div className="muted">
+                      {librarySearch.trim()
+                        ? 'No saved foods or meals match that search.'
+                        : 'Save foods or meals during logging and they will appear here.'}
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
-          </section>
-
-          <section className="tracker-section">
-            <div className="tracker-label-row">
-              <span className="planner-head">3. Review before saving</span>
-              {estimateNotes && <span className="muted text-xs">{estimateNotes}</span>}
-            </div>
-
-            <div className="tracker-review-card">
-              {showNameField ? (
-                <input
-                  type="text"
-                  placeholder="Meal name"
-                  value={draft.name}
-                  onChange={(event) => updateDraft('name', event.target.value)}
-                />
-              ) : (
-                <div className="muted text-xs">
-                  Run the estimate first and you can rename the saved meal before it gets logged.
-                </div>
-              )}
-              <div className="tracker-macro-row">
-                <div className="tracker-metric">
-                  <span className="metric-label">Calories</span>
-                  <strong>{draft.calories || 0}</strong>
-                </div>
-                <div className="tracker-metric">
-                  <span className="metric-label">Protein</span>
-                  <strong>{formatMacro(draft.protein)}g</strong>
-                </div>
-                <div className="tracker-metric">
-                  <span className="metric-label">Carbs</span>
-                  <strong>{formatMacro(draft.carbs)}g</strong>
-                </div>
-                <div className="tracker-metric">
-                  <span className="metric-label">Fat</span>
-                  <strong>{formatMacro(draft.fat)}g</strong>
-                </div>
-              </div>
-
-              {reviewReady && (
-                <details className="tracker-advanced">
-                  <summary>Edit nutrition manually</summary>
-                  <div className="tracker-advanced-grid">
+                {selectedLibraryItem && (
+                  <div className="tracker-saved-action-card">
+                    <div>
+                      <div className="planner-head">{selectedLibraryItem.name}</div>
+                      <div className="sub">Optional portion note if you ate more or less than the usual saved amount.</div>
+                    </div>
                     <input
-                      type="number"
-                      step="1"
-                      placeholder="Calories"
-                      value={draft.calories}
-                      onChange={(event) => updateDraft('calories', event.target.value)}
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Cost"
-                      value={draft.costPerServing}
-                      onChange={(event) => updateDraft('costPerServing', event.target.value)}
-                    />
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="Protein (g)"
-                      value={draft.protein}
-                      onChange={(event) => updateDraft('protein', event.target.value)}
-                    />
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="Carbs (g)"
-                      value={draft.carbs}
-                      onChange={(event) => updateDraft('carbs', event.target.value)}
-                    />
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="Fat (g)"
-                      value={draft.fat}
-                      onChange={(event) => updateDraft('fat', event.target.value)}
-                    />
-                    <textarea
-                      placeholder="Ingredients, one per line"
-                      value={draft.ingredientsText}
-                      onChange={(event) => updateDraft('ingredientsText', event.target.value)}
-                      rows={5}
-                    />
-                    <textarea
-                      placeholder="Recipe or prep notes"
-                      value={draft.recipe}
-                      onChange={(event) => updateDraft('recipe', event.target.value)}
-                      rows={5}
+                      type="text"
+                      placeholder="Optional portion note, for example 1.5 servings or half portion"
+                      value={savedPortionNote}
+                      onChange={(event) => setSavedPortionNote(event.target.value)}
                     />
                   </div>
-                </details>
-              )}
-            </div>
-          </section>
-
-          <section className="tracker-section">
-            <div className="tracker-save-row">
-              <label className="tracker-toggle-card">
-                <input
-                  type="checkbox"
-                  checked={markCompleted}
-                  onChange={(event) => setMarkCompleted(event.target.checked)}
-                />
-                <span>
-                  <strong>Count as eaten now</strong>
-                  <small>Include it in today&apos;s progress immediately.</small>
-                </span>
-              </label>
-
-              <label className="tracker-toggle-card">
-                <input
-                  type="checkbox"
-                  checked={saveToLibrary}
-                  onChange={(event) => setSaveToLibrary(event.target.checked)}
-                />
-                <span>
-                  <strong>Save to library</strong>
-                  <small>Reuse it later without re-entering everything.</small>
-                </span>
-              </label>
-            </div>
-
-            {saveToLibrary && (
-              <select value={libraryKind} onChange={(event) => setLibraryKind(event.target.value)} style={{ minWidth: 140 }}>
-                <option value="FOOD">Save as food</option>
-                <option value="MEAL">Save as meal</option>
-              </select>
+                )}
+              </div>
             )}
           </section>
+
+          {mode !== 'saved' && (
+            <>
+              <section className="tracker-section">
+                <div className="tracker-label-row">
+                  <span className="planner-head">3. Review before saving</span>
+                  {estimateNotes && <span className="muted text-xs">{estimateNotes}</span>}
+                </div>
+
+                <div className="tracker-review-card">
+                  {showNameField ? (
+                    <input
+                      type="text"
+                      placeholder="Meal name"
+                      value={draft.name}
+                      onChange={(event) => updateDraft('name', event.target.value)}
+                    />
+                  ) : (
+                    <div className="muted text-xs">
+                      Run the estimate first and you can rename the saved meal before it gets logged.
+                    </div>
+                  )}
+                  <div className="tracker-macro-row">
+                    <div className="tracker-metric">
+                      <span className="metric-label">Calories</span>
+                      <strong>{draft.calories || 0}</strong>
+                    </div>
+                    <div className="tracker-metric">
+                      <span className="metric-label">Protein</span>
+                      <strong>{formatMacro(draft.protein)}g</strong>
+                    </div>
+                    <div className="tracker-metric">
+                      <span className="metric-label">Carbs</span>
+                      <strong>{formatMacro(draft.carbs)}g</strong>
+                    </div>
+                    <div className="tracker-metric">
+                      <span className="metric-label">Fat</span>
+                      <strong>{formatMacro(draft.fat)}g</strong>
+                    </div>
+                  </div>
+
+                  {reviewReady && (
+                    <details className="tracker-advanced">
+                      <summary>Edit nutrition manually</summary>
+                      <div className="tracker-advanced-grid">
+                        <input
+                          type="number"
+                          step="1"
+                          placeholder="Calories"
+                          value={draft.calories}
+                          onChange={(event) => updateDraft('calories', event.target.value)}
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          placeholder="Cost"
+                          value={draft.costPerServing}
+                          onChange={(event) => updateDraft('costPerServing', event.target.value)}
+                        />
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Protein (g)"
+                          value={draft.protein}
+                          onChange={(event) => updateDraft('protein', event.target.value)}
+                        />
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Carbs (g)"
+                          value={draft.carbs}
+                          onChange={(event) => updateDraft('carbs', event.target.value)}
+                        />
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="Fat (g)"
+                          value={draft.fat}
+                          onChange={(event) => updateDraft('fat', event.target.value)}
+                        />
+                        <textarea
+                          placeholder="Ingredients, one per line"
+                          value={draft.ingredientsText}
+                          onChange={(event) => updateDraft('ingredientsText', event.target.value)}
+                          rows={5}
+                        />
+                        <textarea
+                          placeholder="Recipe or prep notes"
+                          value={draft.recipe}
+                          onChange={(event) => updateDraft('recipe', event.target.value)}
+                          rows={5}
+                        />
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </section>
+
+              <section className="tracker-section">
+                <div className="tracker-save-row">
+                  <label className="tracker-toggle-card">
+                    <input
+                      type="checkbox"
+                      checked={markCompleted}
+                      onChange={(event) => setMarkCompleted(event.target.checked)}
+                    />
+                    <span>
+                      <strong>Count as eaten now</strong>
+                      <small>Include it in today&apos;s progress immediately.</small>
+                    </span>
+                  </label>
+
+                  <label className="tracker-toggle-card">
+                    <input
+                      type="checkbox"
+                      checked={saveToLibrary}
+                      onChange={(event) => setSaveToLibrary(event.target.checked)}
+                    />
+                    <span>
+                      <strong>Save to library</strong>
+                      <small>Reuse it later without re-entering everything.</small>
+                    </span>
+                  </label>
+                </div>
+
+                {saveToLibrary && (
+                  <select value={libraryKind} onChange={(event) => setLibraryKind(event.target.value)} style={{ minWidth: 140 }}>
+                    <option value="FOOD">Save as food</option>
+                    <option value="MEAL">Save as meal</option>
+                  </select>
+                )}
+              </section>
+            </>
+          )}
+
+          {mode === 'saved' && (
+            <section className="tracker-section">
+              <div className="tracker-save-row tracker-save-row-single">
+                <label className="tracker-toggle-card">
+                  <input
+                    type="checkbox"
+                    checked={markCompleted}
+                    onChange={(event) => setMarkCompleted(event.target.checked)}
+                  />
+                  <span>
+                    <strong>Count as eaten now</strong>
+                    <small>Include it in today&apos;s progress immediately.</small>
+                  </span>
+                </label>
+              </div>
+            </section>
+          )}
 
           {error && <div className="muted" style={{ color: 'var(--danger)' }}>{error}</div>}
         </div>
 
         <footer className="modal-foot tracker-modal-foot">
           <button type="button" className="btn btn-ghost" onClick={() => resetComposer(draft.type)}>Reset</button>
-          <button type="button" className="btn btn-primary" disabled={saveLoading || !reviewReady} onClick={handleSave}>
-            {saveLoading ? 'Saving…' : 'Save to day'}
-          </button>
+          <div className="tracker-footer-actions">
+            {saveAttempted && needsEstimateBeforeSave && (
+              <div className="tracker-save-hint">
+                Hit <strong>Estimate meal</strong> first so you can review it before saving.
+              </div>
+            )}
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={saveLoading || (mode === 'saved' ? !selectedLibraryItem : false)}
+              onClick={mode === 'saved' ? handleAddSavedItem : handleSave}
+            >
+              {saveLoading ? 'Saving…' : mode === 'saved' ? 'Estimate and save' : 'Save to day'}
+            </button>
+          </div>
         </footer>
       </div>
     </div>
