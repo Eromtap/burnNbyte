@@ -24,6 +24,7 @@ export async function POST(req) {
     const form = await req.formData();
     const unitSystem = (form.get("unitSystem") || "imperial").toString();
     const days = Math.min(7, Math.max(1, Number(form.get("days") || 3)));
+    const sourcingMode = (form.get("sourcingMode") || "pantry_plus_groceries").toString();
 
     // Support up to 3 images. Prefer 'photos' (multi) but allow legacy 'photo'.
     let photos = form.getAll("photos").filter(Boolean);
@@ -148,8 +149,10 @@ export async function POST(req) {
       content: [
         { type: "text", text: [
           "You are a nutrition assistant.",
-          `Analyze the pantry photo and list recognizable edible items (ingredients).`,
-          `Then propose ${days} meals that primarily use those items and respect these constraints:`,
+          `Analyze the pantry or fridge photo and list recognizable edible items (ingredients).`,
+          sourcingMode === "pantry_only"
+            ? `Then propose ${days} meals using only those visible items plus basic pantry staples only when absolutely necessary (salt, pepper, water, common oil). Do not assume a grocery trip.`
+            : `Then propose ${days} meals that primarily use those items and can be rounded out with a realistic grocery trip when needed.`,
           `- fitnessGoals: ${JSON.stringify(goalForPrompt)}`,
           `- dailyCalorieTarget: ${JSON.stringify(macroTargets.calories)}`,
           `- dailyMacroTargetsInGrams: ${JSON.stringify({ protein: macroTargets.protein, carbs: macroTargets.carbs, fat: macroTargets.fat })}`,
@@ -161,7 +164,11 @@ export async function POST(req) {
           `- likedMeals older than 14 days: ${JSON.stringify(likedMeals)}`,
           `- recentLikedMeals to avoid repeating unless mealPrepMode is true: ${JSON.stringify(recentLikedMeals)}`,
           `- units: ${unitSystem}`,
+          `- sourcingMode: ${sourcingMode}`,
           `- if mealPrepMode is true, prefer batch-cook, storage-friendly pantry meals that can be repeated for several weekday servings`,
+          sourcingMode === "pantry_only"
+            ? `- every suggested meal should be feasible from the visible pantry or fridge items without assuming missing proteins, produce, or grains`
+            : `- when the visible items are incomplete, you may add a small number of realistic grocery items to make complete meals`,
           `- treat calorie and macro targets as goals to get close to, not exact hard requirements`,
           `- if a calorie target is provided, keep each meal day's total calories reasonably close to it`,
           `- if macro targets are provided, keep the combined protein/carbs/fat reasonably close to them while staying realistic`,
@@ -188,7 +195,7 @@ export async function POST(req) {
     try { out = JSON.parse(content); }
     catch { return NextResponse.json({ error: "Failed to parse AI response" }, { status: 502 }); }
 
-    return NextResponse.json({ unitSystem, days, ...out });
+    return NextResponse.json({ unitSystem, days, sourcingMode, ...out });
   } catch (err) {
     console.error("pantry/plan POST failed", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

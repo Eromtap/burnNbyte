@@ -23,6 +23,11 @@ enum DayOfWeek {
   SAT
 }
 
+enum MealLibraryKind {
+  FOOD
+  MEAL
+}
+
 // User model - core user data
 model User {
   id        String   @id @default(cuid())
@@ -47,6 +52,7 @@ model User {
   comments         Comment[]
   followers        Follow[]         @relation("following")
   following        Follow[]         @relation("follower")
+  mealLibraryItems MealLibraryItem[]
 }
 
 model UserProfile {
@@ -239,6 +245,29 @@ model MealFeedback {
 
   @@index([userId, createdAt])
   @@index([userId, mealName, createdAt])
+}
+
+model MealLibraryItem {
+  id              String          @id @default(uuid())
+  userId          String
+  kind            MealLibraryKind
+  name            String
+  defaultMealType String?
+  description     String?
+  calories        Int?
+  costPerServing  Float?
+  protein         Float?
+  carbs           Float?
+  fat             Float?
+  ingredients     String[]        @default([])
+  recipe          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, updatedAt])
+  @@index([userId, name, updatedAt])
 }
 
 // SocialPost - social media posts

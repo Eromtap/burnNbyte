@@ -11,7 +11,8 @@ export default function MealPhotoReplace({ selectedISO, onReplaced }) {
   const [file, setFile] = useState(null);
   const [type, setType] = useState("dinner");
   const [portion, setPortion] = useState("medium"); // small | medium | large | custom
-  const [portionNote, setPortionNote] = useState(""); // user freeform description/portion note
+  const [foodDescription, setFoodDescription] = useState("");
+  const [portionNote, setPortionNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -29,6 +30,7 @@ export default function MealPhotoReplace({ selectedISO, onReplaced }) {
       fd.append("type", type);
       fd.append("date", selectedISO);
       fd.append("portion", portion);
+      if (foodDescription.trim()) fd.append("foodDescription", foodDescription.trim());
       if (portionNote.trim()) fd.append("portionNote", portionNote.trim());
       const res = await fetch("/api/mealPlans/photo", { method: "POST", body: fd });
       const data = await res.json();
@@ -88,15 +90,27 @@ export default function MealPhotoReplace({ selectedISO, onReplaced }) {
         <div className="muted" style={{ fontSize: 12 }}>
           AI-generated estimate. It&apos;s a guess and can be wrong — review and adjust if it seems off.
         </div>
-        <div className="list-row" style={{ gap: 8, flexWrap: "wrap" }}>
-          <label className="muted">Describe portion (optional)</label>
-          <input
-            type="text"
-            placeholder="e.g., hand-sized chicken breast with 1 cup rice (~350g total)"
-            value={portionNote}
-            onChange={(e) => setPortionNote(e.target.value)}
-            style={{ flex: 1, minWidth: 260 }}
-          />
+        <div className="stack">
+          <div className="list-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <label className="muted">What is the food? (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g., cereal with whole milk"
+              value={foodDescription}
+              onChange={(e) => setFoodDescription(e.target.value)}
+              style={{ flex: 1, minWidth: 260 }}
+            />
+          </div>
+          <div className="list-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <label className="muted">Describe portion (optional)</label>
+            <input
+              type="text"
+              placeholder="e.g., about 1 cup milk and 1 bowl of cereal"
+              value={portionNote}
+              onChange={(e) => setPortionNote(e.target.value)}
+              style={{ flex: 1, minWidth: 260 }}
+            />
+          </div>
         </div>
       </form>
 

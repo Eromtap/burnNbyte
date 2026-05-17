@@ -3,13 +3,14 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function PantryCapture() {
+export default function PantryCapture({ initialDays = 7, initialDateISO = null }) {
   const router = useRouter();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [unit, setUnit] = useState('imperial');
-  const [days, setDays] = useState(3);
+  const [days, setDays] = useState(initialDays);
+  const [sourcingMode, setSourcingMode] = useState('pantry_plus_groceries');
   const cameraRef = useRef(null);
   const libraryRef = useRef(null);
 
@@ -35,6 +36,7 @@ export default function PantryCapture() {
       for (const f of files.slice(0,3)) fd.append('photos', f);
       fd.append('unitSystem', unit);
       fd.append('days', String(days));
+      fd.append('sourcingMode', sourcingMode);
       const res = await fetch('/api/pantry/plan', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) {
@@ -55,7 +57,7 @@ export default function PantryCapture() {
     <div className="stack">
       <form className="stack" onSubmit={onSubmit}>
         <div className="list-row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span className="muted">Pantry/Fridge Photos (up to 3)</span>
+          <span className="muted">Pantry or fridge photos (up to 3)</span>
           <input
             ref={cameraRef}
             type="file"
@@ -102,9 +104,19 @@ export default function PantryCapture() {
             <option value="imperial">Imperial</option>
             <option value="metric">Metric</option>
           </select>
+          <label className="muted">Source</label>
+          <select value={sourcingMode} onChange={(e)=> setSourcingMode(e.target.value)}>
+            <option value="pantry_plus_groceries">What I have + groceries</option>
+            <option value="pantry_only">Just what I have</option>
+          </select>
           <label className="muted">Meals</label>
           <input type="number" min={1} max={7} value={days} onChange={(e)=> setDays(Number(e.target.value||3))} style={{ width: 80 }} />
           <button className="btn btn-primary" type="submit" disabled={files.length === 0 || loading}>{loading ? 'Analyzing…' : 'Analyze & Suggest Meals'}</button>
+        </div>
+        <div className="muted text-xs">
+          {sourcingMode === 'pantry_only'
+            ? 'Just what I have keeps the suggestions limited to ingredients the model can see in your pantry or fridge photos.'
+            : 'What I have + groceries starts from what the model sees, but it can round out meals with a realistic shopping list.'}
         </div>
       </form>
 
@@ -151,7 +163,7 @@ export default function PantryCapture() {
                       <div className="list-row"><span style={{ whiteSpace: 'pre-wrap' }}>{m.recipe}</span></div>
                     </div>
                   )}
-                  <ApplyToPlan meal={m} onApplied={() => router.refresh()} />
+                  <ApplyToPlan meal={m} initialDateISO={initialDateISO} onApplied={() => router.refresh()} />
                 </div>
               </article>
             ))}
@@ -164,9 +176,9 @@ export default function PantryCapture() {
 
 function todayISO(){ const t = new Date(); t.setHours(0,0,0,0); const y=t.getFullYear(); const m=String(t.getMonth()+1).padStart(2,'0'); const d=String(t.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
 
-function ApplyToPlan({ meal, onApplied }){
+function ApplyToPlan({ meal, initialDateISO = null, onApplied }){
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState(initialDateISO || todayISO());
   const [type, setType] = useState((meal?.type || 'dinner').toLowerCase());
   const [mode, setMode] = useState('replace');
   const [rebalance, setRebalance] = useState(false);

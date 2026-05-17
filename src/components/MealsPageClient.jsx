@@ -2,15 +2,15 @@
 
 import DateStrip from '@/components/DateStrip';
 import GenerateMealPlan from '@/components/GenerateMealPlan';
-import MealsReplacerSingle from '@/components/MealsReplacerSingle';
 import { sumMealMacros, formatMacro } from '@/lib/macros';
-import MealPhotoReplace from '@/components/MealPhotoReplace';
 import ReplaceMealButton from '@/components/ReplaceMealButton';
 import MealCompletionToggle from '@/components/MealCompletionToggle';
+import MealDeleteButton from '@/components/MealDeleteButton';
 import { useState } from 'react';
 import MobileDisclosure from '@/components/MobileDisclosure';
 import MealFeedbackButtons from '@/components/MealFeedbackButtons';
 import { normalizeMealIdentity } from '@/lib/mealFeedback';
+import AddFoodPanel from '@/components/AddFoodPanel';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -62,12 +62,16 @@ export default function MealsPageClient({
   initialSelectedISO,
   initialMealPlan = null,
   initialMealFeedback = {},
+  initialLibraryItems = [],
 }){
   const [selectedISO, setSelectedISO] = useState(initialSelectedISO);
   const [mealPlan, setMealPlan] = useState(initialMealPlan);
   const [mealFeedback, setMealFeedback] = useState(initialMealFeedback || {});
   const [loadingDay, setLoadingDay] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [composerType, setComposerType] = useState('snack');
+  const [composerSignal, setComposerSignal] = useState(0);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [defaultOpenMealType, setDefaultOpenMealType] = useState(
     getInitialOpenMealType(groupMeals(initialMealPlan?.meals || []))
   );
@@ -109,34 +113,50 @@ export default function MealsPageClient({
     refreshSelectedDay(toYMDLocal(shifted));
   }
 
+  function openAddFood(type = 'snack') {
+    setComposerType(type);
+    setComposerSignal((current) => current + 1);
+    setComposerOpen(true);
+  }
+
   return (
     <>
-      <section className="hero-card page-hero">
+      <section className="hero-card page-hero page-hero-compact">
         <div className="page-hero-copy">
           <div className="eyebrow">Meal planning</div>
           <div>
-            <h1 className="page-hero-title">A nutrition plan that feels organized, not stitched together.</h1>
+            <h1 className="page-hero-title">Meals</h1>
             <p className="page-hero-text">
-              Generate a full day, swap specific meals, and pull in photo-based replacements without losing sight of your daily macro totals.
+              View the day, add what you ate, and swap anything that no longer fits.
             </p>
           </div>
-          <div className="page-hero-actions">
-            <a href="#planner" className="btn btn-primary">Open planner</a>
-            <a href="#replace" className="btn btn-outline">Replace a meal</a>
+          <div className="meal-page-summary">
+            <div className="metric-card meal-summary-card">
+              <div className="metric-label">Selected day</div>
+              <div className="metric-value">{selectedISO}</div>
+              <div className="metric-detail">{mealPlan ? 'Meal plan loaded.' : 'No plan saved yet.'}</div>
+            </div>
+            <div className="metric-card meal-summary-card">
+              <div className="metric-label">Today&apos;s plan</div>
+              <div className="metric-value">{mealMacros.calories}<span className="unit">kcal</span></div>
+              <div className="metric-detail">{formatMacro(mealMacros.protein)}g protein • {formatMacro(mealMacros.carbs)}g carbs • {formatMacro(mealMacros.fat)}g fat</div>
+            </div>
+          </div>
+          <div className="page-hero-actions meals-page-actions">
+            <button type="button" className="btn btn-primary" onClick={() => openAddFood('snack')}>Add food</button>
+            <ReplaceMealButton
+              dateISO={selectedISO}
+              className="btn btn-outline"
+              label="Swap meal"
+              onReplaced={() => refreshSelectedDay()}
+            />
+            <GenerateMealPlan
+              initialPreferences={profile}
+              selectedISO={selectedISO}
+              onGenerated={() => refreshSelectedDay()}
+            />
           </div>
         </div>
-        <aside className="hero-panel hero-metrics">
-          <div className="metric-card">
-            <div className="metric-label">Selected day</div>
-            <div className="metric-value">{selectedISO}</div>
-            <div className="metric-detail">{mealPlan ? 'Meal plan loaded.' : 'No plan saved yet.'}</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-label">Today&apos;s plan</div>
-            <div className="metric-value">{mealMacros.calories}<span className="unit">kcal</span></div>
-            <div className="metric-detail">{formatMacro(mealMacros.protein)}g protein • {formatMacro(mealMacros.carbs)}g carbs • {formatMacro(mealMacros.fat)}g fat</div>
-          </div>
-        </aside>
       </section>
 
       <DateStrip
@@ -146,30 +166,13 @@ export default function MealsPageClient({
         onShiftWeek={handleShiftWeek}
       />
 
-      <section className="section-grid">
-        <article className="card section-side">
-          <header className="card-head">
-            <div>
-              <h3>Plan my meals</h3>
-              <div className="sub">Create the selected day only, or generate the next 7 days starting from it.</div>
-            </div>
-          </header>
-          <GenerateMealPlan
-            initialPreferences={profile}
-            selectedISO={selectedISO}
-            onGenerated={() => refreshSelectedDay()}
-          />
-          <div className="page-hero-actions" style={{ marginTop: 12 }}>
-            <a className="btn btn-secondary" href="/pantry">Use pantry photo</a>
-          </div>
-        </article>
-
-        <article id="planner" className="card section-main">
+      <section className="section-grid meal-page-layout">
+        <article id="planner" className="card span-full meals-stage">
           <header className="card-head">
             <div>
               <h3>Today&apos;s meals</h3>
               <div className="sub">
-                {loadingDay ? 'Loading my meals...' : 'Browse each meal block and swap anything that does not fit the day.'}
+                {loadingDay ? 'Loading my meals...' : null}
               </div>
             </div>
             {mealPlan && <div className="section-badge section-badge-meal">{meals.length} items</div>}
@@ -200,16 +203,6 @@ export default function MealsPageClient({
                       </>
                     }
                   >
-                      <div className="planner-col-row meal-group-head">
-                        <div className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</div>
-                        <ReplaceMealButton
-                          dateISO={selectedISO}
-                          type={type}
-                          className="btn btn-secondary"
-                          label="Swap it"
-                          onReplaced={() => refreshSelectedDay()}
-                        />
-                      </div>
                       {(grouped[type] || []).length ? (
                         grouped[type].map((meal) => (
                           <article key={meal.id} className="card meal-entry">
@@ -218,23 +211,30 @@ export default function MealsPageClient({
                                 <h3>{meal.name}</h3>
                                 <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat{formatCost(meal.costPerServing) ? ` • ~${formatCost(meal.costPerServing)}/serving` : ''}</div>
                               </div>
-                              <MealCompletionToggle
-                                mealId={meal.id}
-                                initialCompleted={meal.isCompleted}
-                                className="meal-entry-toggle"
-                                onUpdated={(updatedMeal) => {
-                                  if (!updatedMeal) return;
-                                  setMealPlan((prev) => {
-                                    if (!prev) return prev;
-                                    return {
-                                      ...prev,
-                                      meals: (prev.meals || []).map((mealItem) => (
-                                        mealItem.id === updatedMeal.id ? { ...mealItem, ...updatedMeal } : mealItem
-                                      )),
-                                    };
-                                  });
-                                }}
-                              />
+                              <div className="page-hero-actions" style={{ alignItems: 'center' }}>
+                                <MealCompletionToggle
+                                  mealId={meal.id}
+                                  initialCompleted={meal.isCompleted}
+                                  className="meal-entry-toggle"
+                                  onUpdated={(updatedMeal) => {
+                                    if (!updatedMeal) return;
+                                    setMealPlan((prev) => {
+                                      if (!prev) return prev;
+                                      return {
+                                        ...prev,
+                                        meals: (prev.meals || []).map((mealItem) => (
+                                          mealItem.id === updatedMeal.id ? { ...mealItem, ...updatedMeal } : mealItem
+                                        )),
+                                      };
+                                    });
+                                  }}
+                                />
+                                <MealDeleteButton
+                                  mealId={meal.id}
+                                  mealName={meal.name}
+                                  onDeleted={() => refreshSelectedDay()}
+                                />
+                              </div>
                             </header>
                             <div className="list-row" style={{ justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
                               <span className="muted" style={{ fontSize: 12 }}>
@@ -307,27 +307,18 @@ export default function MealsPageClient({
         </article>
       </section>
 
-      <section className="section-grid">
-        <article id="replace" className="card section-side">
-          <header className="card-head">
-            <div>
-              <h3>Swap one meal</h3>
-              <div className="sub">Change one meal on the selected date.</div>
-            </div>
-          </header>
-          <MealsReplacerSingle selectedISO={selectedISO} onReplaced={() => refreshSelectedDay()} />
-        </article>
-
-        <article className="card section-main">
-          <header className="card-head">
-            <div>
-              <h3>Swap from a photo</h3>
-              <div className="sub">Upload a meal photo, estimate macros, and drop it into the plan.</div>
-            </div>
-          </header>
-          <MealPhotoReplace selectedISO={selectedISO} onReplaced={() => refreshSelectedDay()} />
-        </article>
-      </section>
+      <AddFoodPanel
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        selectedISO={selectedISO}
+        initialType={composerType}
+        typeSignal={composerSignal}
+        initialLibraryItems={initialLibraryItems}
+        onSaved={async () => {
+          await refreshSelectedDay();
+          setComposerOpen(false);
+        }}
+      />
     </>
   );
 }

@@ -77,6 +77,21 @@ function normalizeDate(d) {
   x.setUTCHours(0,0,0,0);
   return x;
 }
+function normalizeTargetDates(input) {
+  const raw = Array.isArray(input)
+    ? input
+    : (typeof input === "string" && input ? [input] : []);
+  const seen = new Set();
+  const out = [];
+  for (const item of raw) {
+    const date = String(item || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    if (seen.has(date)) continue;
+    seen.add(date);
+    out.push(date);
+  }
+  return out.sort();
+}
 function datesInclusive({ startDate, endDate, numDays }) {
   if (startDate && endDate) {
     const start = new Date(startDate);
@@ -138,6 +153,7 @@ export async function POST(req) {
       dislikedFoods = [],
       mealPrepMode = false,
       allergies = [],
+      targetDates,
       // range controls: pass either (startDate+endDate) or numDays
       startDate,         // "yyyy-mm-dd" optional
       endDate,           // "yyyy-mm-dd" optional
@@ -186,8 +202,11 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing required field: fitnessGoal" }, { status: 400 });
     }
 
-    const targetDates = datesInclusive({ startDate, endDate, numDays });
-    if (!targetDates.length) {
+    const requestedDates = normalizeTargetDates(targetDates);
+    const mealPlanDates = requestedDates.length
+      ? requestedDates
+      : datesInclusive({ startDate, endDate, numDays });
+    if (!mealPlanDates.length) {
       return NextResponse.json({ error: "No dates to generate" }, { status: 400 });
     }
 
@@ -195,7 +214,7 @@ export async function POST(req) {
       role: "user",
       content: `
 You are a nutrition planner. Generate daily meal plans for ALL of these calendar dates (one plan per date):
-${JSON.stringify(targetDates)}
+${JSON.stringify(mealPlanDates)}
 
 User:
 - gender: ${JSON.stringify(gender ?? null)}
@@ -293,7 +312,7 @@ Output shape:
     }
 
     // sanity: ensure we got 1 plan per requested date
-    if (!Array.isArray(ai.mealPlans) || ai.mealPlans.length !== targetDates.length) {
+    if (!Array.isArray(ai.mealPlans) || ai.mealPlans.length !== mealPlanDates.length) {
       return NextResponse.json({ error: "Model returned unexpected number of days" }, { status: 502 });
     }
 
@@ -349,7 +368,7 @@ Output shape:
       return results;
     });
 
-    return NextResponse.json({ ok: true, count: saved.length, dates: targetDates }, { status: 200 });
+    return NextResponse.json({ ok: true, count: saved.length, dates: mealPlanDates }, { status: 200 });
   } catch (error) {
     console.error("💥 generateMealPlan error:", error);
     return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
