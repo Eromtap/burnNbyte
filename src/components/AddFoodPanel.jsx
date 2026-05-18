@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatMacro } from '@/lib/macros';
 import { MEAL_TYPES } from '@/lib/mealPlanUtils';
 
@@ -62,6 +62,24 @@ export default function AddFoodPanel({
   const [selectedLibraryItemId, setSelectedLibraryItemId] = useState('');
   const [savedPortionNote, setSavedPortionNote] = useState('');
 
+  const resetComposer = useCallback((nextType = 'snack') => {
+    setMode('text');
+    setDraft(emptyDraft(nextType));
+    setPhotoFile(null);
+    setPantryFiles([]);
+    setEstimateNotes('');
+    setHasEstimateResult(false);
+    setSaveAttempted(false);
+    setError('');
+    setSaveToLibrary(false);
+    setLibraryKind('FOOD');
+    setMarkCompleted(true);
+    setLibraryFilter('ALL');
+    setLibrarySearch('');
+    setSelectedLibraryItemId('');
+    setSavedPortionNote('');
+  }, []);
+
   useEffect(() => {
     setLibraryItems(initialLibraryItems);
   }, [initialLibraryItems]);
@@ -70,7 +88,7 @@ export default function AddFoodPanel({
     if (open) {
       resetComposer(initialType || 'snack');
     }
-  }, [initialType, typeSignal, open]);
+  }, [initialType, typeSignal, open, resetComposer]);
 
   const filteredLibraryItems = useMemo(() => (
     libraryItems.filter((item) => {
@@ -104,24 +122,6 @@ export default function AddFoodPanel({
       setSaveAttempted(false);
     }
     setDraft((current) => ({ ...current, [key]: value }));
-  }
-
-  function resetComposer(nextType = draft.type) {
-    setMode('text');
-    setDraft(emptyDraft(nextType));
-    setPhotoFile(null);
-    setPantryFiles([]);
-    setEstimateNotes('');
-    setHasEstimateResult(false);
-    setSaveAttempted(false);
-    setError('');
-    setSaveToLibrary(false);
-    setLibraryKind('FOOD');
-    setMarkCompleted(true);
-    setLibraryFilter('ALL');
-    setLibrarySearch('');
-    setSelectedLibraryItemId('');
-    setSavedPortionNote('');
   }
 
   async function handleEstimate() {
