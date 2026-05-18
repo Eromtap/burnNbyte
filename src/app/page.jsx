@@ -5,13 +5,14 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { sumMealMacros, formatMacro } from "@/lib/macros";
+import { sumMealMacros } from "@/lib/macros";
 import { labelForFitnessGoal } from "@/constants/fitnessGoals";
 import { deriveNutritionTargets } from "@/lib/nutritionTargets";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import CheatPlanner from "@/components/CheatPlanner";
 import MobileDisclosure from "@/components/MobileDisclosure";
 import HomeMealsCard from "@/components/HomeMealsCard";
+import DashboardSpotlightCarousel from "@/components/DashboardSpotlightCarousel";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -31,17 +32,6 @@ function toYMDInTimeZone(date, timeZone) {
   return `${year}-${month}-${day}`;
 }
 
-function formatUTCDateForDisplay(date, timeZone) {
-  if (!date) return "";
-  const dt = new Date(date);
-  return new Intl.DateTimeFormat(undefined, {
-    timeZone,
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-  }).format(dt);
-}
-
 function resolveTimeZone(candidate) {
   try {
     if (candidate) {
@@ -52,51 +42,6 @@ function resolveTimeZone(candidate) {
     // fall through to UTC
   }
   return "UTC";
-}
-
-function macroPct(value, target) {
-  if (!target) return 0;
-  return Math.max(0, Math.min(100, Math.round((value / target) * 100)));
-}
-
-function buildHeroContent({ workout, mealPlan, completionPct, primaryGoal }) {
-  if (!workout && !mealPlan) {
-    return {
-      eyebrow: "Dashboard",
-      title: "Let’s build my plan for today.",
-      body: "I don’t have a workout or meal plan saved yet. Start by generating today’s schedule so everything is lined up in one place.",
-    };
-  }
-
-  if (!workout) {
-    return {
-      eyebrow: "Dashboard",
-      title: "My meals are ready. My workout still needs a plan.",
-      body: "My food is set for today. Generate a workout so the rest of the day is mapped out too.",
-    };
-  }
-
-  if (!mealPlan) {
-    return {
-      eyebrow: "Dashboard",
-      title: "My workout is ready. My meals are next.",
-      body: "Training is already on the board. Generate meals so today feels complete instead of pieced together.",
-    };
-  }
-
-  if (completionPct >= 80) {
-    return {
-      eyebrow: "Dashboard",
-      title: "You’re on track today.",
-      body: "Most of your plan is already checked off. Use this page to finish strong and keep the day consistent.",
-    };
-  }
-
-  return {
-    eyebrow: "Dashboard",
-    title: `My ${primaryGoal.toLowerCase()} plan is ready for today.`,
-    body: "My workout, meals, and progress are all here. Use this screen as the hub for what’s next.",
-  };
 }
 
 export default async function HomePage() {
@@ -118,7 +63,7 @@ export default async function HomePage() {
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
   const today = toUTCDateFromLocalYMD(todayISO);
 
-  const [workout, mealPlan, libraryItems] = await Promise.all([
+  const [workout, mealPlan, libraryItems, weightHistory] = await Promise.all([
     prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } }),
     prisma.mealLibraryItem.findMany({
@@ -126,12 +71,15 @@ export default async function HomePage() {
       orderBy: { createdAt: "desc" },
       take: 24,
     }),
+    prisma.weightHistory.findMany({
+      where: { profileId: profile.id },
+      orderBy: { date: 'asc' },
+      take: 30,
+    }),
   ]);
 
-  const mealMacros = sumMealMacros(mealPlan?.meals || []);
   const completedMeals = (mealPlan?.meals || []).filter((m) => m.isCompleted);
   const consumedMacros = sumMealMacros(completedMeals);
-  const mealCalories = mealMacros.calories;
   const consumedCalories = consumedMacros.calories;
 
   const weightLb = profile?.weight || null;
@@ -140,69 +88,30 @@ export default async function HomePage() {
   const met = diff === "advanced" ? 8 : diff === "intermediate" ? 6.5 : 5;
   const durationH = (workout?.duration || 0) / 60;
   const workoutCalories = weightKg ? Math.round(met * weightKg * durationH) : null;
-  const burnedCalories = workout?.isCompleted ? (workoutCalories ?? 0) : 0;
-  const completionTotal = (mealPlan?.meals?.length || 0) + (workout ? 1 : 0);
-  const completionDone = completedMeals.length + (workout?.isCompleted ? 1 : 0);
-  const completionPct = completionTotal ? Math.round((completionDone / completionTotal) * 100) : 0;
 
   const macroTargets = deriveNutritionTargets(profile);
   const primaryGoalId = profile.fitnessGoal || profile.fitnessGoals?.[0] || "general_fitness";
   const primaryGoal = labelForFitnessGoal(primaryGoalId) || "General fitness";
-  const hero = buildHeroContent({ workout, mealPlan, completionPct, primaryGoal });
+  const weightPoints = (weightHistory?.length
+    ? weightHistory.map((entry) => ({
+        date: toYMDInTimeZone(entry.date, timeZone),
+        value: entry.weight,
+      }))
+    : profile.weight != null
+      ? [{ date: todayISO, value: profile.weight }]
+      : []);
 
   return (
     <main>
       <div className="dashboard-shell stack">
-        <section className="brand-hero span-full">
-          <div className="dashboard-mobile-bar">
-            <div>
-              <div className="metric-label">Today</div>
-              <div className="dashboard-mobile-date">{formatUTCDateForDisplay(today, timeZone)}</div>
-            </div>
-            <div className="dashboard-mobile-stats">
-              <div className="chip chip-success">{completionPct}% adherence</div>
-              <div className="chip">Goal: {primaryGoal}</div>
-            </div>
-          </div>
-          <div className="brand-hero-copy">
-            <div className="eyebrow">{hero.eyebrow}</div>
-            <div className="brand-hero-date">{formatUTCDateForDisplay(today, timeZone)}</div>
-            <h1 className="brand-hero-title">{hero.title}</h1>
-            <p className="brand-hero-text">
-              {hero.body}
-            </p>
-            <div className="page-hero-actions">
-              <Link href={`/workouts?date=${todayISO}`} className="btn btn-primary">Train today</Link>
-              <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See meal plan</Link>
-              <Link href="/progress" className="btn btn-secondary">Review progress</Link>
-            </div>
-            <div className="brand-chip-row">
-              <div className="chip chip-success">Goal: {primaryGoal}</div>
-              <div className="chip">{profile.workoutDuration || 30} minute sessions</div>
-              <div className="chip">{completionPct}% adherence today</div>
-            </div>
-          </div>
-          <div className="brand-hero-aside">
-            <article className="spotlight-card spotlight-card-primary">
-              <div className="metric-label">Today&apos;s score</div>
-              <div className="spotlight-value">{completionPct}%</div>
-              <div className="metric-detail">{completionDone} of {completionTotal} plan items completed.</div>
-            </article>
-            <article className="spotlight-card">
-              <div className="metric-label">Food balance</div>
-              <div className="spotlight-row">
-                <div>
-                  <div className="spotlight-mini">{consumedCalories}</div>
-                  <div className="metric-detail">eaten so far</div>
-                </div>
-                <div>
-                  <div className="spotlight-mini">{burnedCalories}</div>
-                  <div className="metric-detail">burned in workouts</div>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
+        <DashboardSpotlightCarousel
+          consumedCalories={consumedCalories}
+          consumedMacros={consumedMacros}
+          macroTargets={macroTargets}
+          weightPoints={weightPoints}
+          currentWeight={profile.weight}
+          goalWeight={profile.goalWeight}
+        />
 
         <section className="brand-dashboard-grid">
           <MobileDisclosure
@@ -261,50 +170,9 @@ export default async function HomePage() {
               </article>
           </MobileDisclosure>
 
-          <MobileDisclosure
-            className="mobile-disclosure dashboard-disclosure"
-            summaryClassName="mobile-disclosure-summary dashboard-summary"
-            panelClassName="mobile-disclosure-panel"
-            summary={
-              <>
-                <span className="planner-head">Macro rhythm</span>
-                <span className="mobile-disclosure-meta">{consumedCalories} / {mealCalories || 0} kcal</span>
-              </>
-            }
-          >
-              <article className="card span-2 brand-nutrition-card">
-                <header className="card-head">
-                  <div>
-                    <div className="section-badge section-badge-meal">Nutrition spotlight</div>
-                    <h3>Macro rhythm for today</h3>
-                    <div className="sub">A cleaner view of what I&apos;ve had today versus what the plan called for.</div>
-                  </div>
-                </header>
-                <div className="stats brand-tight-stats">
-                  <div className="stat">
-                    <div className="stat-label">Calories so far</div>
-                    <div className="stat-value">{consumedCalories}<span className="unit">/ {mealCalories || 0}</span></div>
-                    <div className="progress"><span style={{ width: `${macroPct(consumedCalories, mealCalories || 1)}%` }} /></div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-label">Protein so far</div>
-                    <div className="stat-value">{formatMacro(consumedMacros.protein)}<span className="unit">g</span></div>
-                    <div className="progress"><span style={{ width: `${macroPct(consumedMacros.protein, macroTargets.protein)}%` }} /></div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-label">Carbs / Fat</div>
-                    <div className="stat-value">{formatMacro(consumedMacros.carbs)} / {formatMacro(consumedMacros.fat)}<span className="unit">g</span></div>
-                    <div className="sub">Planned {formatMacro(mealMacros.carbs)}g carbs and {formatMacro(mealMacros.fat)}g fat</div>
-                  </div>
-                </div>
-                <div className="brand-story-actions">
-                  <Link href={`/meals?date=${todayISO}`} className="btn btn-outline">See my meals</Link>
-                </div>
-              </article>
-          </MobileDisclosure>
-
           <HomeMealsCard
             todayISO={todayISO}
+            profile={profile}
             initialMealPlan={mealPlan}
             initialLibraryItems={libraryItems}
           />

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import ReplaceMealButton from '@/components/ReplaceMealButton';
 import MealCompletionToggle from '@/components/MealCompletionToggle';
 import MealDeleteButton from '@/components/MealDeleteButton';
 import MobileDisclosure from '@/components/MobileDisclosure';
 import AddFoodPanel from '@/components/AddFoodPanel';
 import { formatMacro } from '@/lib/macros';
+import { deriveNutritionTargets } from '@/lib/nutritionTargets';
 
 function groupMeals(meals) {
   return (Array.isArray(meals) ? meals : []).reduce((acc, meal) => {
@@ -36,18 +38,26 @@ function formatCost(value) {
 
 export default function HomeMealsCard({
   todayISO,
+  profile = null,
   initialMealPlan = null,
   initialLibraryItems = [],
 }) {
+  const router = useRouter();
   const [mealPlan, setMealPlan] = useState(initialMealPlan);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerType, setComposerType] = useState('snack');
   const [composerSignal, setComposerSignal] = useState(0);
+  const [refreshPending, startRefreshTransition] = useTransition();
 
   const grouped = groupMeals(mealPlan?.meals || []);
   const initialOpenMealType = getInitialOpenMealType(grouped);
+  const macroTargets = deriveNutritionTargets(profile || {});
+
+  useEffect(() => {
+    setMealPlan(initialMealPlan);
+  }, [initialMealPlan]);
 
   async function refreshMeals() {
     setLoading(true);
@@ -64,6 +74,13 @@ export default function HomeMealsCard({
     } finally {
       setLoading(false);
     }
+  }
+
+  async function syncDashboard() {
+    await refreshMeals();
+    startRefreshTransition(() => {
+      router.refresh();
+    });
   }
 
   function openAddFood(type = 'snack') {
@@ -89,7 +106,7 @@ export default function HomeMealsCard({
           <header className="card-head">
             <div>
               <h3>What I&apos;m eating today</h3>
-              <div className="sub">Log food, swap a meal block, or delete something without leaving home.</div>
+              <div className="sub">Log food, swap a meal block, or delete something without leaving home. Daily target: {formatMacro(macroTargets.calories)} kcal • {formatMacro(macroTargets.protein)}P • {formatMacro(macroTargets.carbs)}C • {formatMacro(macroTargets.fat)}F.</div>
             </div>
             <div className="page-hero-actions home-meals-actions">
               <button type="button" className="btn btn-primary" onClick={() => openAddFood('snack')}>
@@ -99,7 +116,7 @@ export default function HomeMealsCard({
                 dateISO={todayISO}
                 className="btn btn-outline"
                 label="Swap meal"
-                onReplaced={refreshMeals}
+                onReplaced={syncDashboard}
               />
               <Link href={`/meals?date=${todayISO}`} className="btn btn-secondary">Meal page</Link>
             </div>
@@ -130,8 +147,26 @@ export default function HomeMealsCard({
                         </div>
                       </Link>
                       <div className="home-meal-row-actions">
-                        <MealCompletionToggle mealId={meal.id} initialCompleted={meal.isCompleted} />
-                        <MealDeleteButton mealId={meal.id} mealName={meal.name} onDeleted={refreshMeals} />
+                        <MealCompletionToggle
+                          mealId={meal.id}
+                          initialCompleted={meal.isCompleted}
+                          onUpdated={(updatedMeal) => {
+                            if (!updatedMeal) return;
+                            setMealPlan((prev) => {
+                              if (!prev) return prev;
+                              return {
+                                ...prev,
+                                meals: (prev.meals || []).map((mealItem) => (
+                                  mealItem.id === updatedMeal.id ? { ...mealItem, ...updatedMeal } : mealItem
+                                )),
+                              };
+                            });
+                            startRefreshTransition(() => {
+                              router.refresh();
+                            });
+                          }}
+                        />
+                        <MealDeleteButton mealId={meal.id} mealName={meal.name} onDeleted={syncDashboard} />
                       </div>
                     </div>
                   ))
@@ -146,7 +181,7 @@ export default function HomeMealsCard({
               </MobileDisclosure>
             ))}
           </div>
-          {loading && <div className="sub">Refreshing today&apos;s meals…</div>}
+          {(loading || refreshPending) && <div className="sub">Refreshing today&apos;s meals…</div>}
         </article>
       </MobileDisclosure>
 
@@ -159,7 +194,7 @@ export default function HomeMealsCard({
         initialLibraryItems={initialLibraryItems}
         onSaved={async () => {
           setComposerOpen(false);
-          await refreshMeals();
+          await syncDashboard();
         }}
       />
     </>

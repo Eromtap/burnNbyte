@@ -11,6 +11,7 @@ import MobileDisclosure from '@/components/MobileDisclosure';
 import MealFeedbackButtons from '@/components/MealFeedbackButtons';
 import { normalizeMealIdentity } from '@/lib/mealFeedback';
 import AddFoodPanel from '@/components/AddFoodPanel';
+import { deriveNutritionTargets } from '@/lib/nutritionTargets';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -79,6 +80,7 @@ export default function MealsPageClient({
   const meals = mealPlan?.meals || [];
   const mealMacros = sumMealMacros(meals);
   const grouped = groupMeals(meals);
+  const macroTargets = deriveNutritionTargets(profile || {});
 
   function syncUrl(nextISO){
     window.history.replaceState(null, '', `/meals?date=${nextISO}`);
@@ -137,9 +139,9 @@ export default function MealsPageClient({
               <div className="metric-detail">{mealPlan ? 'Meal plan loaded.' : 'No plan saved yet.'}</div>
             </div>
             <div className="metric-card meal-summary-card">
-              <div className="metric-label">Today&apos;s plan</div>
-              <div className="metric-value">{mealMacros.calories}<span className="unit">kcal</span></div>
-              <div className="metric-detail">{formatMacro(mealMacros.protein)}g protein • {formatMacro(mealMacros.carbs)}g carbs • {formatMacro(mealMacros.fat)}g fat</div>
+              <div className="metric-label">Daily target</div>
+              <div className="metric-value">{formatMacro(macroTargets.calories)}<span className="unit">kcal</span></div>
+              <div className="metric-detail">{formatMacro(macroTargets.protein)}g protein • {formatMacro(macroTargets.carbs)}g carbs • {formatMacro(macroTargets.fat)}g fat</div>
             </div>
           </div>
           <div className="page-hero-actions meals-page-actions">
@@ -179,13 +181,13 @@ export default function MealsPageClient({
           </header>
           {loadError && <div className="list-row"><span className="muted">{loadError}</span></div>}
           {!loadError && !mealPlan && !loadingDay && (
-            <div className="list-row"><span className="muted">No meal plan for this date yet. Build one to populate this view.</span></div>
+            <div className="list-row"><span className="muted">No meal plan for this date yet. Your tracking target is still {formatMacro(macroTargets.calories)} kcal with {formatMacro(macroTargets.protein)}g protein, {formatMacro(macroTargets.carbs)}g carbs, and {formatMacro(macroTargets.fat)}g fat.</span></div>
           )}
           {mealPlan && (
             <div className="stack">
               <div className="list-row">
-                <span>Plan total</span>
-                <span className="muted">{mealMacros.calories} kcal • {formatMacro(mealMacros.protein)}g protein • {formatMacro(mealMacros.carbs)}g carbs • {formatMacro(mealMacros.fat)}g fat</span>
+                <span>Plan total vs target</span>
+                <span className="muted">{mealMacros.calories} kcal planned • {formatMacro(macroTargets.calories)} kcal target</span>
               </div>
               <div className="planner">
                 {["breakfast", "lunch", "dinner", "snack"].map((type) => (
