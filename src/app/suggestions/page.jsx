@@ -12,7 +12,7 @@ export default async function SuggestionsPage() {
             <div className="eyebrow">Suggestion box</div>
             <h1 className="page-hero-title suggestions-page-title">Send additions and change requests without leaving the app.</h1>
             <p className="page-hero-text suggestions-page-text">
-              You can submit up to 5 suggestions per day. Use this page for additions you'd like to see or changes you'd like made.
+              You can submit up to 5 suggestions per day. Use this page for additions you&apos;d like to see or changes you&apos;d like made.
             </p>
             <SuggestionsPageClient />
           </div>
