@@ -585,20 +585,6 @@ body::before{
   gap:10px;
 }
 
-.desktop-logout{
-  display:none;
-  padding:10px 6px;
-  border:none;
-  background:transparent;
-  color:var(--muted);
-  font:inherit;
-  cursor:pointer;
-}
-
-.desktop-logout:hover{
-  color:var(--text);
-}
-
 .mobile-menu-trigger,
 .mobile-only{
   display:initial;
@@ -623,6 +609,73 @@ body::before{
   align-items:center;
   gap:10px;
   min-width:0;
+}
+
+.desktop-more{
+  position:relative;
+  display:none;
+}
+
+.desktop-more-trigger{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid transparent;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  cursor:pointer;
+}
+
+.desktop-more-trigger:hover,
+.desktop-more-trigger.active{
+  color:var(--text);
+  background:var(--surface-soft);
+  border-color:var(--edge);
+}
+
+.desktop-more-menu{
+  position:absolute;
+  top:calc(100% + 10px);
+  right:0;
+  z-index:30;
+  min-width:220px;
+  padding:10px;
+  display:grid;
+  gap:6px;
+  border:1px solid var(--edge);
+  border-radius:18px;
+  background:linear-gradient(180deg, color-mix(in oklab, var(--surface) 97%, transparent), color-mix(in oklab, var(--elev) 97%, transparent));
+  box-shadow:0 18px 36px rgba(0,0,0,.28);
+}
+
+.desktop-more-link{
+  display:flex;
+  align-items:center;
+  width:100%;
+  padding:12px 14px;
+  border-radius:14px;
+  color:var(--muted);
+  text-decoration:none;
+  border:1px solid transparent;
+  background:transparent;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+
+.desktop-more-link:hover,
+.desktop-more-link.active{
+  color:var(--text);
+  background:var(--surface-soft);
+  border-color:var(--edge);
+}
+
+.desktop-more-action{
+  color:var(--text);
 }
 
 .app-main{padding-top:28px}
@@ -670,6 +723,28 @@ body::before{
 }
 
 .page-hero-copy{display:grid;gap:16px}
+.suggestions-page-hero{
+  min-height:0;
+  padding:36px;
+  max-width:960px;
+  margin:0 auto;
+}
+
+.suggestions-page-inner{
+  width:100%;
+  margin:0 auto;
+  display:grid;
+  gap:18px;
+}
+
+.suggestions-page-title{
+  max-width:none;
+}
+
+.suggestions-page-text{
+  max-width:56rem;
+}
+
 .page-hero-head,.card-head{
   display:flex;
   align-items:flex-start;
@@ -780,6 +855,22 @@ body::before{
   border-radius:16px;
   background:var(--surface-soft);
   border:1px solid var(--edge);
+}
+
+.theme-preferences-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.theme-preferences-card{
+  flex:1 1 280px;
+}
+
+.theme-preferences-button{
+  min-width:180px;
 }
 
 .metric-label,.stat-label{
@@ -1049,6 +1140,49 @@ input:focus,select:focus,textarea:focus{
 .pref-card-active{
   border-color:var(--edge-strong);
   background:linear-gradient(180deg, color-mix(in oklab, var(--accent) 12%, transparent), transparent);
+}
+
+.suggestion-form-shell{
+  width:min(100%, 760px);
+  margin:8px 0 0;
+  display:grid;
+  gap:18px;
+}
+
+.suggestion-form{
+  gap:18px;
+  width:100%;
+}
+
+.suggestion-status-row{
+  display:flex;
+  justify-content:flex-start;
+}
+
+.suggestion-status{
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid var(--edge);
+  background:var(--surface-soft);
+  color:var(--text);
+  font-weight:700;
+}
+
+.suggestion-meta,
+.suggestion-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.suggestion-actions{
+  justify-content:flex-start;
+}
+
+.text-danger{
+  color:#ff7a67;
 }
 
 .btn{
@@ -1463,7 +1597,7 @@ input:focus,select:focus,textarea:focus{
 
 @media (min-width: 920px){
   .desktop-nav{display:flex}
-  .desktop-logout{display:inline-flex}
+  .desktop-more{display:block}
   .mobile-menu-trigger{display:none}
   .mobile-only{display:none}
   .header-actions{
@@ -1501,6 +1635,15 @@ input:focus,select:focus,textarea:focus{
   .page-hero-text{
     font-size:.98rem;
     line-height:1.45;
+  }
+  .suggestions-page-hero{
+    padding:20px;
+  }
+  .suggestions-page-inner{
+    gap:14px;
+  }
+  .suggestion-form-shell{
+    margin-top:4px;
   }
   .meal-page-summary{
     grid-template-columns:1fr;

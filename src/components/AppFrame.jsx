@@ -1,31 +1,39 @@
-﻿'use client';
+'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { useTheme } from '@/components/ThemeProvider';
+import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import Image from 'next/image';
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
   { href: '/', label: 'Dashboard' },
   { href: '/workouts', label: 'Workouts' },
   { href: '/meals', label: 'Meals' },
   { href: '/meal-library', label: 'Meal Library' },
+  { href: '/groceries', label: 'Groceries' },
   { href: '/progress', label: 'Progress' },
   { href: '/healthCalendar', label: 'Calendar' },
-  { href: '/profile', label: 'Profile' },
 ];
+
+const SECONDARY_NAV_ITEMS = [
+  { href: '/profile', label: 'Profile' },
+  { href: '/suggestions', label: 'Suggestion Box' },
+];
+
+const MOBILE_NAV_ITEMS = [...PRIMARY_NAV_ITEMS, ...SECONDARY_NAV_ITEMS];
 
 export default function AppFrame({ children }) {
   const pathname = usePathname();
-  const { toggle } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (href) => pathname === href;
-  const drawerItems = [
-    ...NAV_ITEMS,
-    { href: '/groceries', label: 'Groceries' },
-  ];
+  const moreActive = SECONDARY_NAV_ITEMS.some((item) => isActive(item.href));
+
+  useEffect(() => {
+    setDrawerOpen(false);
+    setMoreOpen(false);
+  }, [pathname]);
 
   return (
     <div id="app">
@@ -44,26 +52,48 @@ export default function AppFrame({ children }) {
             </div>
             <div className="header-actions">
               <nav className="desktop-nav" aria-label="Primary navigation">
-                {NAV_ITEMS.map((item) => (
+                {PRIMARY_NAV_ITEMS.map((item) => (
                   <Link key={item.href} className={`desktop-nav-link ${isActive(item.href) ? 'active' : ''}`} href={item.href}>
                     {item.label}
                   </Link>
                 ))}
               </nav>
-              <button
-                className="desktop-logout"
-                onClick={() => signOut({ callbackUrl: '/signin' })}
-              >
-                Log out
-              </button>
-              <button className="btn btn-outline" aria-label="Toggle theme" onClick={toggle}>
-                <span className="icon" aria-hidden>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                    <path d="M12 3a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1Zm7.071 2.929a1 1 0 0 1 0 1.414l-.707.707a1 1 0 0 1-1.414-1.414l.707-.707a1 1 0 0 1 1.414 0ZM21 11a1 1 0 1 1 0 2h-1a1 1 0 1 1 0-2h1ZM5.05 5.636a1 1 0 0 1 1.414 0l.707.707A1 1 0 1 1 5.757 7.757l-.707-.707a1 1 0 0 1 0-1.414ZM4 11a1 1 0 1 1 0 2H3a1 1 0 1 1 0-2h1Zm2.05 6.364a1 1 0 0 1 1.414 0l.707.707A1 1 0 1 1 6.757 20.5l-.707-.707a1 1 0 0 1 0-1.414ZM12 18a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1Zm7.071-2.071a1 1 0 0 1-1.414 1.414l-.707-.707A1 1 0 1 1 18.95 14.5l.707.707a1 1 0 0 1 0 1.414Z"/>
+              <div className="desktop-more">
+                <button
+                  className={`desktop-more-trigger ${moreActive ? 'active' : ''}`}
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={moreOpen}
+                  onClick={() => setMoreOpen((open) => !open)}
+                >
+                  <span>More</span>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden>
+                    <path d="M6.47 8.97a.75.75 0 0 1 1.06 0L12 13.44l4.47-4.47a.75.75 0 1 1 1.06 1.06l-5 5a.75.75 0 0 1-1.06 0l-5-5a.75.75 0 0 1 0-1.06Z" />
                   </svg>
-                </span>
-                <span className="label">Theme</span>
-              </button>
+                </button>
+                {moreOpen && (
+                  <div className="desktop-more-menu" role="menu" aria-label="More options">
+                    {SECONDARY_NAV_ITEMS.map((item) => (
+                      <Link
+                        key={item.href}
+                        role="menuitem"
+                        className={`desktop-more-link ${isActive(item.href) ? 'active' : ''}`}
+                        href={item.href}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="desktop-more-link desktop-more-action"
+                      onClick={() => signOut({ callbackUrl: '/signin' })}
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -84,7 +114,7 @@ export default function AppFrame({ children }) {
               </button>
             </div>
             <nav className="drawer-nav">
-              {drawerItems.map((item) => (
+              {MOBILE_NAV_ITEMS.map((item) => (
                 <Link key={item.href} className={`drawer-link ${isActive(item.href) ? 'active' : ''}`} href={item.href} onClick={() => setDrawerOpen(false)}>
                   {item.label}
                 </Link>
