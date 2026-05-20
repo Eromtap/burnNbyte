@@ -1,6 +1,7 @@
-﻿import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import ProfileForm from "@/components/ProfileForm";
+import ThemePreferencesCard from "@/components/ThemePreferencesCard";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage(){
@@ -30,6 +31,8 @@ export default async function ProfilePage(){
           </aside>
         </section>
 
+        <ThemePreferencesCard />
+
         <article className="card">
           <header className="card-head">
             <div>
@@ -43,4 +46,3 @@ export default async function ProfilePage(){
     </main>
   );
 }
-

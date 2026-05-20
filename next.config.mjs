@@ -7,6 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   // Silence monorepo/lockfile root inference by pointing to the project root.
   outputFileTracingRoot: __dirname,
+  experimental: {
+    webpackBuildWorker: false,
+  },
 };
 
 export default nextConfig;

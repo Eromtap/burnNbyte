@@ -11,6 +11,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum DayOfWeek {
@@ -26,6 +27,12 @@ enum DayOfWeek {
 enum MealLibraryKind {
   FOOD
   MEAL
+}
+
+enum SuggestionKind {
+  ADDITION
+  CHANGE
+  GENERAL_FEEDBACK
 }
 
 // User model - core user data
@@ -53,6 +60,7 @@ model User {
   followers        Follow[]         @relation("following")
   following        Follow[]         @relation("follower")
   mealLibraryItems MealLibraryItem[]
+  suggestions      AppSuggestion[]
 }
 
 model UserProfile {
@@ -394,4 +402,22 @@ model GrocerySummary {
 
   @@unique([userId, start, end, unitSystem], name: "userId_start_end_unitSystem")
   @@index([userId, start, end])
+}
+
+model AppSuggestion {
+  id        String         @id @default(uuid())
+  userId    String
+  kind      SuggestionKind
+  message   String
+  dayKey    String
+  dailySlot Int
+  timeZone  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayKey, dailySlot], name: "AppSuggestion_userId_dayKey_dailySlot_key")
+  @@index([userId, dayKey])
+  @@index([userId, createdAt])
 }
