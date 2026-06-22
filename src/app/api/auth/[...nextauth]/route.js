@@ -3,6 +3,40 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
+function isRetryablePrismaError(error) {
+  if (!error) return false;
+
+  const name = typeof error.name === "string" ? error.name : "";
+  const message = typeof error.message === "string" ? error.message : "";
+
+  return (
+    name === "PrismaClientInitializationError" ||
+    message.includes("Can't reach database server") ||
+    message.includes("Please make sure your database server is running")
+  );
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withPrismaRetry(operation, { retries = 2, delayMs = 750 } = {}) {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await operation();
+    } catch (error) {
+      attempt += 1;
+
+      if (attempt > retries || !isRetryablePrismaError(error)) {
+        throw error;
+      }
+
+      await sleep(delayMs * attempt);
+    }
+  }
+}
 
 
 export const authOptions = {
@@ -15,12 +49,16 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-          });
-          if (!user) return null;
+          const email = credentials?.email?.trim();
+          const password = credentials?.password;
+          if (!email || !password) return null;
 
-          const isValid = await bcrypt.compare(credentials.password, user.password);
+          const user = await withPrismaRetry(() => prisma.user.findUnique({
+            where: { email },
+          }));
+          if (!user?.password) return null;
+
+          const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) return null;
 
           return {
@@ -47,9 +85,11 @@ export const authOptions = {
 
       // ALWAYS re-hydrate preferences if we know the userId
       if (userId) {
-        token.preferences = await prisma.userProfile.findUnique({
-          where: { userId: String(userId) },
-        });
+        token.preferences = await withPrismaRetry(() =>
+          prisma.userProfile.findUnique({
+            where: { userId: String(userId) },
+          })
+        );
       } else {
         token.preferences = null;
       }

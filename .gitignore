@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,10 +20,14 @@
 
 # production
 /build
+**/dist
+**/build
+**/.gradle
 
 # misc
 .DS_Store
 *.pem
+**/DerivedData
 
 # debug
 npm-debug.log*
@@ -39,3 +44,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# capacitor
+apps/mobile/android/local.properties
+apps/mobile/android/capacitor-cordova-android-plugins
+apps/mobile/android/app/build
+apps/mobile/ios/App/Pods
+apps/mobile/ios/App/public

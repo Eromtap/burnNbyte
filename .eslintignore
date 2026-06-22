@@ -1,1 +1,4 @@
 .next
+apps/mobile/android/app/build
+apps/mobile/android/.gradle
+apps/mobile/ios/App/App/public

@@ -1,12 +1,10 @@
 'use client';
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // using next/navigation for App Router
 import Image from "next/image";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -36,16 +34,18 @@ export default function SignInPage() {
     //     router.push("/");
     //   }
     // }
-
-
-
-
-    const result = await signIn("credentials", { redirect: false, email, password });
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+      callbackUrl: "/",
+    });
     if (result?.error) {
       alert("Login failed: " + result.error);
     } else if (result?.ok) {
-      // Let the server side (requireAuth + DB check) decide where to send the user
-      router.push("/");
+      // Force a document navigation so WebViews pick up the new auth cookie
+      // before protected routes run their server-side session check.
+      window.location.assign(result.url || "/");
     }
   }
 

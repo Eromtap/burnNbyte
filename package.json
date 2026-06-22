@@ -2,13 +2,19 @@
   "name": "burnnbyte",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 prisma migrate deploy && next build",
     "migrate:deploy": "PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 prisma migrate deploy",
     "start": "next start",
     "lint": "eslint .",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "mobile:sync": "npm --workspace apps/mobile run sync",
+    "mobile:add:android": "npm --workspace apps/mobile run add:android",
+    "mobile:add:ios": "npm --workspace apps/mobile run add:ios"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
