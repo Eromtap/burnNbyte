@@ -1,4 +1,4 @@
-﻿import { requireAuth } from "@/lib/auth";
+﻿import { requireAppSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -52,7 +52,7 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
     'UTC';
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
-  const session = await requireAuth();
+  const { session } = await requireAppSession();
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect('/onboarding/1');
 

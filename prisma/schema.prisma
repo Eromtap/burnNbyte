@@ -41,6 +41,7 @@ model User {
   email     String   @unique
   name      String?
   password  String // Hashed password
+  isAdmin   Boolean  @default(false)
   termsAcceptedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,6 +62,8 @@ model User {
   following        Follow[]         @relation("follower")
   mealLibraryItems MealLibraryItem[]
   suggestions      AppSuggestion[]
+  accessGrants     UserAccessGrant[]
+  subscriptionEvents SubscriptionEvent[]
 }
 
 model UserProfile {
@@ -339,19 +342,73 @@ model Follow {
 
 // Subscription - user subscription data
 model Subscription {
-  id                   String    @id @default(uuid())
-  userId               String    @unique
-  tier                 String // free, basic, premium, elite
-  status               String // active, canceled, past_due
-  startDate            DateTime  @default(now())
-  endDate              DateTime?
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  userId                 String    @unique
+  accessLevel            String    @default("full_access") // full_access
+  planCode               String? // monthly, annual
+  status                 String // active, trialing, canceled, past_due, expired
+  provider               String // stripe, app_store, play_store, revenuecat, manual
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  providerTransactionId  String?
+  providerProductId      String?
+  providerPriceId        String?
+  environment            String? // sandbox, production
+  startDate              DateTime  @default(now())
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean   @default(false)
+  canceledAt             DateTime?
+  trialStartedAt         DateTime?
+  trialEndsAt            DateTime?
+  metadata               Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events SubscriptionEvent[]
+
+  @@index([provider, providerSubscriptionId])
+  @@index([userId, status, currentPeriodEnd])
+}
+
+model SubscriptionEvent {
+  id             String   @id @default(uuid())
+  userId         String
+  subscriptionId String?
+  provider       String
+  eventType      String
+  eventId        String?
+  occurredAt     DateTime @default(now())
+  payload        Json?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@index([provider, eventType, occurredAt])
+  @@unique([provider, eventId])
+}
+
+model UserAccessGrant {
+  id            String   @id @default(uuid())
+  userId        String
+  accessLevel   String // free, premium
+  source        String // manual
+  reason        String? // family, friend, qa, support, promo
+  startsAt      DateTime @default(now())
+  expiresAt     DateTime?
+  grantedById   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, accessLevel, source])
+  @@index([userId, startsAt, expiresAt])
 }
 
 // GroceryOrder - grocery delivery orders

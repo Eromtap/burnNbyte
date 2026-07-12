@@ -1,8 +1,8 @@
-import { requireAuth } from "@/lib/auth";
+import { requireAppSession } from "@/lib/auth";
 import SuggestionsPageClient from "@/components/SuggestionsPageClient";
 
 export default async function SuggestionsPage() {
-  await requireAuth();
+  await requireAppSession();
 
   return (
     <main>

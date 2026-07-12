@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAppSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import GroceryOptimizer from '@/components/GroceryOptimizer';
@@ -41,7 +41,7 @@ function normalizeStoreItems(items = [], summaryId){
 }
 
 export default async function GroceriesPage({ searchParams }) {
-  const session = await requireAuth();
+  const { session } = await requireAppSession();
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect('/onboarding/1');
 

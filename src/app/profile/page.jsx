@@ -1,11 +1,11 @@
-import { requireAuth } from "@/lib/auth";
+import { requireAppSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import ProfileForm from "@/components/ProfileForm";
 import ThemePreferencesCard from "@/components/ThemePreferencesCard";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage(){
-  const session = await requireAuth();
+  const { session } = await requireAppSession();
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect('/onboarding/1');
 

@@ -1,10 +1,10 @@
-import { requireAuth } from "@/lib/auth";
+import { requireAppSession } from "@/lib/auth";
 import Calendar from "@/components/Calendar";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function HealthCalendar() {
-  const session = await requireAuth();
+  const { session } = await requireAppSession();
   const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
   if (!profile) redirect('/onboarding/1');
 

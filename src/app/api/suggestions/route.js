@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Prisma } from "@prisma/client";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
   MAX_SUGGESTIONS_PER_DAY,
@@ -74,11 +73,6 @@ async function createSuggestionWithDailyCap({ userId, kind, message, dayKey, tim
   return { limited: true, used: MAX_SUGGESTIONS_PER_DAY };
 }
 
-async function requireSessionUser() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.id ? String(session.user.id) : null;
-}
-
 export async function GET(req) {
   try {
     if (typeof prisma.appSuggestion?.count !== "function") {
@@ -88,10 +82,9 @@ export async function GET(req) {
       );
     }
 
-    const userId = await requireSessionUser();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAppApiSession();
+    if (auth.response) return auth.response;
+    const userId = String(auth.session.user.id);
 
     const timeZone = getResolvedTimeZone(req);
     const dayKey = getDayKeyInTimeZone(new Date(), timeZone);
@@ -119,10 +112,9 @@ export async function POST(req) {
       );
     }
 
-    const userId = await requireSessionUser();
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAppApiSession();
+    if (auth.response) return auth.response;
+    const userId = String(auth.session.user.id);
 
     const body = (await req.json().catch(() => ({}))) || {};
     const parsed = parseSuggestionPayload(body);

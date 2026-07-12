@@ -9,6 +9,7 @@
     "dev": "next dev",
     "build": "PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 prisma migrate deploy && next build",
     "migrate:deploy": "PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 prisma migrate deploy",
+    "admin:grant": "node scripts/grant-admin.js",
     "start": "next start",
     "lint": "eslint .",
     "postinstall": "prisma generate",

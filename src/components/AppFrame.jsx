@@ -20,15 +20,17 @@ const SECONDARY_NAV_ITEMS = [
   { href: '/suggestions', label: 'Suggestion Box' },
 ];
 
-const MOBILE_NAV_ITEMS = [...PRIMARY_NAV_ITEMS, ...SECONDARY_NAV_ITEMS];
-
-export default function AppFrame({ children }) {
+export default function AppFrame({ children, session }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const secondaryNavItems = session?.user?.isAdmin
+    ? [...SECONDARY_NAV_ITEMS, { href: '/admin/access', label: 'Admin Access' }]
+    : SECONDARY_NAV_ITEMS;
+  const mobileNavItems = [...PRIMARY_NAV_ITEMS, ...secondaryNavItems];
 
   const isActive = (href) => pathname === href;
-  const moreActive = SECONDARY_NAV_ITEMS.some((item) => isActive(item.href));
+  const moreActive = secondaryNavItems.some((item) => isActive(item.href));
 
   useEffect(() => {
     setDrawerOpen(false);
@@ -73,7 +75,7 @@ export default function AppFrame({ children }) {
                 </button>
                 {moreOpen && (
                   <div className="desktop-more-menu" role="menu" aria-label="More options">
-                    {SECONDARY_NAV_ITEMS.map((item) => (
+                    {secondaryNavItems.map((item) => (
                       <Link
                         key={item.href}
                         role="menuitem"
@@ -114,7 +116,7 @@ export default function AppFrame({ children }) {
               </button>
             </div>
             <nav className="drawer-nav">
-              {MOBILE_NAV_ITEMS.map((item) => (
+              {mobileNavItems.map((item) => (
                 <Link key={item.href} className={`drawer-link ${isActive(item.href) ? 'active' : ''}`} href={item.href} onClick={() => setDrawerOpen(false)}>
                   {item.label}
                 </Link>
