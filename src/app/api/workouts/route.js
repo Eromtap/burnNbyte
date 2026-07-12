@@ -1,7 +1,6 @@
 // app/api/workouts/route.js
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireAppApiSession } from '@/lib/auth';
 import prisma from "@/lib/prisma";
 
 function toUTCDateFromLocalYMD(ymd) {
@@ -29,11 +28,10 @@ function extractExerciseSuggestions(instructions) {
 }
 
 export async function GET(req) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireAppApiSession();
+  if (auth.response) return auth.response;
+  const { session } = auth;
+  const userId = session.user.id;
 
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');

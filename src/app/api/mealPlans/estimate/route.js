@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import OpenAI from "openai";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAppApiSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -42,10 +41,9 @@ const ESTIMATE_SCHEMA = {
 
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAppApiSession();
+    if (auth.response) return auth.response;
+    const { session } = auth;
 
     const form = await req.formData();
     const description = String(form.get("description") || "").trim();

@@ -55,6 +55,7 @@ export const authOptions = {
 
           const user = await withPrismaRetry(() => prisma.user.findUnique({
             where: { email },
+            select: { id: true, name: true, email: true, password: true, isAdmin: true },
           }));
           if (!user?.password) return null;
 
@@ -65,6 +66,7 @@ export const authOptions = {
             id: String(user.id),
             name: user.name,
             email: user.email,
+            isAdmin: Boolean(user.isAdmin),
           };
         } catch (err) {
           console.error("Auth authorize error", err);
@@ -82,6 +84,17 @@ export const authOptions = {
       // establish a stable user id in the token
       const userId = user?.id ?? token.id ?? token.sub ?? null;
       if (userId) token.id = userId;
+      if (typeof user?.isAdmin === "boolean") {
+        token.isAdmin = user.isAdmin;
+      } else if (userId) {
+        const dbUser = await withPrismaRetry(() =>
+          prisma.user.findUnique({
+            where: { id: String(userId) },
+            select: { isAdmin: true },
+          })
+        );
+        token.isAdmin = Boolean(dbUser?.isAdmin);
+      }
 
       // ALWAYS re-hydrate preferences if we know the userId
       if (userId) {
@@ -100,6 +113,7 @@ export const authOptions = {
     async session({ session, token }) {
       if (session?.user) {
         session.user.id = token.id ?? token.sub ?? null;
+        session.user.isAdmin = Boolean(token.isAdmin);
         session.user.preferences = token.preferences ?? null;
       }
       return session;

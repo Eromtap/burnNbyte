@@ -13,7 +13,7 @@ export default function ClientLayout({ children, session }) {
     <SessionProvider session={session}>
       <OnboardingProvider>
         <ThemeProvider>
-          {isBare ? children : <AppFrame>{children}</AppFrame>}
+          {isBare ? children : <AppFrame session={session}>{children}</AppFrame>}
         </ThemeProvider>
       </OnboardingProvider>
     </SessionProvider>

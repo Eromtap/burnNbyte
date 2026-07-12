@@ -1,9 +1,9 @@
-import { requireAuth } from "@/lib/auth";
+import { requireAppSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import MealLibraryPageClient from "@/components/MealLibraryPageClient";
 
 export default async function MealLibraryPage() {
-  const session = await requireAuth();
+  const { session } = await requireAppSession();
 
   const items = await prisma.mealLibraryItem.findMany({
     where: { userId: session.user.id },

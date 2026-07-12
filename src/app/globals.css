@@ -769,6 +769,40 @@ body::before{
   max-width:62ch;
 }
 
+.admin-search-form{
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:end;
+}
+
+.admin-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+
+.admin-status{
+  margin-top:12px;
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid transparent;
+}
+
+.admin-status-success{
+  background:color-mix(in oklab, var(--ok) 12%, var(--surface));
+  border-color:color-mix(in oklab, var(--ok) 28%, transparent);
+  color:var(--text);
+}
+
+.admin-status-error{
+  background:color-mix(in oklab, var(--danger) 12%, var(--surface));
+  border-color:color-mix(in oklab, var(--danger) 28%, transparent);
+  color:var(--text);
+}
+
+.admin-grant-row{
+  align-items:flex-start;
+}
+
 .meal-page-summary{
   display:grid;
   grid-template-columns:repeat(2, minmax(0, 1fr));
@@ -1653,6 +1687,9 @@ input:focus,select:focus,textarea:focus{
   }
   .meal-summary-card{
     padding:12px 14px;
+  }
+  .admin-search-form,.admin-grid{
+    grid-template-columns:1fr;
   }
   .stats,.prefs-grid,.dashboard-grid,.grid{grid-template-columns:1fr}
   .span-2,.span-3,.span-4{grid-column:1 / -1}

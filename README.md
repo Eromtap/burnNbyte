@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## BurnnByte
 
-## Getting Started
+BurnnByte is a Next.js app with a Prisma/Postgres backend and a Capacitor mobile wrapper in `apps/mobile`.
 
-First, run the development server:
+## Local Development
+
+Install dependencies, make sure your `.env` is configured, then run:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Admin Bootstrap
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Admin access is database-backed through `User.isAdmin`.
 
-## Learn More
+To promote an existing user to admin:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run admin:grant -- you@example.com
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Notes:
+- The user must already exist in the database.
+- You do not need to start the app before running this command.
+- If the user is already signed in, sign out and back in after granting admin so the session picks up the new flag.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Admins can open `/admin/access` to search for users and grant or revoke manual full access.
 
-## Deploy on Vercel
+## Access Model
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Current access rules:
+- New users get 7 days of full app access.
+- After 7 days, users need an active subscription or a manual full-access grant.
+- Specific users can be comped through the admin access UI.
+- Admin users bypass app-access enforcement automatically.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Manual full-access grants are managed through the internal admin page and stored in the database.
+
+## Useful Commands
+
+```bash
+npm run dev
+npm run lint
+npm run migrate:deploy
+npm run admin:grant -- you@example.com
+```
+
+## Mobile Wrapper
+
+The mobile app lives in `apps/mobile` and wraps the hosted web app with Capacitor.
+
+Useful commands:
+
+```bash
+npm run mobile:add:android
+npm run mobile:add:ios
+npm run mobile:sync
+```
+
+Set `CAPACITOR_SERVER_URL` in `apps/mobile/.env` to your deployed app URL for device builds.

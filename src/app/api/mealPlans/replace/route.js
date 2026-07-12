@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireAppApiSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import OpenAI from 'openai';
 import { describeDietaryPreferences } from '@/constants/dietaryPreferences';
@@ -15,8 +14,9 @@ function toUTC(ymd){
 
 export async function POST(req){
   try{
-    const session = await getServerSession(authOptions);
-    if(!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = await requireAppApiSession();
+    if (auth.response) return auth.response;
+    const { session } = auth;
     const body = await req.json();
     const items = Array.isArray(body?.items) ? body.items : [];
     const rebalance = Boolean(body?.rebalance);

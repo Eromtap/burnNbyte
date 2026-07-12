@@ -1,17 +1,14 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
+import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getMinimumSafeCalories } from "@/lib/nutritionTargets";
 
 
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAppApiSession();
+  if (auth.response) return auth.response;
+  const { session } = auth;
 
   try {
     const data = await req.json();
