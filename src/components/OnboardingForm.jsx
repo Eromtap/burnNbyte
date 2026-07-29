@@ -4,6 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useOnboarding } from '@/lib/formState';
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import Step1 from './onboardingSteps/Step1';
 import Step2 from './onboardingSteps/Step2';
 import Step3 from './onboardingSteps/Step3';
@@ -12,6 +13,12 @@ const steps = {
   1: Step1,
   2: Step2,
   3: Step3,
+};
+
+const STEP_META = {
+  1: { label: 'Body', detail: 'Body + activity' },
+  2: { label: 'Training', detail: 'Goals + schedule' },
+  3: { label: 'Food', detail: 'Meals + targets' },
 };
 
 function normalizeNumber(value) {
@@ -83,6 +90,7 @@ export default function OnboardingForm() {
   const StepComponent = steps[step];
   const { formData, updateForm } = useOnboarding();
   const progress = Math.max(0, Math.min(100, Math.round((currentStep / 3) * 100)));
+  const currentMeta = STEP_META[currentStep] || STEP_META[1];
 
   const prev = () => {
     const prevStep = Math.max(1, currentStep - 1);
@@ -165,62 +173,67 @@ export default function OnboardingForm() {
   };
 
   return (
-    <main>
-      <div className="page-shell stack">
-        <section className="hero-card page-hero onboard-hero">
-          <div className="page-hero-copy">
-            <div className="eyebrow">Onboarding</div>
+    <main className="onboard-native-page">
+      <div className="onboard-native-shell">
+        <header className="onboard-native-brandbar">
+          <div className="onboard-native-brand">
+            <Image src="/logo.png" alt="" width={42} height={42} priority />
             <div>
-              <h1 className="page-hero-title">Set up burnNbyte once so the plan can actually fit you.</h1>
-              <p className="page-hero-text">
-                This onboarding collects the inputs that change your workouts and meals: body metrics, training goals, equipment, food preferences, and schedule.
-              </p>
+              <strong>burnNbyte</strong>
+              <span>Fuel smart. Train hard.</span>
             </div>
           </div>
-          <aside className="hero-panel hero-metrics">
-            <div className="metric-card">
-              <div className="metric-label">Progress</div>
-              <div className="metric-value">{progress}%</div>
-              <div className="progress"><span style={{ width: `${progress}%` }} /></div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-label">Current step</div>
-              <div className="metric-value" style={{ fontSize: '1.6rem' }}>
-                {currentStep === 1 ? 'Body profile' : currentStep === 2 ? 'Training setup' : 'Nutrition setup'}
-              </div>
-              <div className="metric-detail">Three screens. No filler.</div>
-            </div>
-          </aside>
-        </section>
+          <div className="onboard-native-badge">PLAN SETUP</div>
+        </header>
 
-        <article className="card onboard-card">
-          <header className="card-head onboard-card-head">
-            <div>
-              <h3>Profile setup</h3>
-              <div className="sub">Step {currentStep} of 3</div>
+        <section className="onboard-native-frame">
+          <div className="onboard-native-progress">
+            <div className="onboard-native-progress-head">
+              <div>
+                <span>YOUR FIRST WEEK</span>
+                <strong>{currentMeta.detail}</strong>
+              </div>
+              <b>{progress}%</b>
             </div>
-            <div className="onboard-steps">
+            <div className="onboard-native-progress-rail" aria-label={`Step ${currentStep} of 3`}>
               {[1, 2, 3].map((item) => (
-                <div key={item} className={`onboard-step-dot ${item <= currentStep ? 'active' : ''}`}>{item}</div>
+                <span key={item} className={item <= currentStep ? 'active' : ''} />
               ))}
             </div>
-          </header>
-          <form className="form onboard-form" onSubmit={onSubmitNext}>
+            <div className="onboard-native-progress-labels">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className={item === currentStep ? 'active' : ''}>
+                  <i>{String(item).padStart(2, '0')}</i>
+                  <span>{STEP_META[item].label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form className="form onboard-form onboard-native-form" onSubmit={onSubmitNext}>
             {StepComponent ? (
               <StepComponent formData={formData} updateForm={updateForm} />
             ) : (
               <p className="muted">Loading...</p>
             )}
-            <div className="onboard-actions">
+            <div className="onboard-actions onboard-native-actions">
               <button type="button" onClick={prev} className="btn btn-secondary" disabled={currentStep === 1}>
                 Back
               </button>
               <button type="submit" className="btn btn-primary">
-                {currentStep === 3 ? 'Finish setup' : 'Continue'}
+                {currentStep === 3 ? 'Build my first week' : 'Continue'}
               </button>
             </div>
           </form>
-        </article>
+        </section>
+
+        <footer className="onboard-native-footer">
+          <span>WHY WE ASK</span>
+          <p>
+            These answers change your calorie guidance, training schedule, meal suggestions, and grocery plan.
+            You can edit them later from your profile.
+          </p>
+        </footer>
       </div>
     </main>
   );
