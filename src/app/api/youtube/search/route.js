@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAppApiSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
+  const auth = await requireAppApiSession();
+  if (auth.response) return auth.response;
+
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -15,6 +19,9 @@ export async function GET(request) {
   const query = searchParams.get('query');
   if (!query || !query.trim()) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 });
+  }
+  if (query.trim().length > 120) {
+    return NextResponse.json({ error: 'Search query is too long' }, { status: 400 });
   }
 
   const params = new URLSearchParams({
@@ -32,7 +39,7 @@ export async function GET(request) {
 
   let response;
   try {
-    response = await fetch(url, { cache: 'no-store' });
+    response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
   } catch (_err) {
     return NextResponse.json(
       { error: 'Failed to reach YouTube' },
@@ -41,9 +48,8 @@ export async function GET(request) {
   }
 
   if (!response.ok) {
-    const details = await response.text();
     return NextResponse.json(
-      { error: 'YouTube request failed', details },
+      { error: 'YouTube request failed' },
       { status: 502 }
     );
   }

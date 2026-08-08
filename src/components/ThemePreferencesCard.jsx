@@ -8,7 +8,7 @@ export default function ThemePreferencesCard() {
   const nextTheme = theme === 'tech-red' ? 'Slate' : 'Tech Red';
 
   return (
-    <article className="card">
+    <article className="card bn-route-stage">
       <header className="card-head">
         <div>
           <h3>Appearance</h3>

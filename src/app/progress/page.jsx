@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import ProgressSummary from "@/components/ProgressSummary";
+import { getSessionUserProfile } from "@/lib/auth";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -46,9 +47,7 @@ export default async function ProgressPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
 
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: String(session.user.id) },
-  });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
@@ -98,15 +97,17 @@ export default async function ProgressPage() {
   }));
 
   return (
-    <main>
+    <main className="bn-route-page bn-progress-page">
       <div className="page-shell stack">
-        <section className="hero-card page-hero">
+        <section className="hero-card page-hero bn-route-hero bn-progress-hero">
           <div className="page-hero-copy">
             <div className="eyebrow">Progress and metrics</div>
             <div>
-              <h1 className="page-hero-title">See adherence, calories, and weight trend without leaving the app flow.</h1>
+              <h1 className="page-hero-title">
+                {totalActions ? `${completionPct}% complete today` : 'Nothing logged yet today'}
+              </h1>
               <p className="page-hero-text">
-                This view turns your daily actions into something readable: whether you followed the plan, how calories tracked, and how bodyweight is trending over time.
+                {completedActions} of {totalActions} planned actions complete · {consumedMacros.calories} kcal logged
               </p>
             </div>
           </div>
@@ -131,7 +132,7 @@ export default async function ProgressPage() {
           </aside>
         </section>
 
-        <article className="card">
+        <article className="card bn-route-stage">
           <header className="card-head">
             <div>
               <h3>Progress dashboard</h3>

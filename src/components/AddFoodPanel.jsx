@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatMacro } from '@/lib/macros';
 import { MEAL_TYPES } from '@/lib/mealPlanUtils';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const MODES = [
   { id: 'text', label: 'Describe food' },
@@ -136,10 +137,10 @@ export default function AddFoodPanel({
       if (draft.portionNote.trim()) formData.append('portionNote', draft.portionNote.trim());
       formData.append('type', draft.type);
 
-      const res = await fetch('/api/mealPlans/estimate', {
+      const res = await fetchWithTimeout('/api/mealPlans/estimate', {
         method: 'POST',
         body: formData,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to estimate meal.');
 
@@ -184,10 +185,10 @@ export default function AddFoodPanel({
       pantryFiles.slice(0, 3).forEach((file) => formData.append('photos', file));
       formData.append('type', draft.type);
 
-      const res = await fetch('/api/pantry/meal', {
+      const res = await fetchWithTimeout('/api/pantry/meal', {
         method: 'POST',
         body: formData,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data?.error || 'Failed to generate pantry or fridge meal.');
@@ -295,10 +296,10 @@ export default function AddFoodPanel({
       formData.append('portionNote', savedPortionNote.trim() || 'Use the standard saved portion.');
       formData.append('type', draft.type);
 
-      const estimateRes = await fetch('/api/mealPlans/estimate', {
+      const estimateRes = await fetchWithTimeout('/api/mealPlans/estimate', {
         method: 'POST',
         body: formData,
-      });
+      }, 100000);
       const estimateData = await estimateRes.json().catch(() => ({}));
       if (!estimateRes.ok) {
         throw new Error(estimateData?.error || 'Failed to estimate saved item.');

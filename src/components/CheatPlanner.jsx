@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import OperationFeedback from '@/components/OperationFeedback';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export default function CheatPlanner({ currentDateISO }) {
   const [open, setOpen] = useState(false);
@@ -17,7 +19,7 @@ export default function CheatPlanner({ currentDateISO }) {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch('/api/cheat-plan', {
+      const res = await fetchWithTimeout('/api/cheat-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -25,7 +27,7 @@ export default function CheatPlanner({ currentDateISO }) {
           adjustWeek,
           currentDateISO,
         }),
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to build cheat plan');
       setResult(data);
@@ -37,6 +39,7 @@ export default function CheatPlanner({ currentDateISO }) {
   }
 
   function closeModal() {
+    if (loading) return;
     setOpen(false);
     setError(null);
   }
@@ -64,11 +67,17 @@ export default function CheatPlanner({ currentDateISO }) {
               <h3 id="cheatModalTitle">Plan around the cheat</h3>
               <div className="sub">A treat doesn&apos;t ruin anything. Log what you&apos;re planning, get a realistic calorie estimate, and decide whether you want upcoming planned days to quietly balance it out.</div>
             </div>
-            <button type="button" className="btn btn-ghost" onClick={closeModal} aria-label="Close">
+            <button type="button" className="btn btn-ghost" onClick={closeModal} aria-label="Close" disabled={loading}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6.225 4.811 12 10.586l5.775-5.775a1 1 0 1 1 1.414 1.414L13.414 12l5.775 5.775a1 1 0 0 1-1.414 1.414L12 13.414l-5.775 5.775a1 1 0 0 1-1.414-1.414L10.586 12 4.81 6.225A1 1 0 0 1 6.225 4.81Z"/></svg>
             </button>
           </header>
           <form className="modal-body cheat-modal-body" onSubmit={onSubmit}>
+            <OperationFeedback
+              active={loading}
+              title="Estimating and balancing your plan"
+              steps={['Estimating the meal', 'Reviewing upcoming days', 'Balancing meals and training', 'Saving plan adjustments']}
+              timeoutSeconds={100}
+            />
             <label className="cheat-input-block">
               <span className="planner-head">What are you about to have?</span>
               <textarea
@@ -134,7 +143,7 @@ export default function CheatPlanner({ currentDateISO }) {
               </div>
             )}
             <footer className="modal-foot cheat-modal-foot" style={{ padding: 0 }}>
-              <button type="button" className="btn btn-outline" onClick={closeModal}>Close</button>
+              <button type="button" className="btn btn-outline" onClick={closeModal} disabled={loading}>Close</button>
               {!result && (
                 <button type="submit" className="btn btn-primary" disabled={!description.trim() || loading}>
                   {loading ? 'Planning…' : 'Run the plan'}

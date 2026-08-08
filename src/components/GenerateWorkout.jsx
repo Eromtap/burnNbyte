@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import OperationFeedback from '@/components/OperationFeedback';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export default function GenerateWorkout({ initialPreferences = null, selectedISO: selectedISOProp, onGenerated }) {
   const { data: session, update } = useSession();
@@ -9,6 +11,7 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
   const router = useRouter();
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMode, setLoadingMode] = useState(null);
   const sessionPrefs = session?.user?.preferences || null;
   const userPrefs = sessionPrefs || initialPreferences || {};
   const todayLocal = new Date();
@@ -41,11 +44,16 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
 
   async function handleClick({ selectedOnly } = {}) {
     setLoading(true);
+    setLoadingMode(selectedOnly ? 'day' : 'week');
     setResult(null);
     try {
-      let fresh = null;
-      try { fresh = await update(); } catch {}
-      const prefs = fresh?.user?.preferences || session?.user?.preferences || initialPreferences || {};
+      let prefs = session?.user?.preferences || initialPreferences || {};
+      if (!Object.keys(prefs).length) {
+        try {
+          const fresh = await update();
+          prefs = fresh?.user?.preferences || prefs;
+        } catch {}
+      }
 
       // Determine selected date from URL (defaults to today)
       const selectedDate = parseLocalYMD(selectedISO);
@@ -74,7 +82,7 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
         targetDates.push(selectedISO);
       }
 
-      const res = await fetch('/api/generateWorkout', {
+      const res = await fetchWithTimeout('/api/generateWorkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,8 +102,8 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
             : `${toYMDLocal(todayLocal)} - ${toYMDLocal(new Date(todayLocal.getTime() + 6*24*60*60*1000))}`,
           dates: targetDates,
         }),
-      });
-      const data = await res.json();
+      }, 195000);
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setResult({ error: data?.error || 'Failed to generate workout.' });
         return;
@@ -133,19 +141,30 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
         selectedLabel,
       });
     } catch (err) {
-      setResult({ error: err?.message || 'Failed to generate workout.' });
+      setResult({
+        error: err?.name === 'TimeoutError'
+          ? 'Workout generation took longer than expected and was stopped. Please try again; a weekly plan may work better one day at a time.'
+          : (err?.message || 'Failed to generate workout.'),
+      });
     } finally {
       setLoading(false);
+      setLoadingMode(null);
     }
   }
 
   return (
     <div className="stack">
-      <button className="btn btn-primary btn-full" onClick={() => handleClick({ selectedOnly: true })} disabled={loading}>
-        {loading ? 'Generating…' : `Create or Replace Workout for ${selectedLabel}`}
+      <OperationFeedback
+        active={loading}
+        title={loadingMode === 'week' ? 'Building your workout week' : `Building ${selectedLabel}'s workout`}
+        steps={['Checking your preferences', 'Choosing the training focus', 'Balancing exercises and progression', 'Saving the finished plan']}
+        timeoutSeconds={195}
+      />
+      <button type="button" className="btn btn-primary btn-full" onClick={() => handleClick({ selectedOnly: true })} disabled={loading}>
+        {loadingMode === 'day' ? 'Building this workout…' : `Create or Replace Workout for ${selectedLabel}`}
       </button>
-      <button className="btn btn-secondary btn-full" onClick={() => handleClick({ selectedOnly: false })} disabled={loading}>
-        {loading ? 'Generating…' : 'Create Workout Plan'}
+      <button type="button" className="btn btn-secondary btn-full" onClick={() => handleClick({ selectedOnly: false })} disabled={loading}>
+        {loadingMode === 'week' ? 'Building the weekly plan…' : 'Create Workout Plan'}
       </button>
 
       {result?.error && (

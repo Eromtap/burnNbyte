@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export default function TermsAcceptForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const { update } = useSession();
 
   async function acceptTerms() {
     if (saving) return;
@@ -16,6 +18,7 @@ export default function TermsAcceptForm() {
       const res = await fetch('/api/terms/accept', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to accept terms');
+      await update();
       router.push('/');
       router.refresh();
     } catch (err) {

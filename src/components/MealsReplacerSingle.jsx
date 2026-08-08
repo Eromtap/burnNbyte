@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export default function MealsReplacerSingle({ selectedISO, onReplaced }){
   const router = useRouter();
@@ -13,11 +14,11 @@ export default function MealsReplacerSingle({ selectedISO, onReplaced }){
   async function replaceOne(){
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/mealPlans/replace', {
+      const res = await fetchWithTimeout('/api/mealPlans/replace', {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ items: [{ date: selectedISO, types: [type] }], rebalance })
-      });
+      }, 100000);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to replace');
       if (typeof onReplaced === 'function') {

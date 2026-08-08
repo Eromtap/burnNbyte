@@ -130,17 +130,18 @@ export default function StoreReadyList({
           <div className="stack" style={{ marginTop: 8 }}>
             <ul className="list">
               {localItems.map((it) => (
-                <li key={it.id} className="list-row" style={{ alignItems: 'center' }}>
-                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', width: '100%' }}>
+                <li key={it.id} className={`list-row store-ready-item${it.checked ? ' store-ready-item-checked' : ''}`}>
+                  <label className="store-ready-item-label">
                     <input
+                      className="store-ready-checkbox"
                       type="checkbox"
                       checked={Boolean(it.checked)}
                       disabled={!summaryId || savingId === it.id}
                       onChange={(e) => toggleItem(it.id, e.target.checked)}
                     />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: 'var(--text, var(--foreground, #111))' }}>{it.name}</div>
-                      <div className="muted" style={{ fontSize: 12, color: 'var(--muted, #6b7280)' }}>
+                    <div className="store-ready-item-copy">
+                      <div className="store-ready-item-name">{it.name}</div>
+                      <div className="muted store-ready-item-meta">
                         {it.quantity} {it.unit}{it.packageSize ? ` • ${it.packageSize}` : ''}{it.notes ? ` • ${it.notes}` : ''}
                       </div>
                     </div>

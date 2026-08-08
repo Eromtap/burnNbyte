@@ -33,7 +33,9 @@ export default function DateStrip({ basePath, selectedISO, span = 7, onSelectDat
       return;
     }
     const nextDate = addDaysLocal(selectedDate, direction * 7);
-    router.push(`${basePath}?date=${toYMDLocal(nextDate)}`);
+    const href = `${basePath}?date=${toYMDLocal(nextDate)}`;
+    window.dispatchEvent(new CustomEvent('bn:navigation-start', { detail: { href: new URL(href, window.location.href).href } }));
+    router.push(href);
   }
 
   return (

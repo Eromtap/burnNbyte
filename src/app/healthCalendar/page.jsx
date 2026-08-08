@@ -1,11 +1,12 @@
 import { requireAppSession } from "@/lib/auth";
 import Calendar from "@/components/Calendar";
+import { getSessionUserProfile } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 export default async function HealthCalendar() {
   const { session } = await requireAppSession();
-  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect('/onboarding/1');
 
   const [workouts, mealPlans] = await Promise.all([
@@ -60,8 +61,20 @@ export default async function HealthCalendar() {
   });
 
   return (
-    <main>
-      <div className="page-shell">
+    <main className="bn-route-page bn-calendar-page">
+      <div className="page-shell stack">
+        <section className="bn-route-intro">
+          <div>
+            <div className="eyebrow">Training rhythm</div>
+            <h1>See the week before<br /><em>it gets away.</em></h1>
+            <p>Workouts and meals share one timeline, so your plan reads like a schedule instead of a checklist.</p>
+          </div>
+          <aside>
+            <span>Calendar view</span>
+            <strong>One plan. Two signals.</strong>
+            <small>Training and nutrition, aligned by day</small>
+          </aside>
+        </section>
         <Calendar
           calendarTitle="My Health Calendar"
           dataSources={[

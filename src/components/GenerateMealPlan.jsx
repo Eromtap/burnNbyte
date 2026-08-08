@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { deriveNutritionTargets } from '@/lib/nutritionTargets';
+import OperationFeedback from '@/components/OperationFeedback';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const SOURCE_OPTIONS = [
   { id: 'standard', label: 'Planner suggestions' },
@@ -27,19 +29,39 @@ function addDaysLocal(date, days) {
   return next;
 }
 
-export default function GenerateMealPlan({ initialPreferences = null, onGenerated }) {
+function startOfWeekLocal(date) {
+  const start = new Date(date);
+  start.setDate(start.getDate() - start.getDay());
+  return start;
+}
+
+export default function GenerateMealPlan({
+  initialPreferences = null,
+  selectedISO,
+  hasMealPlan = false,
+  onGenerated,
+}) {
   const { data: session, update } = useSession();
   const pantryCameraRef = useRef(null);
   const pantryLibraryRef = useRef(null);
-  const plannerStartISO = toYMDLocal(new Date());
-  const plannerStartDate = useMemo(() => parseYMDLocal(plannerStartISO), [plannerStartISO]);
+  const anchorISO = selectedISO || toYMDLocal(new Date());
+  const plannerStartDate = useMemo(
+    () => startOfWeekLocal(parseYMDLocal(anchorISO)),
+    [anchorISO]
+  );
+  const plannerStartISO = toYMDLocal(plannerStartDate);
   const plannerDateOptions = useMemo(
-    () => Array.from({ length: 7 }, (_, index) => toYMDLocal(addDaysLocal(plannerStartDate, index))),
+    () => Array.from({ length: 14 }, (_, index) => toYMDLocal(addDaysLocal(plannerStartDate, index))),
     [plannerStartDate]
   );
+  const plannerWeekDates = useMemo(
+    () => plannerDateOptions.slice(0, 7),
+    [plannerDateOptions]
+  );
   const [open, setOpen] = useState(false);
+  const [planningScope, setPlanningScope] = useState('week');
   const [sourceMode, setSourceMode] = useState('standard');
-  const [selectedDates, setSelectedDates] = useState(plannerDateOptions);
+  const [selectedDates, setSelectedDates] = useState(plannerWeekDates);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pantryFiles, setPantryFiles] = useState([]);
@@ -53,6 +75,13 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
   const rangeLabel = selectedDates.length
     ? `${selectedDates[0]} through ${selectedDates[selectedDates.length - 1]}`
     : 'No days selected';
+
+  function openPlanner(scope) {
+    setPlanningScope(scope);
+    setSelectedDates(scope === 'day' ? [anchorISO] : plannerWeekDates);
+    setError('');
+    setOpen(true);
+  }
 
   function toggleDate(dateISO) {
     setSelectedDates((current) => (
@@ -74,7 +103,7 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
 
   function resetState() {
     setSourceMode('standard');
-    setSelectedDates(plannerDateOptions);
+    setSelectedDates(planningScope === 'day' ? [anchorISO] : plannerWeekDates);
     setLoading(false);
     setError('');
     setPantryFiles([]);
@@ -87,19 +116,23 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
 
     try {
       if (!selectedDates.length) {
-        throw new Error('Select at least one day in the next week.');
+        throw new Error('Select at least one day in the two-week window.');
       }
 
       if (sourceMode === 'standard') {
-        let fresh = null;
-        try { fresh = await update(); } catch {}
-        const prefs = fresh?.user?.preferences || session?.user?.preferences || initialPreferences || {};
+        let prefs = session?.user?.preferences || initialPreferences || {};
+        if (!Object.keys(prefs).length) {
+          try {
+            const fresh = await update();
+            prefs = fresh?.user?.preferences || prefs;
+          } catch {}
+        }
         const targets = deriveNutritionTargets(prefs);
         const goalList = Array.isArray(prefs.fitnessGoals)
           ? prefs.fitnessGoals
           : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []);
 
-        const res = await fetch('/api/generateMealPlan', {
+        const res = await fetchWithTimeout('/api/generateMealPlan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -125,7 +158,7 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
             allergies: prefs.allergies || [],
             targetDates: selectedDates,
           }),
-        });
+        }, 150000);
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Failed to generate meal plan.');
@@ -147,10 +180,10 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
         formData.append('sourcingMode', sourcingMode);
         formData.append('unitSystem', 'imperial');
 
-        const res = await fetch('/api/pantry/generateMealPlan', {
+        const res = await fetchWithTimeout('/api/pantry/generateMealPlan', {
           method: 'POST',
           body: formData,
-        });
+        }, 180000);
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           if (data?.code === 'moderation_blocked') {
@@ -171,7 +204,11 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
       setOpen(false);
       resetState();
     } catch (err) {
-      setError(err.message || 'Failed to generate meal plan.');
+      setError(
+        err?.name === 'TimeoutError'
+          ? 'Meal generation took longer than expected and was stopped. Try fewer days or retry the request.'
+          : (err.message || 'Failed to generate meal plan.')
+      );
     } finally {
       setLoading(false);
     }
@@ -179,29 +216,44 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
 
   return (
     <>
-      <button type="button" className="btn btn-secondary" onClick={() => setOpen(true)}>
-        Generate meals
-      </button>
+      <div className="page-hero-actions meal-plan-scope-actions">
+        <button type="button" className="btn btn-secondary" onClick={() => openPlanner('week')}>
+          {hasMealPlan ? 'Regenerate week' : 'Plan this week'}
+        </button>
+        <button type="button" className="btn btn-outline" onClick={() => openPlanner('day')}>
+          {hasMealPlan ? 'Regenerate this day' : 'Plan this day'}
+        </button>
+      </div>
 
       <div className="modal" aria-hidden={!open} role="dialog" aria-modal="true" aria-labelledby="generateMealPlanTitle">
-        <div className="modal-backdrop" onClick={() => setOpen(false)} />
+        <div className="modal-backdrop" onClick={() => { if (!loading) setOpen(false); }} />
         <div className="modal-dialog tracker-modal tracker-modal-soft">
           <header className="modal-head tracker-modal-head">
             <div>
               <div className="eyebrow">Meal planner</div>
-              <h3 id="generateMealPlanTitle">Generate meals</h3>
-              <div className="sub">Build meals for the next 7 days starting {selectedLabel}. Leave the full week checked or uncheck any days you do not want.</div>
+              <h3 id="generateMealPlanTitle">{planningScope === 'day' ? 'Plan this day' : 'Plan this week'}</h3>
+              <div className="sub">
+                {planningScope === 'day'
+                  ? `Build meals for ${anchorISO}. Add other days from the next two weeks if you want to expand the plan.`
+                  : `Build the selected calendar week starting ${selectedLabel}. You can also choose dates from the following week.`}
+              </div>
             </div>
-            <button type="button" className="modal-close-icon" onClick={() => setOpen(false)} aria-label="Close meal planner">
+            <button type="button" className="modal-close-icon" onClick={() => setOpen(false)} aria-label="Close meal planner" disabled={loading}>
               <span aria-hidden="true">✕</span>
             </button>
           </header>
 
           <div className="modal-body tracker-modal-body">
+            <OperationFeedback
+              active={loading}
+              title={sourceMode === 'pantry' ? 'Reading your pantry and building meals' : 'Building your meal plan'}
+              steps={['Checking nutrition targets', 'Choosing meals for each day', 'Balancing calories and macros', 'Saving meals to your plan']}
+              timeoutSeconds={sourceMode === 'pantry' ? 180 : 150}
+            />
             <section className="tracker-section">
               <div className="tracker-label-row">
-                <span className="planner-head">Which days?</span>
-                <span className="muted text-xs">{selectedDates.length} selected</span>
+                <span className="planner-head">Which days? <span className="muted text-xs">This week + next week</span></span>
+                <span className="muted text-xs">{selectedDates.length} of 14 selected</span>
               </div>
               <div className="planner-date-strip-scroll">
                 {plannerDateOptions.map((dateISO) => {
@@ -335,7 +387,7 @@ export default function GenerateMealPlan({ initialPreferences = null, onGenerate
           </div>
 
           <footer className="modal-foot tracker-modal-foot">
-            <button type="button" className="btn btn-ghost" onClick={resetState}>Reset</button>
+            <button type="button" className="btn btn-ghost" onClick={resetState} disabled={loading}>Reset</button>
             <button type="button" className="btn btn-primary" disabled={loading} onClick={handleGenerate}>
               {loading ? 'Generating…' : `Generate ${selectedDates.length} ${selectedDates.length === 1 ? 'day' : 'days'}`}
             </button>

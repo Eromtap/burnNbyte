@@ -9,7 +9,11 @@ import { deriveNutritionTargets } from "@/lib/nutritionTargets";
 
 export const runtime = "nodejs";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 90000,
+  maxRetries: 0,
+});
 
 const MEALPLAN_SCHEMA = {
   name: "pantry_meal_plans",
@@ -298,6 +302,10 @@ export async function POST(req) {
     return NextResponse.json({ ok: true, count: saved.length, dates: targetDates, sourcingMode });
   } catch (error) {
     console.error("pantry/generateMealPlan error:", error);
-    return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+    const timedOut = error?.name === 'APIConnectionTimeoutError';
+    return NextResponse.json(
+      { error: timedOut ? "Pantry meal generation timed out. Please try again." : (error.message || "Server error") },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

@@ -11,7 +11,7 @@ export default async function MealLibraryPage() {
   });
 
   return (
-    <main>
+    <main className="bn-route-page bn-library-page">
       <div className="page-shell stack">
         <MealLibraryPageClient initialItems={items} />
       </div>
