@@ -1,10 +1,11 @@
-'use client';
-import { useRouter, useParams } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import OnboardingForm from '@/components/OnboardingForm';
 
-export default function StepPage() {
-  const router = useRouter();
-  const { step } = useParams();
+const VALID_STEPS = new Set(['1', '2', '3']);
 
-  return <OnboardingForm step={step} router={router} />;
+export default async function StepPage({ params }) {
+  const { step } = await params;
+  if (!VALID_STEPS.has(step)) notFound();
+
+  return <OnboardingForm />;
 }

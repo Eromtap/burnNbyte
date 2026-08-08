@@ -476,6 +476,7 @@ html[data-theme="tech-red"]{
   --surface-soft:rgba(255,255,255,.04);
   --glow:rgba(255,92,67,.28);
   --shadow:0 20px 48px rgba(0,0,0,.34);
+  color-scheme:dark;
 }
 
 html[data-theme="slate"]{
@@ -494,6 +495,7 @@ html[data-theme="slate"]{
   --surface-soft:rgba(32,24,21,.04);
   --glow:rgba(233,77,53,.2);
   --shadow:0 18px 44px rgba(68,43,24,.14);
+  color-scheme:light;
 }
 
 html{
@@ -1136,6 +1138,20 @@ body::before{
   background:var(--surface-soft);
   color:var(--text);
   padding:12px 14px;
+}
+
+/* Native dropdown menus do not consistently inherit the select field's
+   painted background, so give their popup rows explicit theme colors. */
+html[data-theme="tech-red"] select option,
+html[data-theme="tech-red"] select optgroup{
+  color:#f5f3ef;
+  background:#141416;
+}
+
+html[data-theme="slate"] select option,
+html[data-theme="slate"] select optgroup{
+  color:#191513;
+  background:#ffffff;
 }
 
 .inline-field-row{
@@ -2121,6 +2137,243 @@ input:focus,select:focus,textarea:focus{
   }
 }
 
+.onboard-native-page{
+  min-height:100dvh;
+  padding:18px 16px 64px;
+}
+
+.onboard-native-shell{
+  width:min(760px, 100%);
+  margin:0 auto;
+}
+
+.onboard-native-brandbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:8px 2px 18px;
+}
+
+.onboard-native-brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0;
+}
+
+.onboard-native-brand img{
+  width:42px;
+  height:42px;
+  border:1px solid var(--edge-strong);
+  border-radius:14px;
+  object-fit:cover;
+  box-shadow:0 14px 28px rgba(0,0,0,.22);
+}
+
+.onboard-native-brand>div{
+  display:grid;
+  gap:2px;
+}
+
+.onboard-native-brand strong{
+  font-size:1rem;
+  letter-spacing:-.03em;
+}
+
+.onboard-native-brand span{
+  color:var(--muted);
+  font-size:.56rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.onboard-native-badge{
+  padding:8px 11px;
+  border:1px solid var(--edge);
+  border-radius:999px;
+  color:var(--muted);
+  background:var(--surface-soft);
+  font-size:.62rem;
+  letter-spacing:.13em;
+}
+
+.onboard-native-frame{
+  overflow:clip;
+  border:1px solid var(--edge);
+  border-radius:32px;
+  background:
+    radial-gradient(circle at 85% 0%, color-mix(in oklab, var(--accent) 13%, transparent), transparent 28%),
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 95%, transparent), color-mix(in oklab, var(--elev) 96%, transparent));
+  box-shadow:0 30px 80px rgba(0,0,0,.34);
+}
+
+.onboard-native-progress{
+  padding:22px 26px 20px;
+  border-bottom:1px solid var(--edge);
+  background:color-mix(in oklab, var(--surface-soft) 82%, transparent);
+}
+
+.onboard-native-progress-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.onboard-native-progress-head>div{
+  display:grid;
+  gap:5px;
+}
+
+.onboard-native-progress-head span,
+.onboard-step-kicker span,
+.onboard-native-footer>span{
+  color:var(--accent);
+  font-size:.58rem;
+  font-weight:800;
+  letter-spacing:.16em;
+}
+
+.onboard-native-progress-head strong{
+  font-size:.86rem;
+}
+
+.onboard-native-progress-head b{
+  color:var(--accent);
+  font-family:var(--font-geist-mono);
+  font-size:.78rem;
+}
+
+.onboard-native-progress-rail{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:6px;
+  margin:16px 0 11px;
+}
+
+.onboard-native-progress-rail span{
+  height:4px;
+  border-radius:999px;
+  background:color-mix(in oklab, var(--text) 9%, transparent);
+}
+
+.onboard-native-progress-rail span.active{
+  background:linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow:0 0 13px var(--glow);
+}
+
+.onboard-native-progress-labels{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:8px;
+}
+
+.onboard-native-progress-labels>div{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:color-mix(in oklab, var(--text) 45%, transparent);
+}
+
+.onboard-native-progress-labels i{
+  font-family:var(--font-geist-mono);
+  font-size:.54rem;
+  font-style:normal;
+}
+
+.onboard-native-progress-labels span{
+  font-size:.64rem;
+}
+
+.onboard-native-progress-labels .active{
+  color:var(--text);
+}
+
+.onboard-native-form{
+  padding:28px 30px 24px;
+}
+
+.onboard-native-form .onboard-step-head{
+  padding-bottom:4px;
+}
+
+.onboard-step-kicker{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.onboard-step-kicker i{
+  color:var(--muted);
+  font-size:.66rem;
+  font-style:normal;
+}
+
+.onboard-native-form .onboard-step-title{
+  font-size:clamp(2rem, 1.75rem + 1.2vw, 2.7rem);
+  line-height:1;
+}
+
+.onboard-native-form .onboard-step-copy{
+  font-size:.92rem;
+  line-height:1.55;
+}
+
+.onboard-native-form .onboard-section,
+.onboard-native-form .onboard-info-card,
+.onboard-native-form .onboard-info-stack{
+  border-color:var(--edge);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface-soft) 94%, white 2%), color-mix(in oklab, var(--surface-soft) 92%, transparent));
+}
+
+.onboard-native-form .pref-card{
+  box-shadow:none;
+}
+
+.onboard-native-form .pref-card-active{
+  border-color:color-mix(in oklab, var(--accent) 60%, var(--edge));
+  background:color-mix(in oklab, var(--accent) 12%, var(--surface));
+  box-shadow:inset 0 0 0 1px color-mix(in oklab, var(--accent) 16%, transparent);
+}
+
+.onboard-native-actions{
+  position:sticky;
+  bottom:10px;
+  z-index:8;
+  margin:2px -8px -8px;
+  padding:14px 8px 8px;
+  border-top:1px solid var(--edge);
+  background:linear-gradient(180deg, transparent, color-mix(in oklab, var(--elev) 96%, transparent) 28%);
+  backdrop-filter:blur(14px);
+}
+
+.onboard-native-actions .btn{
+  min-height:48px;
+  justify-content:center;
+}
+
+.onboard-native-actions .btn-primary{
+  min-width:190px;
+}
+
+.onboard-native-footer{
+  margin:16px auto 0;
+  padding:0 22px;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:12px;
+  align-items:start;
+}
+
+.onboard-native-footer p{
+  color:var(--muted);
+  font-size:.72rem;
+  line-height:1.5;
+}
+
 .onboard-hero{
   align-items:stretch;
 }
@@ -2839,6 +3092,61 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   .onboard-actions{
     display:grid;
     grid-template-columns:1fr 1fr;
+  }
+
+  .onboard-native-page{
+    padding:8px 10px 42px;
+  }
+
+  .onboard-native-brandbar{
+    padding:6px 2px 12px;
+  }
+
+  .onboard-native-brand img{
+    width:38px;
+    height:38px;
+    border-radius:12px;
+  }
+
+  .onboard-native-badge{
+    padding:7px 9px;
+    font-size:.54rem;
+  }
+
+  .onboard-native-frame{
+    border-radius:26px;
+  }
+
+  .onboard-native-progress{
+    padding:18px 18px 16px;
+  }
+
+  .onboard-native-progress-labels span{
+    font-size:.58rem;
+  }
+
+  .onboard-native-form{
+    padding:22px 18px 18px;
+  }
+
+  .onboard-native-form .onboard-step-title{
+    font-size:2rem;
+  }
+
+  .onboard-native-actions{
+    bottom:0;
+    margin-inline:-4px;
+    padding-inline:4px;
+  }
+
+  .onboard-native-actions .btn-primary{
+    min-width:0;
+  }
+
+  .onboard-native-footer{
+    grid-template-columns:1fr;
+    gap:6px;
+    padding:0 14px;
   }
 }
 
