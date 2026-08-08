@@ -38,6 +38,7 @@ function formatCost(value) {
 
 export default function HomeMealsCard({
   todayISO,
+  isToday = true,
   profile = null,
   initialMealPlan = null,
   initialLibraryItems = [],
@@ -91,21 +92,10 @@ export default function HomeMealsCard({
 
   return (
     <>
-      <MobileDisclosure
-        className="mobile-disclosure dashboard-disclosure"
-        summaryClassName="mobile-disclosure-summary dashboard-summary"
-        panelClassName="mobile-disclosure-panel"
-        summary={
-          <>
-            <span className="planner-head">What I&apos;m eating today</span>
-            <span className="mobile-disclosure-meta">{mealPlan?.meals?.length || 0} meals</span>
-          </>
-        }
-      >
-        <article className="card span-2 brand-feed-card">
+      <article className="card span-2 brand-feed-card">
           <header className="card-head">
             <div>
-              <h3>What I&apos;m eating today</h3>
+              <h3>{isToday ? "What I'm eating today" : "Meals for this day"}</h3>
               <div className="sub">Log food, swap a meal block, or delete something without leaving home. Daily target: {formatMacro(macroTargets.calories)} kcal • {formatMacro(macroTargets.protein)}P • {formatMacro(macroTargets.carbs)}C • {formatMacro(macroTargets.fat)}F.</div>
             </div>
             <div className="page-hero-actions home-meals-actions">
@@ -182,8 +172,7 @@ export default function HomeMealsCard({
             ))}
           </div>
           {(loading || refreshPending) && <div className="sub">Refreshing today&apos;s meals…</div>}
-        </article>
-      </MobileDisclosure>
+      </article>
 
       <AddFoodPanel
         open={composerOpen}

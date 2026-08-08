@@ -61,7 +61,7 @@ export async function POST(req){
       recentLikedMeals,
     } = summarizeMealFeedbackForPrompt(mealFeedback);
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
 
     const REPLACE_SCHEMA = {
       name: 'partial_meals',
@@ -149,6 +149,10 @@ export async function POST(req){
     return NextResponse.json({ ok:true, results });
   } catch(err){
     console.error('replace meals error', err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const timedOut = err?.name === 'APIConnectionTimeoutError';
+    return NextResponse.json(
+      { error: timedOut ? 'Meal replacement took too long. Please try again.' : 'Server error' },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

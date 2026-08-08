@@ -1,22 +1,35 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import prisma from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req) {
   try {
-    const { name, email, password, termsAccepted } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body?.password === "string" ? body.password : "";
+    const termsAccepted = Boolean(body?.termsAccepted);
 
     if (!name || !email || !password) {
-      return Response.json({ error: "Missing name, email or password" }, { status: 400 });
+      return Response.json({ error: "Enter your name, email, and password." }, { status: 400 });
+    }
+    if (name.length > 80 || !EMAIL_PATTERN.test(email)) {
+      return Response.json({ error: "Enter a valid name and email address." }, { status: 400 });
+    }
+    if (password.length < 8 || password.length > 72) {
+      return Response.json({ error: "Password must be between 8 and 72 characters." }, { status: 400 });
     }
     if (!termsAccepted) {
       return Response.json({ error: "You must accept the terms and conditions" }, { status: 400 });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { id: true },
+    });
     if (existing) {
-      return Response.json({ error: "User already exists" }, { status: 409 });
+      return Response.json({ error: "An account already exists for that email." }, { status: 409 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

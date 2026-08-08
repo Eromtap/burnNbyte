@@ -1,5 +1,6 @@
 import { requireAppSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getSessionUserProfile } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import GroceryOptimizer from '@/components/GroceryOptimizer';
 import RawGroceryList from '@/components/RawGroceryList';
@@ -42,7 +43,7 @@ function normalizeStoreItems(items = [], summaryId){
 
 export default async function GroceriesPage({ searchParams }) {
   const { session } = await requireAppSession();
-  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect('/onboarding/1');
 
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
@@ -89,10 +90,22 @@ export default async function GroceriesPage({ searchParams }) {
   const displayRangeLabel = `${startOfWeek.toLocaleDateString()} - ${addDaysUTC(start, 6).toLocaleDateString()}`;
 
   return (
-    <main>
+    <main className="bn-route-page bn-groceries-page">
       <div className="page-shell">
         <div className="stack">
           <DateStrip basePath="/groceries" selectedISO={selectedISO} />
+          <section className="bn-route-intro">
+            <div>
+              <div className="eyebrow">Weekly provisions</div>
+              <h1>Shop the week,<br /><em>not the aisle.</em></h1>
+              <p>Everything your meal plan needs, consolidated into one practical store run.</p>
+            </div>
+            <aside>
+              <span>Current window</span>
+              <strong>{displayRangeLabel}</strong>
+              <small>{items.length} raw ingredient{items.length === 1 ? '' : 's'} in the plan</small>
+            </aside>
+          </section>
           {summary && (
             <StoreReadyList
               summaryId={summary.id}
@@ -105,7 +118,7 @@ export default async function GroceriesPage({ searchParams }) {
             />
           )}
 
-          <article className="card">
+          <article className="card bn-route-stage">
             <header className="card-head">
               <h3>AI Optimization</h3>
               <div className="sub">Combine items and convert to store units</div>
@@ -113,7 +126,7 @@ export default async function GroceriesPage({ searchParams }) {
             <GroceryOptimizer selectedISO={selectedISO} />
           </article>
 
-          <article className="card">
+          <article className="card bn-route-stage">
             <header className="card-head">
               <h3>Raw Ingredients</h3>
               <div className="sub">Direct from meal plans</div>

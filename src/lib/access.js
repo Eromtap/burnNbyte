@@ -21,25 +21,25 @@ function getSubscriptionExpiry(subscription) {
 export async function getUserAppAccess(userId, now = new Date()) {
   const normalizedUserId = String(userId);
 
-  const [user, subscription, manualGrant] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: normalizedUserId },
-      select: { id: true, createdAt: true, isAdmin: true },
-    }),
-    prisma.subscription.findUnique({
-      where: { userId: normalizedUserId },
-    }),
-    prisma.userAccessGrant.findFirst({
-      where: {
-        userId: normalizedUserId,
-        accessLevel: { in: ["full_access", "premium"] },
-        source: "manual",
-        startsAt: { lte: now },
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+  const user = await prisma.user.findUnique({
+    where: { id: normalizedUserId },
+    select: {
+      id: true,
+      createdAt: true,
+      isAdmin: true,
+      subscription: true,
+      accessGrants: {
+        where: {
+          accessLevel: { in: ["full_access", "premium"] },
+          source: "manual",
+          startsAt: { lte: now },
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+        orderBy: [{ expiresAt: "desc" }, { createdAt: "desc" }],
+        take: 1,
       },
-      orderBy: [{ expiresAt: "desc" }, { createdAt: "desc" }],
-    }),
-  ]);
+    },
+  });
 
   if (!user) {
     return {
@@ -62,6 +62,9 @@ export async function getUserAppAccess(userId, now = new Date()) {
       expiresAt: null,
     };
   }
+
+  const subscription = user.subscription;
+  const manualGrant = user.accessGrants?.[0] ?? null;
 
   if (manualGrant && isGrantActive(manualGrant, now)) {
     return {

@@ -13,10 +13,22 @@ export default async function TermsPage() {
     : null;
   const needsAcceptance = Boolean(session?.user?.id && !user?.termsAcceptedAt);
   return (
-    <main>
+    <main className="bn-route-page bn-legal-page">
       <div className="page-shell">
-        <div className="stack" style={{ maxWidth: 860, margin: '40px auto' }}>
-          <article className="card">
+        <div className="stack bn-legal-wrap">
+          <section className="bn-route-intro">
+            <div>
+              <div className="eyebrow">The agreement</div>
+              <h1>Clear terms.<br /><em>Sound judgment.</em></h1>
+              <p>The practical boundaries behind your training, nutrition, and AI-generated recommendations.</p>
+            </div>
+            <aside>
+              <span>Document status</span>
+              <strong>Terms &amp; Conditions</strong>
+              <small>Last updated {new Date().toLocaleDateString()}</small>
+            </aside>
+          </section>
+          <article className="card bn-legal-card">
             <header className="card-head">
               <h1>Terms &amp; Conditions</h1>
               <div className="sub">Last updated: {new Date().toLocaleDateString()}</div>

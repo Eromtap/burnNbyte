@@ -7,7 +7,11 @@ import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitness
 import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
 import { deriveNutritionTargets } from "@/lib/nutritionTargets";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 90000,
+  maxRetries: 0,
+});
 
 const MEALPLAN_SCHEMA = {
   name: "meal_plans",
@@ -369,6 +373,10 @@ Output shape:
     return NextResponse.json({ ok: true, count: saved.length, dates: mealPlanDates }, { status: 200 });
   } catch (error) {
     console.error("💥 generateMealPlan error:", error);
-    return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+    const timedOut = error?.name === 'APIConnectionTimeoutError';
+    return NextResponse.json(
+      { error: timedOut ? "Meal generation timed out. Please try again." : (error.message || "Server error") },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

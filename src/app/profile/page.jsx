@@ -1,18 +1,18 @@
 import { requireAppSession } from "@/lib/auth";
-import prisma from "@/lib/prisma";
 import ProfileForm from "@/components/ProfileForm";
+import { getSessionUserProfile } from "@/lib/auth";
 import ThemePreferencesCard from "@/components/ThemePreferencesCard";
 import { redirect } from "next/navigation";
 
 export default async function ProfilePage(){
   const { session } = await requireAppSession();
-  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect('/onboarding/1');
 
   return (
-    <main>
+    <main className="bn-route-page bn-profile-page">
       <div className="page-shell stack">
-        <section className="hero-card page-hero">
+        <section className="hero-card page-hero bn-route-hero bn-profile-hero">
           <div className="page-hero-copy">
             <div className="eyebrow">Profile and preferences</div>
             <div>
@@ -33,7 +33,7 @@ export default async function ProfilePage(){
 
         <ThemePreferencesCard />
 
-        <article className="card">
+        <article className="card bn-route-stage">
           <header className="card-head">
             <div>
               <h3>Profile settings</h3>

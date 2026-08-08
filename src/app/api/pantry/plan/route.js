@@ -71,7 +71,7 @@ export async function POST(req) {
       dataUrls.push(`data:${file.type || "image/jpeg"};base64,${b64}`);
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
     if (!openai.apiKey) {
       return NextResponse.json({ error: "Missing OPENAI_API_KEY server env var" }, { status: 500 });
     }
@@ -196,6 +196,10 @@ export async function POST(req) {
     return NextResponse.json({ unitSystem, days, sourcingMode, ...out });
   } catch (err) {
     console.error("pantry/plan POST failed", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const timedOut = err?.name === "APIConnectionTimeoutError";
+    return NextResponse.json(
+      { error: timedOut ? "Pantry planning took too long. Please try again." : "Server error" },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

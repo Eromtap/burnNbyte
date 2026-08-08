@@ -133,15 +133,44 @@ export default function WorkoutsPageClient({
     }
   }
 
+  const generatorPanel = (
+    <article id="generate" className={`card ${workout ? 'span-full' : 'section-side'}`}>
+      <header className="card-head">
+        <div>
+          <h3>{workout ? 'Generate new workout' : 'Build my workout'}</h3>
+          <div className="sub">
+            {workout
+              ? 'Replace the current session with a newly generated workout.'
+              : 'Create a session for the selected date.'}
+          </div>
+        </div>
+      </header>
+      <GenerateWorkout
+        initialPreferences={profile}
+        selectedISO={selectedISO}
+        onGenerated={refreshSelectedDay}
+      />
+    </article>
+  );
+
   return (
     <>
-      <section className="hero-card page-hero">
+      <DateStrip
+        basePath="/workouts"
+        selectedISO={selectedISO}
+        onSelectDate={loadDay}
+        onShiftWeek={handleShiftWeek}
+      />
+
+      <section className="hero-card page-hero bn-route-hero bn-train-hero">
         <div className="page-hero-copy">
           <div className="eyebrow">Workout builder</div>
           <div>
-            <h1 className="page-hero-title">Train with a cleaner plan and tighter execution.</h1>
+            <h1 className="page-hero-title">{workout?.name || 'No workout planned'}</h1>
             <p className="page-hero-text">
-              Generate by date, track completion, and keep exercise progress next to the actual session so the workout page feels like a tool, not a dump.
+              {workout
+                ? `${workout.duration || profile.workoutDuration || 30} minutes · ${workout.difficulty || 'beginner'} · ${workout.muscleGroup || 'full body'}`
+                : 'Generate a session for the selected day or move to another date.'}
             </p>
           </div>
         </div>
@@ -159,29 +188,10 @@ export default function WorkoutsPageClient({
         </aside>
       </section>
 
-      <DateStrip
-        basePath="/workouts"
-        selectedISO={selectedISO}
-        onSelectDate={loadDay}
-        onShiftWeek={handleShiftWeek}
-      />
+      <section className="section-grid bn-route-grid">
+        {!workout && generatorPanel}
 
-      <section className="section-grid">
-        <article id="generate" className="card section-side">
-          <header className="card-head">
-            <div>
-              <h3>Build my workout</h3>
-              <div className="sub">Create or update the session for the selected date.</div>
-            </div>
-          </header>
-          <GenerateWorkout
-            initialPreferences={profile}
-            selectedISO={selectedISO}
-            onGenerated={refreshSelectedDay}
-          />
-        </article>
-
-        <article id="session" className="card section-main">
+        <article id="session" className={`card ${workout ? 'span-full' : 'section-main'}`}>
           <header className="card-head">
             <div>
               <h3>My session</h3>
@@ -266,6 +276,8 @@ export default function WorkoutsPageClient({
             </div>
           )}
         </article>
+
+        {workout && generatorPanel}
       </section>
     </>
   );

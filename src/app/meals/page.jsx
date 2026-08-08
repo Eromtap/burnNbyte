@@ -1,5 +1,6 @@
 ﻿import { requireAppSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getSessionUserProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import MealsPageClient from "@/components/MealsPageClient";
@@ -43,7 +44,7 @@ export default async function MealsPage({ searchParams }){
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
   const { session } = await requireAppSession();
-  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
@@ -73,7 +74,7 @@ export default async function MealsPage({ searchParams }){
   const mealFeedback = buildMealFeedbackMap(feedbackRows);
 
   return (
-    <main>
+    <main className="bn-route-page bn-fuel-page">
       <div className="page-shell stack">
         <MealsPageClient
           profile={profile}
