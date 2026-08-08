@@ -20,17 +20,6 @@ function groupMeals(meals) {
   }, {});
 }
 
-function getInitialOpenMealType(groupedMeals) {
-  const orderedTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-  const firstIncomplete = orderedTypes.find((type) =>
-    (groupedMeals[type] || []).some((meal) => !meal?.isCompleted)
-  );
-  if (firstIncomplete) return firstIncomplete;
-
-  const firstAvailable = orderedTypes.find((type) => (groupedMeals[type] || []).length > 0);
-  return firstAvailable || 'breakfast';
-}
-
 function formatCost(value) {
   if (value == null || Number.isNaN(Number(value))) return null;
   return `$${Number(value).toFixed(2)}`;
@@ -53,7 +42,6 @@ export default function HomeMealsCard({
   const [refreshPending, startRefreshTransition] = useTransition();
 
   const grouped = groupMeals(mealPlan?.meals || []);
-  const initialOpenMealType = getInitialOpenMealType(grouped);
   const macroTargets = deriveNutritionTargets(profile || {});
 
   useEffect(() => {
@@ -119,7 +107,7 @@ export default function HomeMealsCard({
                 className="brand-feed-item mobile-disclosure"
                 summaryClassName="mobile-disclosure-summary brand-feed-item-summary"
                 panelClassName="mobile-disclosure-panel"
-                defaultOpenMobile={type === initialOpenMealType}
+                defaultOpenMobile={false}
                 summary={
                   <>
                     <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
