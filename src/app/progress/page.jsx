@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import ProgressSummary from "@/components/ProgressSummary";
+import { getSessionUserProfile } from "@/lib/auth";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -46,21 +47,29 @@ export default async function ProgressPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
 
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: String(session.user.id) },
-  });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
   const today = toUTCDateFromLocalYMD(todayISO);
 
-  const [workout, mealPlan, weightHistory] = await Promise.all([
-    prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
-    prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } }),
-    prisma.weightHistory.findMany({ where: { profileId: profile.id }, orderBy: { date: 'asc' }, take: 60 }),
+  const rangeStart = new Date(today);
+  rangeStart.setUTCDate(rangeStart.getUTCDate() - 27);
+  const [mealPlans, workouts, weightHistory] = await Promise.all([
+    prisma.mealPlan.findMany({
+      where: { userId: session.user.id, date: { gte: rangeStart, lte: today } },
+      include: { meals: true },
+    }),
+    prisma.workout.findMany({
+      where: { userId: session.user.id, date: { gte: rangeStart, lte: today } },
+    }),
+    prisma.weightHistory.findMany({ where: { profileId: profile.id }, orderBy: { date: 'desc' }, take: 60 }),
   ]);
 
-  const mealMacros = (mealPlan?.meals || []).reduce(
+  const loggedDays = mealPlans.map((mealPlan) => (
+    (mealPlan.meals || []).filter((meal) => meal.isCompleted)
+  )).filter((meals) => meals.length > 0);
+  const loggedMacros = loggedDays.flat().reduce(
     (totals, meal) => ({
       calories: totals.calories + (Number(meal?.calories) || 0),
       protein: totals.protein + (Number(meal?.protein) || 0),
@@ -69,57 +78,49 @@ export default async function ProgressPage() {
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
-  const completedMeals = (mealPlan?.meals || []).filter((meal) => meal.isCompleted);
-  const consumedMacros = completedMeals.reduce(
-    (totals, meal) => ({
-      calories: totals.calories + (Number(meal?.calories) || 0),
-      protein: totals.protein + (Number(meal?.protein) || 0),
-      carbs: totals.carbs + (Number(meal?.carbs) || 0),
-      fat: totals.fat + (Number(meal?.fat) || 0),
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  );
+  const daysLogged = loggedDays.length;
+  const nutrition = {
+    daysLogged,
+    averageCalories: daysLogged ? Math.round(loggedMacros.calories / daysLogged) : 0,
+    averageProtein: daysLogged ? Math.round(loggedMacros.protein / daysLogged) : 0,
+    averageCarbs: daysLogged ? Math.round(loggedMacros.carbs / daysLogged) : 0,
+    averageFat: daysLogged ? Math.round(loggedMacros.fat / daysLogged) : 0,
+  };
+  const workoutsCompleted = workouts.filter((workout) => workout.isCompleted).length;
 
-  const weightLb = profile?.weight || null;
-  const weightKg = weightLb ? weightLb * 0.453592 : null;
-  const diff = (workout?.difficulty || "beginner").toLowerCase();
-  const met = diff === "advanced" ? 8 : diff === "intermediate" ? 6.5 : 5;
-  const durationH = (workout?.duration || 0) / 60;
-  const workoutCalories = weightKg ? Math.round(met * weightKg * durationH) : null;
-  const burnedCalories = workout?.isCompleted ? (workoutCalories ?? 0) : 0;
-
-  const totalActions = (mealPlan?.meals?.length || 0) + (workout ? 1 : 0);
-  const completedActions = completedMeals.length + (workout?.isCompleted ? 1 : 0);
-  const completionPct = totalActions ? Math.round((completedActions / totalActions) * 100) : 0;
-
-  const weightPoints = (weightHistory || []).map((entry) => ({
-    date: toYMDInTimeZone(entry.date, timeZone),
+  const weightPoints = [...weightHistory].reverse().map((entry) => ({
+    id: entry.id,
+    date: toYMDInTimeZone(entry.date, "UTC"),
     value: entry.weight,
   }));
+  const startingWeight = weightPoints[0]?.value ?? null;
+  const weightChange = startingWeight != null && profile.weight != null
+    ? Math.round((Number(profile.weight) - Number(startingWeight)) * 10) / 10
+    : null;
 
   return (
-    <main>
+    <main className="bn-route-page bn-progress-page">
       <div className="page-shell stack">
-        <section className="hero-card page-hero">
+        <section className="hero-card page-hero bn-route-hero bn-progress-hero">
           <div className="page-hero-copy">
             <div className="eyebrow">Progress and metrics</div>
             <div>
-              <h1 className="page-hero-title">See adherence, calories, and weight trend without leaving the app flow.</h1>
+              <h1 className="page-hero-title">Your last 28 days</h1>
               <p className="page-hero-text">
-                This view turns your daily actions into something readable: whether you followed the plan, how calories tracked, and how bodyweight is trending over time.
+                {daysLogged} days of food logged · {workoutsCompleted} completed workouts · weight, nutrition, and training in one view.
               </p>
             </div>
           </div>
           <aside className="hero-panel hero-metrics">
             <div className="metric-card">
-              <div className="metric-label">Plan completion</div>
-              <div className="metric-value">{completionPct}%</div>
-              <div className="metric-detail">{completedActions} of {totalActions} actions completed today</div>
+              <div className="metric-label">Weight change</div>
+              <div className="metric-value">{weightChange == null ? '—' : `${Math.abs(weightChange)} lb`}</div>
+              <div className="metric-detail">{weightChange == null ? 'Log weight to establish a trend' : weightChange < 0 ? 'down from your first entry' : weightChange > 0 ? 'up from your first entry' : 'steady from your first entry'}</div>
             </div>
             <div className="metric-card">
-              <div className="metric-label">Calories today</div>
-              <div className="metric-value">{consumedMacros.calories}<span className="unit">eaten</span></div>
-              <div className="metric-detail">{burnedCalories} kcal burned from workout completion</div>
+              <div className="metric-label">Average intake</div>
+              <div className="metric-value">{nutrition.averageCalories}<span className="unit">kcal</span></div>
+              <div className="metric-detail">Across days with food logged</div>
             </div>
             {profile.goalWeight && (
               <div className="metric-card">
@@ -131,19 +132,19 @@ export default async function ProgressPage() {
           </aside>
         </section>
 
-        <article className="card">
+        <article className="card bn-route-stage">
           <header className="card-head">
             <div>
-              <h3>Progress dashboard</h3>
-              <div className="sub">Daily adherence, calories, and 60-entry weight trend.</div>
+              <h3>28-day snapshot</h3>
+              <div className="sub">Nutrition and training at a glance, followed by your weight trend.</div>
             </div>
           </header>
           <ProgressSummary
             weightPoints={weightPoints}
             currentWeight={profile.weight}
             goalWeight={profile.goalWeight}
-            calories={{ consumed: consumedMacros.calories, planned: mealMacros.calories, burned: burnedCalories, plannedBurn: workoutCalories ?? 0 }}
-            planCompletion={{ percent: completionPct, completed: completedActions, total: totalActions }}
+            nutrition={nutrition}
+            workoutsCompleted={workoutsCompleted}
           />
         </article>
       </div>

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import OperationFeedback from "@/components/OperationFeedback";
+import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
 
 export default function GroceryOptimizer({ selectedISO }) {
   const router = useRouter();
@@ -13,12 +15,12 @@ export default function GroceryOptimizer({ selectedISO }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/groceries", {
+      const res = await fetchWithTimeout("/api/groceries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ unitSystem: unit, date: selectedISO }),
-      });
-      const data = await res.json();
+      }, 100000);
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Optimization failed");
       router.refresh();
     } catch (e) {
@@ -30,6 +32,12 @@ export default function GroceryOptimizer({ selectedISO }) {
 
   return (
     <div className="stack" style={{ marginTop: 12 }}>
+      <OperationFeedback
+        active={loading}
+        title="Preparing a store-ready list"
+        steps={['Reading the meal plan', 'Combining ingredients', 'Converting package sizes', 'Saving the shopping list']}
+        timeoutSeconds={100}
+      />
       <div className="list-row" style={{ gap: 8, alignItems: "center" }}>
         <label className="muted">Units</label>
         <select value={unit} onChange={(e) => setUnit(e.target.value)}>

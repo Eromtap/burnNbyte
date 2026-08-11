@@ -1,5 +1,6 @@
 import { requireAppSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getSessionUserProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -57,7 +58,7 @@ export default async function MealTypePage({ params, searchParams }) {
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
   const { session } = await requireAppSession();
-  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
@@ -75,10 +76,22 @@ export default async function MealTypePage({ params, searchParams }) {
   );
 
   return (
-    <main>
+    <main className="bn-route-page bn-meal-detail-page">
       <div className="page-shell">
         <div className="stack">
-          <article className="card">
+          <section className="bn-route-intro">
+            <div>
+              <div className="eyebrow">Daily fuel detail</div>
+              <h1 style={{ textTransform: "capitalize" }}>{rawType}.<br /><em>Handled.</em></h1>
+              <p>Review what is planned, replace what no longer fits, and keep the rest of the day intact.</p>
+            </div>
+            <aside>
+              <span>Selected day</span>
+              <strong>{selectedISO}</strong>
+              <small>{meals.length} planned item{meals.length === 1 ? '' : 's'}</small>
+            </aside>
+          </section>
+          <article className="card bn-route-stage">
           <header className="card-head">
             <h3 style={{ textTransform: "capitalize" }}>{rawType}</h3>
             <div className="sub">{selectedISO}</div>

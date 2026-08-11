@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { formatMacro } from '@/lib/macros';
 import { normalizeStringList } from '@/lib/mealPlanUtils';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const KIND_OPTIONS = [
   { id: 'ALL', label: 'All items' },
@@ -125,10 +126,10 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
       if (portionNote.trim()) formData.append('portionNote', portionNote.trim());
       formData.append('type', form.kind === 'MEAL' ? 'lunch' : 'snack');
 
-      const res = await fetch('/api/mealPlans/estimate', {
+      const res = await fetchWithTimeout('/api/mealPlans/estimate', {
         method: 'POST',
         body: formData,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to estimate library item.');
 
@@ -222,7 +223,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
 
   return (
     <>
-      <section className="hero-card page-hero page-hero-compact">
+      <section className="hero-card page-hero page-hero-compact bn-route-hero bn-library-hero">
         <div className="page-hero-copy">
           <div className="eyebrow">Meal library</div>
           <div>
@@ -237,7 +238,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
         </div>
       </section>
 
-      <section className="card meal-library-card">
+      <section className="card meal-library-card bn-route-stage">
         <header className="card-head">
           <div>
             <h3>Library</h3>

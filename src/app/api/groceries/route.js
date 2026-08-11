@@ -189,7 +189,7 @@ export async function POST(req) {
       }
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
 
     const SHOP_SCHEMA = {
       name: 'shopping_list',
@@ -275,6 +275,10 @@ export async function POST(req) {
     return NextResponse.json({ start, end, unitSystem, items: normalizedItems, note: out.note, cached: false });
   } catch (err) {
     console.error('groceries POST failed', err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const timedOut = err?.name === 'APIConnectionTimeoutError';
+    return NextResponse.json(
+      { error: timedOut ? 'Grocery optimization took too long. Please try again.' : 'Server error' },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

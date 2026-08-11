@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import OperationFeedback from '@/components/OperationFeedback';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export default function PantryCapture({ initialDays = 7, initialDateISO = null }) {
   const router = useRouter();
@@ -37,8 +39,8 @@ export default function PantryCapture({ initialDays = 7, initialDateISO = null }
       fd.append('unitSystem', unit);
       fd.append('days', String(days));
       fd.append('sourcingMode', sourcingMode);
-      const res = await fetch('/api/pantry/plan', { method: 'POST', body: fd });
-      const data = await res.json();
+      const res = await fetchWithTimeout('/api/pantry/plan', { method: 'POST', body: fd }, 100000);
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data?.code === 'moderation_blocked') {
           throw new Error('Image blocked by content safety checks. Please upload a food photo.');
@@ -56,6 +58,12 @@ export default function PantryCapture({ initialDays = 7, initialDateISO = null }
   return (
     <div className="stack">
       <form className="stack" onSubmit={onSubmit}>
+        <OperationFeedback
+          active={loading}
+          title="Reading your pantry and building options"
+          steps={['Uploading photos', 'Identifying ingredients', 'Building realistic meals', 'Checking nutrition details']}
+          timeoutSeconds={100}
+        />
         <div className="list-row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="muted">Pantry or fridge photos (up to 3)</span>
           <input
@@ -188,11 +196,11 @@ function ApplyToPlan({ meal, initialDateISO = null, onApplied }){
   async function apply(){
     setLoading(true); setError(null);
     try {
-      const res = await fetch('/api/mealPlans/apply', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ date, type, mode, meal }) });
+      const res = await fetchWithTimeout('/api/mealPlans/apply', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ date, type, mode, meal }) }, 30000);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to apply meal');
       if (rebalance){
-        await fetch('/api/mealPlans/replace', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [{ date, types: [] }], rebalance: true }) });
+        await fetchWithTimeout('/api/mealPlans/replace', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [{ date, types: [] }], rebalance: true }) }, 100000);
       }
       setOpen(false);
       if (onApplied) onApplied();

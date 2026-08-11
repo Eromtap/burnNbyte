@@ -56,7 +56,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Add a description, a photo, or both." }, { status: 400 });
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
     if (!openai.apiKey) {
       return NextResponse.json({ error: "Missing OPENAI_API_KEY server env var" }, { status: 500 });
     }
@@ -123,6 +123,10 @@ export async function POST(req) {
     return NextResponse.json(parsed);
   } catch (err) {
     console.error("mealPlans/estimate POST failed", err);
-    return NextResponse.json({ error: "Failed to estimate meal." }, { status: 500 });
+    const timedOut = err?.name === "APIConnectionTimeoutError";
+    return NextResponse.json(
+      { error: timedOut ? "Meal estimation took too long. Please try again." : "Failed to estimate meal." },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

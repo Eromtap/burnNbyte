@@ -8,7 +8,11 @@ import { normalizeEquipmentAccess } from "@/constants/equipmentAccess";
 
 
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 90000,
+  maxRetries: 1,
+});
 
 const WORKOUT_SCHEMA = {
   name: "workouts",
@@ -40,6 +44,59 @@ const WORKOUT_SCHEMA = {
   },
   strict: true,
 };
+
+class WorkoutGenerationError extends Error {
+  constructor(message, { code = "generation_failed", status = 502, cause } = {}) {
+    super(message, { cause });
+    this.name = "WorkoutGenerationError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function generationErrorResponse(error, fallbackMessage) {
+  if (error?.name === "APIConnectionTimeoutError") {
+    return NextResponse.json(
+      { error: "Workout generation timed out. Please try again." },
+      { status: 504 }
+    );
+  }
+
+  if (error instanceof WorkoutGenerationError) {
+    return NextResponse.json(
+      { error: error.message, code: error.code },
+      { status: error.status }
+    );
+  }
+
+  if (error?.status === 429) {
+    return NextResponse.json(
+      { error: "Workout generation is temporarily busy. Please wait a moment and try again." },
+      { status: 429 }
+    );
+  }
+
+  if (error?.status === 401 || error?.status === 403) {
+    return NextResponse.json(
+      { error: "Workout generation is not configured correctly. Please contact support." },
+      { status: 503 }
+    );
+  }
+
+  return NextResponse.json(
+    { error: fallbackMessage || "Workout generation failed. Please try again." },
+    { status: 502 }
+  );
+}
+
+function logGenerationError(stage, error) {
+  console.error(`Workout generation ${stage} failed`, {
+    name: error?.name,
+    status: error?.status,
+    code: error?.code,
+    message: error?.message,
+  });
+}
 
 function cleanInstructionStep(step) {
   if (typeof step !== "string") return "";
@@ -124,18 +181,58 @@ function workoutHasUsableInstructions(workout) {
 
 async function generateStructuredWorkouts(messages) {
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: process.env.OPENAI_WORKOUT_MODEL || "gpt-4o",
     messages,
     response_format: { type: "json_schema", json_schema: WORKOUT_SCHEMA },
     temperature: 0.7,
   });
 
-  let content = completion.choices?.[0]?.message?.content ?? "";
+  const choice = completion.choices?.[0];
+  const message = choice?.message;
+
+  if (message?.refusal) {
+    throw new WorkoutGenerationError(
+      "The workout could not be generated from those details. Please adjust them and try again.",
+      { code: "model_refusal", status: 422 }
+    );
+  }
+
+  if (!choice) {
+    throw new WorkoutGenerationError(
+      "The workout service returned no result. Please try again.",
+      { code: "empty_completion" }
+    );
+  }
+
+  if (choice.finish_reason && choice.finish_reason !== "stop") {
+    throw new WorkoutGenerationError(
+      choice.finish_reason === "length"
+        ? "The workout response was cut off before it finished. Try generating fewer days at once."
+        : "The workout response did not finish successfully. Please try again.",
+      { code: `incomplete_${choice.finish_reason}` }
+    );
+  }
+
+  let content = message?.content ?? "";
   if (content.trim().startsWith("```")) {
     content = content.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   }
 
-  return JSON.parse(content);
+  if (!content.trim()) {
+    throw new WorkoutGenerationError(
+      "The workout service returned an empty response. Please try again.",
+      { code: "empty_content" }
+    );
+  }
+
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    throw new WorkoutGenerationError(
+      "The workout response was incomplete or malformed. Please try again.",
+      { code: "invalid_json", cause: error }
+    );
+  }
 }
 
 export async function POST(req) {
@@ -279,7 +376,7 @@ export async function POST(req) {
         "duration": "string or number (minutes)",
         "equipment": ["string", ...],
         "instructions": ["string step", ...],
-        "muscleGroup": "string"
+        "muscleGroup": "string",
         "date": "date"
       }
 
@@ -296,8 +393,8 @@ export async function POST(req) {
     try {
       ai = await generateStructuredWorkouts([prompt]);
     } catch (err) {
-      console.error("❌ Failed to parse AI JSON:", err);
-      return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
+      logGenerationError("initial request", err);
+      return generationErrorResponse(err);
     }
 
     const needsRepair =
@@ -327,8 +424,8 @@ export async function POST(req) {
       try {
         ai = await generateStructuredWorkouts([prompt, repairPrompt]);
       } catch (err) {
-        console.error("❌ Failed to repair AI workout JSON:", err);
-        return NextResponse.json({ error: "Failed to repair workout instructions" }, { status: 500 });
+        logGenerationError("repair request", err);
+        return generationErrorResponse(err, "Failed to finalize the workout instructions. Please try again.");
       }
     }
 
@@ -383,7 +480,7 @@ export async function POST(req) {
 
     return NextResponse.json(created, { status: 200 });
   } catch (error) {
-    console.error("💥 generateWorkout error:", error);
+    console.error("generateWorkout error:", error);
     return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
   }
 }

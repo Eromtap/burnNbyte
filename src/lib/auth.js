@@ -10,7 +10,9 @@ export async function requireAuth(options = {}) {
   const { allowWithoutTerms = false } = options;
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
-  if (!allowWithoutTerms) {
+  if (!allowWithoutTerms && session.user?.authzHydrated) {
+    if (!session.user.termsAcceptedAt) redirect("/terms");
+  } else if (!allowWithoutTerms) {
     const user = await prisma.user.findUnique({
       where: { id: String(session.user.id) },
       select: { termsAcceptedAt: true },
@@ -51,6 +53,15 @@ export async function requireAppSession(options = {}) {
   return { session, access };
 }
 
+export async function getSessionUserProfile(session) {
+  const cachedProfile = session?.user?.preferences;
+  if (cachedProfile?.id) return cachedProfile;
+  if (!session?.user?.id) return null;
+  return prisma.userProfile.findUnique({
+    where: { userId: String(session.user.id) },
+  });
+}
+
 export async function requireAppApiSession(options = {}) {
   const { allowWithoutTerms = false } = options;
   const session = await getServerSession(authOptions);
@@ -61,7 +72,13 @@ export async function requireAppApiSession(options = {}) {
     };
   }
 
-  if (!allowWithoutTerms) {
+  if (!allowWithoutTerms && session.user?.authzHydrated) {
+    if (!session.user.termsAcceptedAt) {
+      return {
+        response: NextResponse.json({ error: "Terms acceptance required" }, { status: 403 }),
+      };
+    }
+  } else if (!allowWithoutTerms) {
     const user = await prisma.user.findUnique({
       where: { id: String(session.user.id) },
       select: { termsAcceptedAt: true },

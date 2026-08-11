@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResponsiveContainer, Line, LineChart, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from 'recharts';
+import { Trash2 } from 'lucide-react';
+import WeightTrendChart from '@/components/WeightTrendChart';
 
 const SPOTLIGHT_STORAGE_KEY = 'bn_dashboard_spotlight';
 
@@ -15,7 +16,7 @@ function formatDateLabel(label) {
   try {
     const date = new Date(label);
     if (Number.isNaN(date.getTime())) return label;
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
   } catch {
     return label;
   }
@@ -24,6 +25,18 @@ function formatDateLabel(label) {
 function isSmallViewport() {
   if (typeof window === 'undefined') return false;
   return window.innerWidth <= 720;
+}
+
+function getLocalYMD() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  return `${year}-${month}-${day}`;
 }
 
 function normalizeSpotlightIndex(value) {
@@ -46,6 +59,7 @@ export default function DashboardSpotlightCarousel({
   weightPoints = [],
   currentWeight = null,
   goalWeight = null,
+  nutritionLabel = 'Today at a glance',
 }) {
   const router = useRouter();
   const touchStartX = useRef(null);
@@ -77,12 +91,6 @@ export default function DashboardSpotlightCarousel({
     } catch {}
   }, [activeIndex]);
 
-  const chartData = useMemo(() => (
-    (points || []).map((point) => ({
-      ...point,
-      label: formatDateLabel(point.date),
-    }))
-  ), [points]);
   const weightDelta = useMemo(() => {
     if (!points || points.length < 2) return null;
     const first = Number(points[0]?.value);
@@ -123,12 +131,17 @@ export default function DashboardSpotlightCarousel({
         const res = await fetch('/api/progress/weight', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weight: value }),
+          body: JSON.stringify({ weight: value, date: getLocalYMD() }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Failed to save weight');
         const nextDate = data?.entry?.date || new Date().toISOString();
-        setPoints((prev) => [...prev, { date: nextDate, value }]);
+        setPoints((prev) => {
+          const nextPoint = { id: data?.entry?.id, date: nextDate, value };
+          const existingIndex = prev.findIndex((point) => point.id === nextPoint.id);
+          if (existingIndex === -1) return [...prev, nextPoint];
+          return prev.map((point) => point.id === nextPoint.id ? nextPoint : point);
+        });
         setWeightInput('');
         router.refresh();
       } catch (err) {
@@ -137,12 +150,38 @@ export default function DashboardSpotlightCarousel({
     });
   }
 
+  function handleDeleteWeight(entry) {
+    if (!entry?.id || !window.confirm(`Delete the ${entry.value} lb weight entry?`)) return;
+
+    setError('');
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/progress/weight?id=${encodeURIComponent(entry.id)}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Failed to delete weight entry');
+        setPoints((prev) => prev.filter((point) => point.id !== entry.id));
+        router.refresh();
+      } catch (err) {
+        setError(err?.message || 'Failed to delete weight entry');
+      }
+    });
+  }
+
+  const nutritionMetrics = [
+    { label: 'Calories', value: consumedCalories, target: macroTargets.calories, unit: 'kcal' },
+    { label: 'Protein', value: consumedMacros.protein ?? 0, target: macroTargets.protein, unit: 'g' },
+    { label: 'Carbs', value: consumedMacros.carbs ?? 0, target: macroTargets.carbs, unit: 'g' },
+    { label: 'Fat', value: consumedMacros.fat ?? 0, target: macroTargets.fat, unit: 'g' },
+  ];
+
   return (
-    <article className="card span-full brand-nutrition-card dashboard-spotlight-card">
+    <article className="card span-full brand-nutrition-card dashboard-spotlight-card dashboard-today-spotlight-card">
       <header className="card-head dashboard-spotlight-head">
-        <div className="dashboard-spotlight-meta">
-          <div className="section-badge section-badge-meal">
-            {activeIndex === 0 ? 'Nutrition spotlight' : 'Weight spotlight'}
+          <div className="dashboard-spotlight-meta">
+            <div className="section-badge section-badge-meal">
+              {activeIndex === 0 ? nutritionLabel : 'Weight progress'}
           </div>
         </div>
         <div className="dashboard-spotlight-controls">
@@ -171,35 +210,28 @@ export default function DashboardSpotlightCarousel({
           style={{ transform: `translateX(-${activeIndex * 50}%)` }}
         >
           <section className="dashboard-spotlight-panel">
-            <div className="brand-macro-grid">
-              <div className="brand-macro-row">
-                <div className="brand-macro-head">
-                  <div className="stat-label">Calories</div>
-                  <div className="brand-macro-value">{consumedCalories}<span className="unit">/ {macroTargets.calories}</span></div>
-                </div>
-                <div className="progress brand-macro-progress"><span style={{ width: `${macroPct(consumedCalories, macroTargets.calories || 1)}%` }} /></div>
-              </div>
-              <div className="brand-macro-row">
-                <div className="brand-macro-head">
-                  <div className="stat-label">Protein</div>
-                  <div className="brand-macro-value">{consumedMacros.protein ?? 0}<span className="unit"> / {macroTargets.protein}g</span></div>
-                </div>
-                <div className="progress brand-macro-progress"><span style={{ width: `${macroPct(consumedMacros.protein ?? 0, macroTargets.protein)}%` }} /></div>
-              </div>
-              <div className="brand-macro-row">
-                <div className="brand-macro-head">
-                  <div className="stat-label">Carbs</div>
-                  <div className="brand-macro-value">{consumedMacros.carbs ?? 0}<span className="unit"> / {macroTargets.carbs}g</span></div>
-                </div>
-                <div className="progress brand-macro-progress"><span style={{ width: `${macroPct(consumedMacros.carbs ?? 0, macroTargets.carbs)}%` }} /></div>
-              </div>
-              <div className="brand-macro-row">
-                <div className="brand-macro-head">
-                  <div className="stat-label">Fat</div>
-                  <div className="brand-macro-value">{consumedMacros.fat ?? 0}<span className="unit"> / {macroTargets.fat}g</span></div>
-                </div>
-                <div className="progress brand-macro-progress"><span style={{ width: `${macroPct(consumedMacros.fat ?? 0, macroTargets.fat)}%` }} /></div>
-              </div>
+            <div className="dashboard-macro-circles">
+              {nutritionMetrics.map(({ label, value, target, unit }) => {
+                const progress = macroPct(value, target);
+                return (
+                  <div className="dashboard-macro-circle-card" key={label}>
+                    <div
+                      className="dashboard-macro-ring"
+                      style={{ '--dashboard-macro-progress': `${progress * 3.6}deg` }}
+                      aria-label={`${label}: ${progress}% of target`}
+                    >
+                      <div>
+                        <strong>{value.toLocaleString()}</strong>
+                        <span>{progress}%</span>
+                      </div>
+                    </div>
+                    <div className="dashboard-macro-circle-copy">
+                      <span>{label}</span>
+                      <small>{target?.toLocaleString?.() ?? 0} {unit}</small>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
@@ -236,35 +268,25 @@ export default function DashboardSpotlightCarousel({
               </button>
             </div>
             {error && <div className="muted" style={{ color: 'var(--danger)' }}>{error}</div>}
-            <div className="dashboard-weight-chart">
-              {chartData.length ? (
-                <ResponsiveContainer>
-                  <LineChart
-                    data={chartData}
-                    margin={{ top: 8, right: 8, left: compactChart ? -2 : 4, bottom: 0 }}
-                  >
-                    <CartesianGrid stroke="var(--edge)" strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: 'var(--muted)', fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      tick={{ fill: 'var(--muted)', fontSize: 12 }}
-                      tickLine={false}
-                      axisLine={false}
-                      width={compactChart ? 34 : 42}
-                    />
-                    <Tooltip formatter={(value) => [`${value} lb`, 'Weight']} contentStyle={{ background: 'var(--elev)', border: '1px solid var(--edge)', borderRadius: 14 }} />
-                    {goalWeight != null ? <ReferenceLine y={goalWeight} stroke="var(--ok)" strokeDasharray="4 4" /> : null}
-                    <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={3} dot={{ r: 2, fill: 'var(--accent)' }} activeDot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="dashboard-weight-empty">Save a weight to start the trend line.</div>
-              )}
-            </div>
+            {points.length ? (
+              <WeightTrendChart
+                points={points}
+                goalWeight={goalWeight}
+                margin={{ top: 8, right: 8, left: compactChart ? -2 : 4, bottom: 0 }}
+                yAxisWidth={compactChart ? 34 : 42}
+                renderSelection={(entry) => (
+                  <div className="dashboard-weight-selected">
+                    <span>{formatDateLabel(entry.date)} · {entry.value} lb</span>
+                    <button type="button" onClick={() => handleDeleteWeight(entry)} disabled={pending}>
+                      <Trash2 size={14} aria-hidden />
+                      Delete entry
+                    </button>
+                  </div>
+                )}
+              />
+            ) : (
+              <div className="dashboard-weight-chart"><div className="dashboard-weight-empty">Save a weight to start the trend line.</div></div>
+            )}
           </section>
         </div>
       </div>

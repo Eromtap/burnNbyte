@@ -1,145 +1,268 @@
 'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { signOut } from 'next-auth/react';
+
 import Image from 'next/image';
+import Link from 'next/link';
+import { signOut } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Activity,
+  Apple,
+  BookOpen,
+  CalendarDays,
+  ChevronRight,
+  Dumbbell,
+  Home,
+  Lightbulb,
+  LogOut,
+  Menu,
+  ShieldCheck,
+  ShoppingBag,
+  UserRound,
+  X,
+} from 'lucide-react';
+import NavigationFeedback from '@/components/NavigationFeedback';
 
 const PRIMARY_NAV_ITEMS = [
-  { href: '/', label: 'Dashboard' },
-  { href: '/workouts', label: 'Workouts' },
-  { href: '/meals', label: 'Meals' },
-  { href: '/meal-library', label: 'Meal Library' },
-  { href: '/groceries', label: 'Groceries' },
-  { href: '/progress', label: 'Progress' },
-  { href: '/healthCalendar', label: 'Calendar' },
+  { href: '/', label: 'Today', icon: Home },
+  { href: '/workouts', label: 'Train', icon: Dumbbell },
+  { href: '/meals', label: 'Fuel', icon: Apple },
+  { href: '/progress', label: 'Progress', icon: Activity },
 ];
 
 const SECONDARY_NAV_ITEMS = [
-  { href: '/profile', label: 'Profile' },
-  { href: '/suggestions', label: 'Suggestion Box' },
+  { href: '/groceries', label: 'Groceries', icon: ShoppingBag },
+  { href: '/meal-library', label: 'Meal library', icon: BookOpen },
+  { href: '/healthCalendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/suggestions', label: 'Suggestions', icon: Lightbulb },
 ];
+
+const ROUTE_META = {
+  '/': { eyebrow: 'YOUR DAY', title: 'Today' },
+  '/workouts': { eyebrow: 'TRAINING', title: 'Your training plan' },
+  '/meals': { eyebrow: 'NUTRITION', title: 'Fuel the work' },
+  '/progress': { eyebrow: 'MOMENTUM', title: 'See what is changing' },
+  '/groceries': { eyebrow: 'WEEKLY PREP', title: 'Grocery run' },
+  '/meal-library': { eyebrow: 'YOUR FAVORITES', title: 'Meal library' },
+  '/healthCalendar': { eyebrow: 'SCHEDULE', title: 'Health calendar' },
+  '/profile': { eyebrow: 'ACCOUNT', title: 'Profile and preferences' },
+  '/suggestions': { eyebrow: 'FEEDBACK', title: 'Shape the app' },
+  '/admin/access': { eyebrow: 'ADMIN', title: 'Access control' },
+  '/expired': { eyebrow: 'PLAN ACCESS', title: 'Your plan is paused' },
+  '/terms': { eyebrow: 'POLICY', title: 'Terms and conditions' },
+};
+
+function NavLink({ item, active, className = '', onClick }) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      className={`${className} ${active ? 'active' : ''}`}
+      aria-current={active ? 'page' : undefined}
+      onClick={onClick}
+    >
+      <Icon size={19} strokeWidth={1.8} aria-hidden />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
 
 export default function AppFrame({ children, session }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const secondaryNavItems = session?.user?.isAdmin
-    ? [...SECONDARY_NAV_ITEMS, { href: '/admin/access', label: 'Admin Access' }]
-    : SECONDARY_NAV_ITEMS;
-  const mobileNavItems = [...PRIMARY_NAV_ITEMS, ...secondaryNavItems];
+  const secondaryNavItems = useMemo(
+    () => (
+      session?.user?.isAdmin
+        ? [...SECONDARY_NAV_ITEMS, { href: '/admin/access', label: 'Admin access', icon: ShieldCheck }]
+        : SECONDARY_NAV_ITEMS
+    ),
+    [session?.user?.isAdmin]
+  );
 
-  const isActive = (href) => pathname === href;
-  const moreActive = secondaryNavItems.some((item) => isActive(item.href));
+  const isActive = (href) => (
+    href === '/'
+      ? pathname === '/'
+      : pathname === href || pathname?.startsWith(`${href}/`)
+  );
+
+  const routeMeta = ROUTE_META[pathname] || Object.entries(ROUTE_META)
+    .filter(([route]) => route !== '/')
+    .find(([route]) => pathname?.startsWith(`${route}/`))?.[1] || {
+    eyebrow: 'BURNNBYTE',
+    title: 'Your plan',
+  };
+  const displayName = session?.user?.name || session?.user?.email?.split('@')[0] || 'You';
+  const initial = displayName.trim().charAt(0).toUpperCase() || 'U';
 
   useEffect(() => {
     setDrawerOpen(false);
-    setMoreOpen(false);
   }, [pathname]);
 
-  return (
-    <div id="app">
-      <div className="app-shell">
-        <header className="app-header">
-          <div className="header-main">
-            <button className="btn btn-ghost mobile-menu-trigger" aria-label="Open menu" onClick={() => setDrawerOpen(true)}>
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Z"/></svg>
-            </button>
-            <div className="brand">
-              <Image src="/logo.png" alt="burnNbyte logo" className="brand-mark" width={52} height={52} unoptimized priority />
-              <div className="brand-copy">
-                <div className="brand-title">burnNbyte</div>
-                <div className="brand-subtitle">Fuel smart. Train hard.</div>
-              </div>
-            </div>
-            <div className="header-actions">
-              <nav className="desktop-nav" aria-label="Primary navigation">
-                {PRIMARY_NAV_ITEMS.map((item) => (
-                  <Link key={item.href} className={`desktop-nav-link ${isActive(item.href) ? 'active' : ''}`} href={item.href}>
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-              <div className="desktop-more">
-                <button
-                  className={`desktop-more-trigger ${moreActive ? 'active' : ''}`}
-                  type="button"
-                  aria-haspopup="menu"
-                  aria-expanded={moreOpen}
-                  onClick={() => setMoreOpen((open) => !open)}
-                >
-                  <span>More</span>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden>
-                    <path d="M6.47 8.97a.75.75 0 0 1 1.06 0L12 13.44l4.47-4.47a.75.75 0 1 1 1.06 1.06l-5 5a.75.75 0 0 1-1.06 0l-5-5a.75.75 0 0 1 0-1.06Z" />
-                  </svg>
-                </button>
-                {moreOpen && (
-                  <div className="desktop-more-menu" role="menu" aria-label="More options">
-                    {secondaryNavItems.map((item) => (
-                      <Link
-                        key={item.href}
-                        role="menuitem"
-                        className={`desktop-more-link ${isActive(item.href) ? 'active' : ''}`}
-                        href={item.href}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="desktop-more-link desktop-more-action"
-                      onClick={() => signOut({ callbackUrl: '/signin' })}
-                    >
-                      Log out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [drawerOpen]);
 
-        <div className={`drawer mobile-only ${drawerOpen ? 'drawer-open' : ''}`} aria-hidden={!drawerOpen}>
-          <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />
-          <aside className="drawer-panel" role="dialog" aria-modal="true" aria-label="Navigation">
-            <div className="drawer-head">
-              <div className="brand">
-                <Image src="/logo.png" alt="burnNbyte logo" className="brand-mark" width={52} height={52} unoptimized priority />
-                <div className="brand-copy">
-                  <div className="brand-title">burnNbyte</div>
-                  <div className="brand-subtitle">Train sharper. Eat cleaner.</div>
-                </div>
-              </div>
-              <button className="btn btn-ghost" onClick={() => setDrawerOpen(false)} aria-label="Close">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6.225 4.811 12 10.586l5.775-5.775a1 1 0 1 1 1.414 1.414L13.414 12l5.775 5.775a1 1 0 0 1-1.414 1.414L12 13.414l-5.775 5.775a1 1 0 0 1-1.414-1.414L10.586 12 4.81 6.225A1 1 0 0 1 6.225 4.81Z"/></svg>
-              </button>
-            </div>
-            <nav className="drawer-nav">
-              {mobileNavItems.map((item) => (
-                <Link key={item.href} className={`drawer-link ${isActive(item.href) ? 'active' : ''}`} href={item.href} onClick={() => setDrawerOpen(false)}>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="drawer-foot">
-              <button
-                className="btn btn-outline"
-                style={{ width: '100%' }}
-                onClick={() => {
-                  setDrawerOpen(false);
-                  signOut({ callbackUrl: '/signin' });
-                }}
-              >
-                <span className="label">Log out</span>
-              </button>
-            </div>
-          </aside>
+  return (
+    <div id="app" className="bn-app">
+      <NavigationFeedback />
+      <aside className="bn-rail">
+        <Link className="bn-brand" href="/" aria-label="burnNbyte home">
+          <Image src="/logo.png" alt="" width={42} height={42} priority />
+          <span>burnNbyte</span>
+        </Link>
+
+        <nav className="bn-primary-nav" aria-label="Primary navigation">
+          {PRIMARY_NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isActive(item.href)}
+              className="bn-nav-link"
+            />
+          ))}
+        </nav>
+
+        <div className="bn-rail-section">
+          <span className="bn-rail-label">PLAN</span>
+          <nav aria-label="Planning tools">
+            {secondaryNavItems.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={isActive(item.href)}
+                className="bn-nav-link bn-nav-link-secondary"
+              />
+            ))}
+          </nav>
         </div>
 
-        <main className="app-main">
+        <div className="bn-rail-profile">
+          <Link href="/profile" className={isActive('/profile') ? 'active' : ''}>
+            <span className="bn-avatar">{initial}</span>
+            <span>
+              <strong>{displayName}</strong>
+              <small>View profile</small>
+            </span>
+            <ChevronRight size={15} aria-hidden />
+          </Link>
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: '/signin' })}
+            aria-label="Log out"
+          >
+            <LogOut size={17} aria-hidden />
+          </button>
+        </div>
+      </aside>
+
+      <div className="bn-workspace">
+        <header className="bn-topbar">
+          <button
+            className="bn-mobile-menu"
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation"
+            aria-expanded={drawerOpen}
+          >
+            <Menu size={21} />
+          </button>
+
+          <div className="bn-topbar-copy">
+            <span>{routeMeta.eyebrow}</span>
+            <h1>{pathname === '/' ? `Good to see you, ${displayName}.` : routeMeta.title}</h1>
+          </div>
+
+          <Link className="bn-topbar-avatar" href="/profile" aria-label="Open profile">
+            <UserRound size={19} />
+          </Link>
+        </header>
+
+        <main className="bn-content">
           {children}
         </main>
+      </div>
+
+      <nav className="bn-mobile-nav" aria-label="Mobile navigation">
+        {PRIMARY_NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.href}
+            item={item}
+            active={isActive(item.href)}
+            className="bn-mobile-nav-link"
+          />
+        ))}
+        <button
+          type="button"
+          className={drawerOpen ? 'active' : ''}
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open more navigation"
+        >
+          <Menu size={19} />
+          <span>More</span>
+        </button>
+      </nav>
+
+      <div className={`bn-drawer ${drawerOpen ? 'open' : ''}`} aria-hidden={!drawerOpen}>
+        <button
+          className="bn-drawer-backdrop"
+          type="button"
+          onClick={() => setDrawerOpen(false)}
+          aria-label="Close navigation"
+          tabIndex={drawerOpen ? 0 : -1}
+        />
+        <aside className="bn-drawer-panel" role="dialog" aria-modal="true" aria-label="More navigation">
+          <header>
+            <div className="bn-brand">
+              <Image src="/logo.png" alt="" width={40} height={40} />
+              <span>burnNbyte</span>
+            </div>
+            <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close navigation">
+              <X size={20} />
+            </button>
+          </header>
+
+          <div className="bn-drawer-profile">
+            <span className="bn-avatar">{initial}</span>
+            <span>
+              <strong>{displayName}</strong>
+              <small>{session?.user?.email || 'Your account'}</small>
+            </span>
+          </div>
+
+          <nav aria-label="All navigation">
+            {[...SECONDARY_NAV_ITEMS, { href: '/profile', label: 'Profile', icon: UserRound }]
+              .concat(session?.user?.isAdmin ? [{ href: '/admin/access', label: 'Admin access', icon: ShieldCheck }] : [])
+              .map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(item.href)}
+                  className="bn-drawer-link"
+                  onClick={() => setDrawerOpen(false)}
+                />
+              ))}
+          </nav>
+
+          <button
+            className="bn-drawer-logout"
+            type="button"
+            onClick={() => signOut({ callbackUrl: '/signin' })}
+          >
+            <LogOut size={18} />
+            <span>Log out</span>
+          </button>
+        </aside>
       </div>
     </div>
   );

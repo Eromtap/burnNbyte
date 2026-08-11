@@ -1,5 +1,6 @@
 ﻿import { requireAppSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getSessionUserProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import WorkoutsPageClient from "@/components/WorkoutsPageClient";
@@ -53,7 +54,7 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
   const { session } = await requireAppSession();
-  const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect('/onboarding/1');
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
@@ -70,7 +71,7 @@ export default async function WorkoutsPage({ searchParams: searchParamsPromise }
     : [];
 
   return (
-    <main>
+    <main className="bn-route-page bn-train-page">
       <div className="page-shell stack">
         <WorkoutsPageClient
           profile={profile}

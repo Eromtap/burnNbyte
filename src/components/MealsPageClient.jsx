@@ -123,7 +123,14 @@ export default function MealsPageClient({
 
   return (
     <>
-      <section className="hero-card page-hero page-hero-compact">
+      <DateStrip
+        basePath="/meals"
+        selectedISO={selectedISO}
+        onSelectDate={refreshSelectedDay}
+        onShiftWeek={handleShiftWeek}
+      />
+
+      <section className="hero-card page-hero page-hero-compact bn-route-hero bn-fuel-hero">
         <div className="page-hero-copy">
           <div className="eyebrow">Meal planning</div>
           <div>
@@ -152,23 +159,19 @@ export default function MealsPageClient({
               label="Swap meal"
               onReplaced={() => refreshSelectedDay()}
             />
-            <GenerateMealPlan
-              initialPreferences={profile}
-              selectedISO={selectedISO}
-              onGenerated={() => refreshSelectedDay()}
-            />
+            {!mealPlan && (
+              <GenerateMealPlan
+                initialPreferences={profile}
+                selectedISO={selectedISO}
+                hasMealPlan={false}
+                onGenerated={() => refreshSelectedDay()}
+              />
+            )}
           </div>
         </div>
       </section>
 
-      <DateStrip
-        basePath="/meals"
-        selectedISO={selectedISO}
-        onSelectDate={refreshSelectedDay}
-        onShiftWeek={handleShiftWeek}
-      />
-
-      <section className="section-grid meal-page-layout">
+      <section className="section-grid meal-page-layout bn-route-grid">
         <article id="planner" className="card span-full meals-stage">
           <header className="card-head">
             <div>
@@ -308,6 +311,25 @@ export default function MealsPageClient({
           )}
         </article>
       </section>
+
+      {mealPlan && (
+        <section className="section-grid bn-route-grid meal-plan-regenerate-section">
+          <article className="card span-full">
+            <header className="card-head">
+              <div>
+                <h3>Plan ahead</h3>
+                <div className="sub">Keep this day as-is, rebuild the selected week, or regenerate only this date.</div>
+              </div>
+            </header>
+            <GenerateMealPlan
+              initialPreferences={profile}
+              selectedISO={selectedISO}
+              hasMealPlan
+              onGenerated={() => refreshSelectedDay()}
+            />
+          </article>
+        </section>
+      )}
 
       <AddFoodPanel
         open={composerOpen}

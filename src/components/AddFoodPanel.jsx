@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatMacro } from '@/lib/macros';
 import { MEAL_TYPES } from '@/lib/mealPlanUtils';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const MODES = [
   { id: 'text', label: 'Describe food' },
@@ -29,6 +30,14 @@ function emptyDraft(type = 'snack') {
 
 function libraryKindLabel(kind) {
   return kind === 'FOOD' ? 'Food' : 'Meal';
+}
+
+function scaleSavedValue(value, servings, decimals = 1) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+  const scaled = numericValue * servings;
+  const factor = 10 ** decimals;
+  return Math.round(scaled * factor) / factor;
 }
 
 export default function AddFoodPanel({
@@ -60,7 +69,7 @@ export default function AddFoodPanel({
   const [libraryFilter, setLibraryFilter] = useState('ALL');
   const [librarySearch, setLibrarySearch] = useState('');
   const [selectedLibraryItemId, setSelectedLibraryItemId] = useState('');
-  const [savedPortionNote, setSavedPortionNote] = useState('');
+  const [savedServings, setSavedServings] = useState('1');
 
   const resetComposer = useCallback((nextType = 'snack') => {
     setMode('text');
@@ -77,7 +86,7 @@ export default function AddFoodPanel({
     setLibraryFilter('ALL');
     setLibrarySearch('');
     setSelectedLibraryItemId('');
-    setSavedPortionNote('');
+    setSavedServings('1');
   }, []);
 
   useEffect(() => {
@@ -136,10 +145,10 @@ export default function AddFoodPanel({
       if (draft.portionNote.trim()) formData.append('portionNote', draft.portionNote.trim());
       formData.append('type', draft.type);
 
-      const res = await fetch('/api/mealPlans/estimate', {
+      const res = await fetchWithTimeout('/api/mealPlans/estimate', {
         method: 'POST',
         body: formData,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to estimate meal.');
 
@@ -184,10 +193,10 @@ export default function AddFoodPanel({
       pantryFiles.slice(0, 3).forEach((file) => formData.append('photos', file));
       formData.append('type', draft.type);
 
-      const res = await fetch('/api/pantry/meal', {
+      const res = await fetchWithTimeout('/api/pantry/meal', {
         method: 'POST',
         body: formData,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data?.error || 'Failed to generate pantry or fridge meal.');
@@ -281,39 +290,21 @@ export default function AddFoodPanel({
     setEstimateNotes('');
 
     try {
-      const descriptionParts = [
-        `Saved ${libraryKindLabel(selectedLibraryItem.kind).toLowerCase()}: ${selectedLibraryItem.name}.`,
-        selectedLibraryItem.description ? `Saved description: ${selectedLibraryItem.description}.` : '',
-        `Reference nutrition for the usual saved portion: ${selectedLibraryItem.calories ?? 0} kcal, ${formatMacro(selectedLibraryItem.protein)}g protein, ${formatMacro(selectedLibraryItem.carbs)}g carbs, ${formatMacro(selectedLibraryItem.fat)}g fat.`,
-        Array.isArray(selectedLibraryItem.ingredients) && selectedLibraryItem.ingredients.length
-          ? `Likely ingredients: ${selectedLibraryItem.ingredients.join(', ')}.`
-          : '',
-      ].filter(Boolean).join(' ');
-
-      const formData = new FormData();
-      formData.append('description', descriptionParts);
-      formData.append('portionNote', savedPortionNote.trim() || 'Use the standard saved portion.');
-      formData.append('type', draft.type);
-
-      const estimateRes = await fetch('/api/mealPlans/estimate', {
-        method: 'POST',
-        body: formData,
-      });
-      const estimateData = await estimateRes.json().catch(() => ({}));
-      if (!estimateRes.ok) {
-        throw new Error(estimateData?.error || 'Failed to estimate saved item.');
+      const servings = Number(savedServings);
+      if (!Number.isFinite(servings) || servings <= 0) {
+        throw new Error('Enter a serving amount greater than zero.');
       }
 
       const data = await saveMeal({
         type: draft.type,
-        name: estimateData?.name || selectedLibraryItem.name,
-        calories: estimateData?.calories ?? selectedLibraryItem.calories,
-        costPerServing: estimateData?.costPerServing ?? selectedLibraryItem.costPerServing,
-        protein: estimateData?.protein ?? selectedLibraryItem.protein,
-        carbs: estimateData?.carbs ?? selectedLibraryItem.carbs,
-        fat: estimateData?.fat ?? selectedLibraryItem.fat,
-        ingredients: estimateData?.ingredients || selectedLibraryItem.ingredients || [],
-        recipe: estimateData?.recipe || selectedLibraryItem.recipe || '',
+        name: selectedLibraryItem.name,
+        calories: Math.round(scaleSavedValue(selectedLibraryItem.calories, servings, 0)),
+        costPerServing: scaleSavedValue(selectedLibraryItem.costPerServing, servings, 2),
+        protein: scaleSavedValue(selectedLibraryItem.protein, servings),
+        carbs: scaleSavedValue(selectedLibraryItem.carbs, servings),
+        fat: scaleSavedValue(selectedLibraryItem.fat, servings),
+        ingredients: selectedLibraryItem.ingredients || [],
+        recipe: selectedLibraryItem.recipe || '',
       }, {
         saveToLibrary: false,
       });
@@ -573,13 +564,16 @@ export default function AddFoodPanel({
                   <div className="tracker-saved-action-card">
                     <div>
                       <div className="planner-head">{selectedLibraryItem.name}</div>
-                      <div className="sub">Optional portion note if you ate more or less than the usual saved amount.</div>
+                      <div className="sub">Nutrition is calculated directly from the saved serving.</div>
                     </div>
                     <input
-                      type="text"
-                      placeholder="Optional portion note, for example 1.5 servings or half portion"
-                      value={savedPortionNote}
-                      onChange={(event) => setSavedPortionNote(event.target.value)}
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      inputMode="decimal"
+                      aria-label="Number of saved servings"
+                      value={savedServings}
+                      onChange={(event) => setSavedServings(event.target.value)}
                     />
                   </div>
                 )}
@@ -756,7 +750,7 @@ export default function AddFoodPanel({
               disabled={saveLoading || (mode === 'saved' ? !selectedLibraryItem : false)}
               onClick={mode === 'saved' ? handleAddSavedItem : handleSave}
             >
-              {saveLoading ? 'Saving…' : mode === 'saved' ? 'Estimate and save' : 'Save to day'}
+              {saveLoading ? 'Saving…' : mode === 'saved' ? 'Add to day' : 'Save to day'}
             </button>
           </div>
         </footer>

@@ -5,9 +5,9 @@ export default async function AdminAccessPage() {
   await requireAdmin({ allowWithoutTerms: true });
 
   return (
-    <main>
+    <main className="bn-route-page bn-admin-page">
       <div className="page-shell stack">
-        <section className="hero-card page-hero page-hero-compact">
+        <section className="hero-card page-hero page-hero-compact bn-route-hero bn-admin-hero">
           <div className="page-hero-copy">
             <div className="eyebrow">Admin</div>
             <div>

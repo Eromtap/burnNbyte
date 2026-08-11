@@ -2,58 +2,83 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getUserAppAccess } from "@/lib/access";
+import { ArrowRight, Clock3, LockKeyhole, ShieldCheck } from "lucide-react";
 
 export default async function ExpiredPage() {
   const session = await getServerSession(authOptions);
   const access = session?.user?.id ? await getUserAppAccess(session.user.id) : null;
 
   return (
-    <main>
-      <div className="page-shell stack">
-        <section className="hero-card page-hero">
-          <div className="page-hero-copy">
-            <div className="eyebrow">Access required</div>
-            <div>
-              <h1 className="page-hero-title">Your BurnnByte access has expired.</h1>
-              <p className="page-hero-text">
-                New accounts get 7 days of full access. After that, the app requires an active subscription unless the account has a manual access grant.
-              </p>
-              {access?.trialEndsAt ? (
-                <p className="page-hero-text">
-                  Trial ended: {new Date(access.trialEndsAt).toLocaleDateString("en-US")}
-                </p>
-              ) : null}
+    <main className="bn-access-page">
+      <div className="page-shell">
+        <section className="bn-access-hero">
+          <div className="bn-access-copy">
+            <div className="bn-access-kicker">
+              <LockKeyhole size={15} aria-hidden />
+              <span>ACCESS PAUSED</span>
+            </div>
+            <h1>Your plan is still here.<br />Access is not.</h1>
+            <p>
+              Your workouts, meals, and progress have not been removed. Restore access to pick up
+              exactly where you left off.
+            </p>
+            <div className="bn-access-actions">
+              <Link href={session ? "/" : "/signin"} className="bn-access-primary">
+                {session ? "Check access again" : "Return to sign in"}
+                <ArrowRight size={17} aria-hidden />
+              </Link>
+              <span>No data has been deleted.</span>
             </div>
           </div>
-          <aside className="hero-panel hero-metrics">
-            <div className="metric-card">
-              <div className="metric-label">Current status</div>
-              <div className="metric-value" style={{ fontSize: "1.5rem" }}>
-                {access?.accessState || "signed_out"}
-              </div>
-              <div className="metric-detail">
-                Billing is not wired yet. This is the app lock state for expired access.
+
+          <aside className="bn-access-panel">
+            <header>
+              <span>ACCOUNT STATE</span>
+              <ShieldCheck size={20} aria-hidden />
+            </header>
+            <strong>{access?.accessState || "signed out"}</strong>
+            <div className="bn-access-rule" />
+            <div className="bn-access-detail">
+              <Clock3 size={17} aria-hidden />
+              <div>
+                <span>Trial window</span>
+                <p>
+                  {access?.trialEndsAt
+                    ? `Ended ${new Date(access.trialEndsAt).toLocaleDateString("en-US")}`
+                    : "Sign in to view account timing"}
+                </p>
               </div>
             </div>
           </aside>
         </section>
 
-        <article className="card">
-          <header className="card-head">
-            <div>
-              <h3>Next step</h3>
-              <div className="sub">Use a manual grant for testers or wire billing next.</div>
-            </div>
-          </header>
-          <div className="stack">
+        <section className="bn-access-next">
+          <span>01</span>
+          <div>
+            <small>WHAT HAPPENS NEXT</small>
+            <h2>Restore access without rebuilding your plan.</h2>
+          </div>
+          <div className="bn-access-next-copy">
             <p>
-              If this account should keep access for testing, family, or support, add a manual grant through the admin access-grants API.
+              New accounts receive seven days of full access. After that, an active subscription
+              or manual access grant is required.
             </p>
             <p>
-              <Link href="/signin">Back to sign in</Link>
+              If you believe your access should be active, contact the person who manages your
+              account and ask them to review your access status.
             </p>
           </div>
-        </article>
+        </section>
+
+        <footer className="bn-access-footer">
+          <div>
+            <ShieldCheck size={17} aria-hidden />
+            <div>
+              <strong>Your saved plan stays private</strong>
+              <span>Account access controls visibility; expiration does not erase your data.</span>
+            </div>
+          </div>
+        </footer>
       </div>
     </main>
   );

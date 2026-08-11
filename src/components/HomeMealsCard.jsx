@@ -20,17 +20,6 @@ function groupMeals(meals) {
   }, {});
 }
 
-function getInitialOpenMealType(groupedMeals) {
-  const orderedTypes = ['breakfast', 'lunch', 'dinner', 'snack'];
-  const firstIncomplete = orderedTypes.find((type) =>
-    (groupedMeals[type] || []).some((meal) => !meal?.isCompleted)
-  );
-  if (firstIncomplete) return firstIncomplete;
-
-  const firstAvailable = orderedTypes.find((type) => (groupedMeals[type] || []).length > 0);
-  return firstAvailable || 'breakfast';
-}
-
 function formatCost(value) {
   if (value == null || Number.isNaN(Number(value))) return null;
   return `$${Number(value).toFixed(2)}`;
@@ -38,6 +27,7 @@ function formatCost(value) {
 
 export default function HomeMealsCard({
   todayISO,
+  isToday = true,
   profile = null,
   initialMealPlan = null,
   initialLibraryItems = [],
@@ -52,7 +42,6 @@ export default function HomeMealsCard({
   const [refreshPending, startRefreshTransition] = useTransition();
 
   const grouped = groupMeals(mealPlan?.meals || []);
-  const initialOpenMealType = getInitialOpenMealType(grouped);
   const macroTargets = deriveNutritionTargets(profile || {});
 
   useEffect(() => {
@@ -91,21 +80,10 @@ export default function HomeMealsCard({
 
   return (
     <>
-      <MobileDisclosure
-        className="mobile-disclosure dashboard-disclosure"
-        summaryClassName="mobile-disclosure-summary dashboard-summary"
-        panelClassName="mobile-disclosure-panel"
-        summary={
-          <>
-            <span className="planner-head">What I&apos;m eating today</span>
-            <span className="mobile-disclosure-meta">{mealPlan?.meals?.length || 0} meals</span>
-          </>
-        }
-      >
-        <article className="card span-2 brand-feed-card">
+      <article className="card span-2 brand-feed-card">
           <header className="card-head">
             <div>
-              <h3>What I&apos;m eating today</h3>
+              <h3>{isToday ? "What I'm eating today" : "Meals for this day"}</h3>
               <div className="sub">Log food, swap a meal block, or delete something without leaving home. Daily target: {formatMacro(macroTargets.calories)} kcal • {formatMacro(macroTargets.protein)}P • {formatMacro(macroTargets.carbs)}C • {formatMacro(macroTargets.fat)}F.</div>
             </div>
             <div className="page-hero-actions home-meals-actions">
@@ -129,7 +107,7 @@ export default function HomeMealsCard({
                 className="brand-feed-item mobile-disclosure"
                 summaryClassName="mobile-disclosure-summary brand-feed-item-summary"
                 panelClassName="mobile-disclosure-panel"
-                defaultOpenMobile={type === initialOpenMealType}
+                defaultOpenMobile={false}
                 summary={
                   <>
                     <span className="planner-head" style={{ textTransform: 'capitalize' }}>{type}</span>
@@ -182,8 +160,7 @@ export default function HomeMealsCard({
             ))}
           </div>
           {(loading || refreshPending) && <div className="sub">Refreshing today&apos;s meals…</div>}
-        </article>
-      </MobileDisclosure>
+      </article>
 
       <AddFoodPanel
         open={composerOpen}

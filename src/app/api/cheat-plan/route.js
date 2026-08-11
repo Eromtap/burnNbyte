@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { requireAppApiSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
 const MAX_DAILY_MEAL_REDUCTION = 250;
 const MAX_EXTRA_WORKOUT_MINUTES = 10;
 const DEFAULT_MIN_DAILY_CALORIES = 1400;
@@ -257,6 +257,10 @@ export async function POST(req) {
     });
   } catch (error) {
     console.error('cheat plan failed', error);
-    return NextResponse.json({ error: error?.message || 'Server error' }, { status: 500 });
+    const timedOut = error?.name === 'APIConnectionTimeoutError';
+    return NextResponse.json(
+      { error: timedOut ? 'Planning took too long. Please try again.' : (error?.message || 'Server error') },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

@@ -49,13 +49,13 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
-          const email = credentials?.email?.trim();
+          const email = credentials?.email?.trim().toLowerCase();
           const password = credentials?.password;
           if (!email || !password) return null;
 
-          const user = await withPrismaRetry(() => prisma.user.findUnique({
-            where: { email },
-            select: { id: true, name: true, email: true, password: true, isAdmin: true },
+          const user = await withPrismaRetry(() => prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+            select: { id: true, name: true, email: true, password: true, isAdmin: true, termsAcceptedAt: true },
           }));
           if (!user?.password) return null;
 
@@ -67,6 +67,7 @@ export const authOptions = {
             name: user.name,
             email: user.email,
             isAdmin: Boolean(user.isAdmin),
+            termsAcceptedAt: user.termsAcceptedAt,
           };
         } catch (err) {
           console.error("Auth authorize error", err);
@@ -80,32 +81,33 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       // establish a stable user id in the token
       const userId = user?.id ?? token.id ?? token.sub ?? null;
       if (userId) token.id = userId;
-      if (typeof user?.isAdmin === "boolean") {
-        token.isAdmin = user.isAdmin;
-      } else if (userId) {
-        const dbUser = await withPrismaRetry(() =>
-          prisma.user.findUnique({
-            where: { id: String(userId) },
-            select: { isAdmin: true },
-          })
-        );
-        token.isAdmin = Boolean(dbUser?.isAdmin);
+      if (!userId) {
+        token.preferences = null;
+        token.authzHydrated = false;
+        return token;
       }
 
-      // ALWAYS re-hydrate preferences if we know the userId
-      if (userId) {
-        token.preferences = await withPrismaRetry(() =>
-          prisma.userProfile.findUnique({
-            where: { userId: String(userId) },
-          })
-        );
-      } else {
-        token.preferences = null;
-      }
+      const shouldHydrate = Boolean(user) || trigger === "update" || !token.authzHydrated;
+      if (!shouldHydrate) return token;
+
+      const [dbUser, profile] = await Promise.all([
+        withPrismaRetry(() => prisma.user.findUnique({
+          where: { id: String(userId) },
+          select: { isAdmin: true, termsAcceptedAt: true },
+        })),
+        withPrismaRetry(() => prisma.userProfile.findUnique({
+          where: { userId: String(userId) },
+        })),
+      ]);
+
+      token.isAdmin = Boolean(dbUser?.isAdmin ?? user?.isAdmin);
+      token.termsAcceptedAt = dbUser?.termsAcceptedAt ?? user?.termsAcceptedAt ?? null;
+      token.preferences = profile ?? null;
+      token.authzHydrated = true;
 
       return token;
     },
@@ -114,6 +116,8 @@ export const authOptions = {
       if (session?.user) {
         session.user.id = token.id ?? token.sub ?? null;
         session.user.isAdmin = Boolean(token.isAdmin);
+        session.user.termsAcceptedAt = token.termsAcceptedAt ?? null;
+        session.user.authzHydrated = Boolean(token.authzHydrated);
         session.user.preferences = token.preferences ?? null;
       }
       return session;

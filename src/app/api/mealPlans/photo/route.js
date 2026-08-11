@@ -43,7 +43,7 @@ export async function POST(req) {
     const b64 = toBase64(arrayBuffer);
     const dataUrl = `data:${photo.type || "image/jpeg"};base64,${b64}`;
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
     if (!openai.apiKey) {
       return NextResponse.json({ error: "Missing OPENAI_API_KEY server env var" }, { status: 500 });
     }
@@ -181,6 +181,10 @@ export async function POST(req) {
     return NextResponse.json({ ...parsed, type, date: baseUtc, mealId: result.meal.id });
   } catch (err) {
     console.error("mealPlans/photo POST failed", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const timedOut = err?.name === "APIConnectionTimeoutError";
+    return NextResponse.json(
+      { error: timedOut ? "Photo analysis took too long. Please try again." : "Server error" },
+      { status: timedOut ? 504 : 500 }
+    );
   }
 }

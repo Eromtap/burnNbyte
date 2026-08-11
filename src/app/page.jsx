@@ -6,13 +6,13 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { sumMealMacros } from "@/lib/macros";
-import { labelForFitnessGoal } from "@/constants/fitnessGoals";
 import { deriveNutritionTargets } from "@/lib/nutritionTargets";
+import { getSessionUserProfile } from "@/lib/auth";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import CheatPlanner from "@/components/CheatPlanner";
-import MobileDisclosure from "@/components/MobileDisclosure";
 import HomeMealsCard from "@/components/HomeMealsCard";
 import DashboardSpotlightCarousel from "@/components/DashboardSpotlightCarousel";
+import { Activity, ArrowUpRight, Dumbbell, Flame, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -44,7 +44,44 @@ function resolveTimeZone(candidate) {
   return "UTC";
 }
 
-export default async function HomePage() {
+function getWeightSignalMessage({ delta, initialWeight, goalWeight, fitnessGoal }) {
+  if (delta == null) {
+    return goalWeight != null
+      ? `Log another weigh-in to see how you’re tracking toward ${goalWeight} lb.`
+      : "Log another weigh-in to start seeing your trend.";
+  }
+
+  const direction = Math.sign(delta);
+  const hasWeightGoal = goalWeight != null && initialWeight != null && Number(goalWeight) !== Number(initialWeight);
+  const targetDirection = hasWeightGoal ? Math.sign(Number(goalWeight) - Number(initialWeight)) : 0;
+  const movingTowardGoal = targetDirection !== 0 && direction === targetDirection;
+  const pounds = Math.abs(delta);
+
+  if (movingTowardGoal) {
+    return `${pounds} lb ${direction < 0 ? "down" : "up"} from your start—solid progress toward ${goalWeight} lb.`;
+  }
+
+  if (hasWeightGoal && direction !== 0) {
+    return `${pounds} lb ${direction < 0 ? "down" : "up"} from your start. Keep the next few meals and sessions consistent.`;
+  }
+
+  if (direction === 0) {
+    return goalWeight != null
+      ? `Holding steady. Consistency will carry you toward ${goalWeight} lb.`
+      : "Holding steady—keep building the habits that support your training.";
+  }
+
+  if (fitnessGoal === "fat_loss" && direction < 0) {
+    return `${pounds} lb down from your start—your fat-loss work is adding up.`;
+  }
+  if (fitnessGoal === "muscle_gain" && direction > 0) {
+    return `${pounds} lb up from your start—keep pairing the work with steady recovery.`;
+  }
+
+  return `${pounds} lb ${direction < 0 ? "down" : "up"} from your start. Keep showing up for the plan.`;
+}
+
+export default async function HomePage({ searchParams }) {
   const headerStore = await headers();
   const timeZoneCandidate =
     headerStore.get("x-vercel-ip-timezone") ||
@@ -55,17 +92,20 @@ export default async function HomePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/signin");
 
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: String(session.user.id) },
-  });
+  const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");
 
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
-  const today = toUTCDateFromLocalYMD(todayISO);
+  const params = await searchParams;
+  const requestedDate = typeof params?.get === "function" ? params.get("date") : params?.date;
+  const selectedISO = /^\d{4}-\d{2}-\d{2}$/.test(String(requestedDate || ""))
+    ? String(requestedDate)
+    : todayISO;
+  const selectedDate = toUTCDateFromLocalYMD(selectedISO);
 
-  const [workout, mealPlan, libraryItems, weightHistory] = await Promise.all([
-    prisma.workout.findFirst({ where: { userId: session.user.id, date: today } }),
-    prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: today }, include: { meals: true } }),
+  const [workout, mealPlan, libraryItems, weightHistory, initialWeightEntry] = await Promise.all([
+    prisma.workout.findFirst({ where: { userId: session.user.id, date: selectedDate } }),
+    prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: selectedDate }, include: { meals: true } }),
     prisma.mealLibraryItem.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -73,8 +113,12 @@ export default async function HomePage() {
     }),
     prisma.weightHistory.findMany({
       where: { profileId: profile.id },
-      orderBy: { date: 'asc' },
+      orderBy: { date: 'desc' },
       take: 30,
+    }),
+    prisma.weightHistory.findFirst({
+      where: { profileId: profile.id },
+      orderBy: { date: 'asc' },
     }),
   ]);
 
@@ -90,94 +134,110 @@ export default async function HomePage() {
   const workoutCalories = weightKg ? Math.round(met * weightKg * durationH) : null;
 
   const macroTargets = deriveNutritionTargets(profile);
-  const primaryGoalId = profile.fitnessGoal || profile.fitnessGoals?.[0] || "general_fitness";
-  const primaryGoal = labelForFitnessGoal(primaryGoalId) || "General fitness";
   const weightPoints = (weightHistory?.length
-    ? weightHistory.map((entry) => ({
-        date: toYMDInTimeZone(entry.date, timeZone),
+    ? [...weightHistory].reverse().map((entry) => ({
+        id: entry.id,
+        date: toYMDInTimeZone(entry.date, "UTC"),
         value: entry.weight,
       }))
     : profile.weight != null
       ? [{ date: todayISO, value: profile.weight }]
       : []);
-
+  const initialWeight = initialWeightEntry?.weight ?? profile.weight ?? null;
+  const weightDelta = initialWeight != null && profile.weight != null
+    ? Math.round((Number(profile.weight) - Number(initialWeight)) * 10) / 10
+    : null;
+  const weightSignalMessage = getWeightSignalMessage({
+    delta: weightDelta,
+    initialWeight,
+    goalWeight: profile.goalWeight,
+    fitnessGoal: profile.fitnessGoal,
+  });
   return (
-    <main>
-      <div className="dashboard-shell stack">
-        <DashboardSpotlightCarousel
-          consumedCalories={consumedCalories}
-          consumedMacros={consumedMacros}
-          macroTargets={macroTargets}
-          weightPoints={weightPoints}
-          currentWeight={profile.weight}
-          goalWeight={profile.goalWeight}
-        />
+    <main className="bn-home-dashboard">
+      <div className="dashboard-shell">
+        <div className="bn-home-layout">
+          <section className="bn-home-primary">
+            <section className="bn-home-signal bn-home-signal-compact">
+              <span>WEIGHT SIGNAL</span>
+              <div>
+                {weightDelta < 0 ? <TrendingDown size={16} aria-hidden /> : null}
+                {weightDelta > 0 ? <TrendingUp size={16} aria-hidden /> : null}
+                <strong>{weightDelta == null ? "—" : Math.abs(weightDelta)}</strong>
+                <small>{weightDelta == null ? "log weight" : weightDelta === 0 ? "lb steady" : `lb ${weightDelta < 0 ? "down" : "up"}`}</small>
+                <small className="bn-home-current-weight">now {profile.weight ?? "—"} lb</small>
+              </div>
+              <p>{weightSignalMessage}</p>
+              <Link href="/progress">Open progress <ArrowUpRight size={15} /></Link>
+            </section>
 
-        <section className="brand-dashboard-grid">
-          <MobileDisclosure
-            className="mobile-disclosure dashboard-disclosure"
-            summaryClassName="mobile-disclosure-summary dashboard-summary"
-            panelClassName="mobile-disclosure-panel"
-            summary={
-              <>
-                <span className="planner-head">Workout spotlight</span>
-                <span className="mobile-disclosure-meta">{workout ? `${workout.duration} min` : "Not built"}</span>
-              </>
-            }
-          >
-              <article className="card span-2 brand-story-card">
-                <header className="card-head brand-story-head">
-                  <div>
-                    <div className="section-badge section-badge-workout">Workout spotlight</div>
-                    <h3>{workout ? workout.name : "I haven’t built today’s session yet"}</h3>
-                    <div className="sub">
-                      {workout
-                        ? `${workout.muscleGroup || "Full body focus"} • ${workout.duration} min • ${workout.difficulty || "beginner"}`
-                        : "Generate a workout and this becomes my featured training brief."}
-                    </div>
-                  </div>
+            <DashboardSpotlightCarousel
+              consumedCalories={consumedCalories}
+              consumedMacros={consumedMacros}
+              macroTargets={macroTargets}
+              weightPoints={weightPoints}
+              currentWeight={profile.weight}
+              goalWeight={profile.goalWeight}
+              nutritionLabel={selectedISO === todayISO ? "Today at a glance" : `Plan for ${selectedISO}`}
+            />
+
+            <section className="bn-home-next">
+              <header>
+                <div>
+                  <span>UP NEXT</span>
+                  <h3>{workout?.name || "Build today’s workout"}</h3>
+                </div>
+                <Link href={`/workouts?date=${selectedISO}`}>
+                  View workout
+                  <ArrowUpRight size={16} aria-hidden />
+                </Link>
+              </header>
+
+              <div className="bn-home-next-row">
+                <div>
+                  <Dumbbell size={20} aria-hidden />
+                  <span><strong>{workout?.duration || 0}</strong><small>minutes</small></span>
+                </div>
+                <div>
+                  <Flame size={20} aria-hidden />
+                  <span><strong>{workoutCalories || 0}</strong><small>estimated burn</small></span>
+                </div>
+                <div>
+                  <Activity size={20} aria-hidden />
+                  <span><strong>{workout?.exercises?.length || "—"}</strong><small>movements</small></span>
+                </div>
+                <div className="bn-home-next-action">
                   {workout ? (
                     <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />
                   ) : (
-                    <Link href="/workouts" className="btn btn-primary">Build my workout</Link>
+                    <Link href={`/workouts?date=${selectedISO}`} className="btn btn-primary">
+                      Build session
+                    </Link>
                   )}
-                </header>
-                <div className="brand-story-body">
-                  <div className="brand-story-copy">
-                    <div className="metric-label">Training note</div>
-                    <p className="brand-story-text">
-                      {workout
-                        ? `This session is built for ${primaryGoal.toLowerCase()}. Use today as a focused block instead of another generic gym day.`
-                        : "There’s no workout saved for today yet. Build one to turn the dashboard into a real coaching brief."}
-                    </p>
-                    <div className="brand-story-actions">
-                      <Link href={`/workouts?date=${todayISO}`} className="btn btn-outline">See my workout</Link>
-                    </div>
-                  </div>
-                  <div className="brand-story-metrics">
-                    <div className="brand-stat-panel">
-                      <div className="metric-label">Estimated burn</div>
-                      <div className="spotlight-mini">{workoutCalories ?? 0}</div>
-                      <div className="metric-detail">kcal if completed</div>
-                    </div>
-                    <div className="brand-stat-panel">
-                      <div className="metric-label">Session status</div>
-                      <div className="spotlight-mini">{workout?.isCompleted ? "Done" : "Pending"}</div>
-                      <div className="metric-detail">Track it when finished</div>
-                    </div>
-                  </div>
                 </div>
-              </article>
-          </MobileDisclosure>
+              </div>
+            </section>
 
-          <HomeMealsCard
-            todayISO={todayISO}
-            profile={profile}
-            initialMealPlan={mealPlan}
-            initialLibraryItems={libraryItems}
-          />
+            <HomeMealsCard
+              todayISO={selectedISO}
+              isToday={selectedISO === todayISO}
+              profile={profile}
+              initialMealPlan={mealPlan}
+              initialLibraryItems={libraryItems}
+            />
+          </section>
 
-          <CheatPlanner currentDateISO={todayISO} />
+          <aside className="bn-home-insights">
+            <Link className="bn-home-grocery-link" href={`/groceries?date=${selectedISO}`}>
+              <span><ShoppingBag size={18} aria-hidden /><strong>Grocery list</strong></span>
+              <small>Open this week&apos;s ingredients</small>
+              <ArrowUpRight size={16} aria-hidden />
+            </Link>
+          </aside>
+        </div>
+
+        <section className="bn-home-support bn-home-support-single">
+          <CheatPlanner currentDateISO={selectedISO} />
         </section>
       </div>
     </main>

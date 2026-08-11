@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { formatMacro } from '@/lib/macros';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const MODES = [
   { id: 'ai', label: 'New suggestion' },
@@ -52,11 +53,11 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/mealPlans/replace', {
+      const res = await fetchWithTimeout('/api/mealPlans/replace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: [{ date: dateISO, types: [selectedType] }], rebalance }),
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to replace meal.');
       if (typeof onReplaced === 'function') {
@@ -82,10 +83,10 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
       if (portionNote.trim()) fd.append('portionNote', portionNote.trim());
       if (photoFile) fd.append('photo', photoFile);
 
-      const res = await fetch('/api/mealPlans/estimate', {
+      const res = await fetchWithTimeout('/api/mealPlans/estimate', {
         method: 'POST',
         body: fd,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to estimate replacement.');
       setEstimate(data);
@@ -117,10 +118,10 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
       pantryFiles.slice(0, 3).forEach((file) => fd.append('photos', file));
       fd.append('type', selectedType);
 
-      const res = await fetch('/api/pantry/meal', {
+      const res = await fetchWithTimeout('/api/pantry/meal', {
         method: 'POST',
         body: fd,
-      });
+      }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to build pantry or fridge replacement.');
       setEstimate(data?.meal || null);

@@ -110,7 +110,7 @@ export default function AdminAccessPageClient() {
 
   return (
     <div className="stack">
-      <article className="card">
+      <article className="card bn-route-stage">
         <header className="card-head">
           <div>
             <h3>Lookup user</h3>
@@ -143,7 +143,7 @@ export default function AdminAccessPageClient() {
 
       {lookup?.user ? (
         <>
-          <section className="hero-card page-hero page-hero-compact">
+          <section className="hero-card page-hero page-hero-compact bn-route-hero">
             <div className="page-hero-copy">
               <div className="eyebrow">User record</div>
               <div>
@@ -163,7 +163,7 @@ export default function AdminAccessPageClient() {
           </section>
 
           <div className="admin-grid">
-            <article className="card">
+            <article className="card bn-route-stage">
               <header className="card-head">
                 <div>
                   <h3>Grant full access</h3>
@@ -211,7 +211,7 @@ export default function AdminAccessPageClient() {
               </form>
             </article>
 
-            <article className="card">
+            <article className="card bn-route-stage">
               <header className="card-head">
                 <div>
                   <h3>Existing grants</h3>
