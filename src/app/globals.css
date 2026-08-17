@@ -3819,8 +3819,9 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   .bn-topbar{
     min-height:78px;
     padding:14px 16px;
-    grid-template-columns:40px minmax(0,1fr) 40px;
-    gap:12px;
+    grid-template-columns:minmax(0,1fr);
+    justify-items:center;
+    gap:0;
   }
 
   .bn-mobile-menu{
@@ -3828,6 +3829,8 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   }
 
   .bn-topbar-copy{
+    width:100%;
+    justify-items:center;
     text-align:center;
   }
 
@@ -5063,6 +5066,125 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   box-shadow:none;
 }
 
+.bn-profile-goal{
+  display:flex;
+  align-items:baseline;
+  flex-wrap:wrap;
+  gap:12px;
+  padding:4px 0 22px;
+  border-bottom:1px solid var(--edge);
+}
+
+.bn-profile-goal>span{
+  color:var(--muted);
+  font-family:var(--font-geist-mono);
+  font-size:.62rem;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.bn-profile-goal strong{
+  color:var(--text);
+  font-size:1.2rem;
+  letter-spacing:-.03em;
+  text-transform:capitalize;
+}
+
+.bn-profile-goal small{
+  margin-left:auto;
+  color:var(--muted);
+  font-size:.75rem;
+}
+
+.bn-meals-toolbar{
+  display:grid;
+  grid-template-columns:minmax(190px,.7fr) minmax(0,1.3fr);
+  gap:28px;
+  align-items:end;
+  padding:0 0 28px;
+  border-bottom:1px solid var(--edge);
+}
+
+.bn-meals-target{
+  display:grid;
+  gap:6px;
+}
+
+.bn-meals-target>span{
+  color:var(--muted);
+  font-family:var(--font-geist-mono);
+  font-size:.6rem;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+.bn-meals-target strong{
+  color:var(--text);
+  font-size:1.55rem;
+  letter-spacing:-.05em;
+}
+
+.bn-meals-target strong small,
+.bn-meals-target>small{
+  color:var(--muted);
+  font-size:.72rem;
+  font-weight:400;
+  letter-spacing:0;
+}
+
+.bn-meals-actions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.bn-meals-actions .meal-plan-scope-actions{
+  display:contents;
+}
+
+.bn-meals-actions .btn{
+  min-height:48px;
+  padding:10px 0;
+  border:0;
+  border-bottom:1px solid var(--edge);
+  border-radius:0;
+  justify-content:flex-start;
+  gap:8px;
+  background:transparent;
+  box-shadow:none;
+}
+
+.bn-meals-actions .btn::after{
+  content:"↗";
+  color:var(--muted);
+  font-size:1.1rem;
+  line-height:1;
+}
+
+.bn-meals-actions .btn:hover,
+.bn-meals-actions .btn:focus-visible{
+  border-bottom-color:var(--accent);
+  background:transparent;
+  box-shadow:none;
+}
+
+@media (max-width:420px){
+  .bn-profile-goal small{
+    width:100%;
+    margin-left:0;
+  }
+}
+
+@media (max-width:700px){
+  .bn-meals-toolbar{
+    grid-template-columns:1fr;
+    gap:20px;
+    padding-bottom:22px;
+  }
+}
+
 .bn-content .bn-progress-page .bn-route-stage>.stack>.card{
   border-color:var(--edge);
   background:color-mix(in oklab,var(--bg) 36%,transparent);
@@ -5808,6 +5930,11 @@ body::before{
 }
 
 @media (max-width:790px){
+  body:has(.modal[aria-hidden="false"]) .bn-mobile-nav{
+    opacity:0;
+    pointer-events:none;
+  }
+
   .bn-topbar{
     border-bottom:1px solid var(--edge);
   }

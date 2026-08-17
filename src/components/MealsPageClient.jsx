@@ -130,44 +130,28 @@ export default function MealsPageClient({
         onShiftWeek={handleShiftWeek}
       />
 
-      <section className="hero-card page-hero page-hero-compact bn-route-hero bn-fuel-hero">
-        <div className="page-hero-copy">
-          <div className="eyebrow">Meal planning</div>
-          <div>
-            <h1 className="page-hero-title">Meals</h1>
-            <p className="page-hero-text">
-              View the day, add what you ate, and swap anything that no longer fits.
-            </p>
-          </div>
-          <div className="meal-page-summary">
-            <div className="metric-card meal-summary-card">
-              <div className="metric-label">Selected day</div>
-              <div className="metric-value">{selectedISO}</div>
-              <div className="metric-detail">{mealPlan ? 'Meal plan loaded.' : 'No plan saved yet.'}</div>
-            </div>
-            <div className="metric-card meal-summary-card">
-              <div className="metric-label">Daily target</div>
-              <div className="metric-value">{formatMacro(macroTargets.calories)}<span className="unit">kcal</span></div>
-              <div className="metric-detail">{formatMacro(macroTargets.protein)}g protein • {formatMacro(macroTargets.carbs)}g carbs • {formatMacro(macroTargets.fat)}g fat</div>
-            </div>
-          </div>
-          <div className="page-hero-actions meals-page-actions">
-            <button type="button" className="btn btn-primary" onClick={() => openAddFood('snack')}>Add food</button>
-            <ReplaceMealButton
-              dateISO={selectedISO}
-              className="btn btn-outline"
-              label="Swap meal"
-              onReplaced={() => refreshSelectedDay()}
+      <section className="bn-meals-toolbar">
+        <div className="bn-meals-target">
+          <span>Daily target</span>
+          <strong>{formatMacro(macroTargets.calories)} <small>kcal</small></strong>
+          <small>{formatMacro(macroTargets.protein)}g protein · {formatMacro(macroTargets.carbs)}g carbs · {formatMacro(macroTargets.fat)}g fat</small>
+        </div>
+        <div className="bn-meals-actions">
+          <button type="button" className="btn btn-outline" onClick={() => openAddFood('snack')}>Add food</button>
+          <ReplaceMealButton
+            dateISO={selectedISO}
+            className="btn btn-outline"
+            label="Swap meal"
+            onReplaced={() => refreshSelectedDay()}
+          />
+          {!mealPlan && (
+            <GenerateMealPlan
+              initialPreferences={profile}
+              selectedISO={selectedISO}
+              hasMealPlan={false}
+              onGenerated={() => refreshSelectedDay()}
             />
-            {!mealPlan && (
-              <GenerateMealPlan
-                initialPreferences={profile}
-                selectedISO={selectedISO}
-                hasMealPlan={false}
-                onGenerated={() => refreshSelectedDay()}
-              />
-            )}
-          </div>
+          )}
         </div>
       </section>
 
