@@ -54,6 +54,10 @@ export default function GenerateMealPlan({
     () => Array.from({ length: 14 }, (_, index) => toYMDLocal(addDaysLocal(plannerStartDate, index))),
     [plannerStartDate]
   );
+  const dayPlannerDateOptions = useMemo(
+    () => Array.from({ length: 14 }, (_, index) => toYMDLocal(addDaysLocal(parseYMDLocal(anchorISO), index))),
+    [anchorISO]
+  );
   const plannerWeekDates = useMemo(
     () => plannerDateOptions.slice(0, 7),
     [plannerDateOptions]
@@ -66,16 +70,13 @@ export default function GenerateMealPlan({
   const [error, setError] = useState('');
   const [pantryFiles, setPantryFiles] = useState([]);
   const [sourcingMode, setSourcingMode] = useState('pantry_plus_groceries');
+  const activeDateOptions = planningScope === 'day' ? dayPlannerDateOptions : plannerDateOptions;
 
   const selectedLabel = new Date(`${plannerStartISO}T00:00:00`).toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
   });
-  const rangeLabel = selectedDates.length
-    ? `${selectedDates[0]} through ${selectedDates[selectedDates.length - 1]}`
-    : 'No days selected';
-
   function openPlanner(scope) {
     setPlanningScope(scope);
     setSelectedDates(scope === 'day' ? [anchorISO] : plannerWeekDates);
@@ -87,7 +88,7 @@ export default function GenerateMealPlan({
     setSelectedDates((current) => (
       current.includes(dateISO)
         ? current.filter((item) => item !== dateISO)
-        : plannerDateOptions.filter((item) => current.includes(item) || item === dateISO)
+        : activeDateOptions.filter((item) => current.includes(item) || item === dateISO)
     ));
   }
 
@@ -252,11 +253,11 @@ export default function GenerateMealPlan({
             />
             <section className="tracker-section">
               <div className="tracker-label-row">
-                <span className="planner-head">Which days? <span className="muted text-xs">This week + next week</span></span>
+                <span className="planner-head">Which days? <span className="muted text-xs">{planningScope === 'day' ? 'Next 14 days' : 'This week + next week'}</span></span>
                 <span className="muted text-xs">{selectedDates.length} of 14 selected</span>
               </div>
               <div className="planner-date-strip-scroll">
-                {plannerDateOptions.map((dateISO) => {
+                {activeDateOptions.map((dateISO) => {
                   const active = selectedDates.includes(dateISO);
                   const date = new Date(`${dateISO}T00:00:00`);
                   const weekday = date.toLocaleDateString(undefined, { weekday: 'short' });
@@ -274,9 +275,6 @@ export default function GenerateMealPlan({
                     </button>
                   );
                 })}
-              </div>
-              <div className="muted text-xs">
-                {rangeLabel}
               </div>
             </section>
 

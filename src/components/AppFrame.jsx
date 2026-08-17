@@ -30,6 +30,8 @@ const PRIMARY_NAV_ITEMS = [
   { href: '/progress', label: 'Progress', icon: Activity },
 ];
 
+const PROFILE_NAV_ITEM = { href: '/profile', label: 'Profile', icon: UserRound };
+
 const SECONDARY_NAV_ITEMS = [
   { href: '/groceries', label: 'Groceries', icon: ShoppingBag },
   { href: '/meal-library', label: 'Meal library', icon: BookOpen },
@@ -123,7 +125,7 @@ export default function AppFrame({ children, session }) {
         </Link>
 
         <nav className="bn-primary-nav" aria-label="Primary navigation">
-          {PRIMARY_NAV_ITEMS.map((item) => (
+          {[...PRIMARY_NAV_ITEMS, PROFILE_NAV_ITEM].map((item) => (
             <NavLink
               key={item.href}
               item={item}
@@ -168,24 +170,11 @@ export default function AppFrame({ children, session }) {
 
       <div className="bn-workspace">
         <header className="bn-topbar">
-          <button
-            className="bn-mobile-menu"
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation"
-            aria-expanded={drawerOpen}
-          >
-            <Menu size={21} />
-          </button>
-
           <div className="bn-topbar-copy">
             <span>{routeMeta.eyebrow}</span>
             <h1>{pathname === '/' ? `Good to see you, ${displayName}.` : routeMeta.title}</h1>
           </div>
 
-          <Link className="bn-topbar-avatar" href="/profile" aria-label="Open profile">
-            <UserRound size={19} />
-          </Link>
         </header>
 
         <main className="bn-content">
@@ -241,7 +230,7 @@ export default function AppFrame({ children, session }) {
           </div>
 
           <nav aria-label="All navigation">
-            {[...SECONDARY_NAV_ITEMS, { href: '/profile', label: 'Profile', icon: UserRound }]
+            {[...SECONDARY_NAV_ITEMS, PROFILE_NAV_ITEM]
               .concat(session?.user?.isAdmin ? [{ href: '/admin/access', label: 'Admin access', icon: ShieldCheck }] : [])
               .map((item) => (
                 <NavLink

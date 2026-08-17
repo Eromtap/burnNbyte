@@ -157,6 +157,14 @@ export default function ProfileForm({ initial }){
     updateField('fitnessGoals', combined);
     updateField('fitnessGoal', combined[0] || '');
   }
+  function setPrimaryFitnessGoal(value){
+    if (!value) return;
+    const goals = form.fitnessGoals.includes(value)
+      ? [value, ...form.fitnessGoals.filter(goal => goal !== value)]
+      : [value, ...form.fitnessGoals];
+    updateField('fitnessGoals', goals);
+    updateField('fitnessGoal', value);
+  }
   function toggleEquipment(value){
     const builtins = form.equipmentAccess.filter(e => BUILT_IN_EQUIPMENT.has(e));
     const nextBuiltins = builtins.includes(value)
@@ -320,62 +328,82 @@ export default function ProfileForm({ initial }){
         panelClassName="mobile-disclosure-panel form-section-panel"
         summary={
           <>
+            <span className="planner-head">Current goal</span>
+            <span className="mobile-disclosure-meta">{form.fitnessGoals[0]?.replace(/[_-]/g, ' ') || 'Choose a goal'}</span>
+          </>
+        }
+      >
+        <div>
+          <div className="planner-head">
+            <span>Fitness goals</span>
+          </div>
+          <p className="text-xs muted" style={{ marginTop: 4 }}>Choose the goal that should guide your training and nutrition. You can select more than one.</p>
+          <label className="block mt-4">
+            <span>Current goal</span>
+            <select value={form.fitnessGoal} onChange={e=>setPrimaryFitnessGoal(e.target.value)}>
+              <option value="">Select a goal</option>
+              {FITNESS_GOALS.map(goal => <option key={goal.id} value={goal.id}>{goal.label}</option>)}
+              {customFitnessGoals.map(goal => <option key={goal} value={goal}>{goal}</option>)}
+            </select>
+          </label>
+          <div className="prefs-grid mt-2">
+            {FITNESS_GOALS.map(goal => {
+              const active = form.fitnessGoals.includes(goal.id);
+              return (
+                <button
+                  key={goal.id}
+                  type="button"
+                  className={`pref-card ${active ? 'pref-card-active' : ''}`}
+                  onClick={()=>toggleFitnessGoal(goal.id)}
+                >
+                  <span>{goal.label}</span>
+                  <small>{goal.description}</small>
+                </button>
+              );
+            })}
+          </div>
+          <label className="block mt-4">
+            <span className="planner-head">Custom goals</span>
+            <p className="text-xs muted">Add race names, seasons, or anything not listed one at a time.</p>
+            <div className="inline-field-row" style={{ marginTop: 8 }}>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Boston qualifier"
+                value={customGoalInput}
+                onChange={e=>setCustomGoalInput(e.target.value)}
+                onKeyDown={e=>{
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomGoal();
+                  }
+                }}
+              />
+              <button type="button" className="btn btn-secondary" onClick={addCustomGoal}>+</button>
+            </div>
+          </label>
+          {customFitnessGoals.length > 0 && (
+            <div className="selected-prefs" style={{ marginTop: 10 }}>
+              {customFitnessGoals.map(goal => (
+                <span key={goal} className="pref-pill">{goal}<button type="button" onClick={()=>removeFromList('fitnessGoals', goal)} aria-label={`Remove ${goal}`}>×</button></span>
+              ))}
+            </div>
+          )}
+          {form.fitnessGoals.length === 0 && <p className="text-xs muted mt-2">Select at least one so we can tailor training.</p>}
+        </div>
+      </MobileDisclosure>
+
+      <MobileDisclosure
+        className="mobile-disclosure form-section-disclosure"
+        summaryClassName="mobile-disclosure-summary form-section-summary"
+        panelClassName="mobile-disclosure-panel form-section-panel"
+        summary={
+          <>
             <span className="planner-head">Workouts</span>
             <span className="mobile-disclosure-meta">{form.workoutDuration || 30} min • {form.workoutDays.length} days</span>
           </>
         }
       >
-      <div>
-        <div className="planner-head">
-          <span>Fitness Goals</span>
-        </div>
-        <p className="text-xs muted" style={{ marginTop: 4 }}>Pick everything you care about: events, sports, or body comp.</p>
-        <div className="prefs-grid mt-2">
-          {FITNESS_GOALS.map(goal => {
-            const active = form.fitnessGoals.includes(goal.id);
-            return (
-              <button
-                key={goal.id}
-                type="button"
-                className={`pref-card ${active ? 'pref-card-active' : ''}`}
-                onClick={()=>toggleFitnessGoal(goal.id)}
-              >
-                <span>{goal.label}</span>
-                <small>{goal.description}</small>
-              </button>
-            );
-          })}
-        </div>
-        <label className="block mt-4">
-          <span className="planner-head">Custom Goals</span>
-          <p className="text-xs muted">Add race names, seasons, or anything not listed one at a time.</p>
-          <div className="inline-field-row" style={{ marginTop: 8 }}>
-            <input
-              type="text"
-              className="input"
-              placeholder="e.g. Boston qualifier"
-              value={customGoalInput}
-              onChange={e=>setCustomGoalInput(e.target.value)}
-              onKeyDown={e=>{
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  addCustomGoal();
-                }
-              }}
-            />
-            <button type="button" className="btn btn-secondary" onClick={addCustomGoal}>+</button>
-          </div>
-        </label>
-        {customFitnessGoals.length > 0 && (
-          <div className="selected-prefs" style={{ marginTop: 10 }}>
-            {customFitnessGoals.map(goal => (
-              <span key={goal} className="pref-pill">{goal}<button type="button" onClick={()=>removeFromList('fitnessGoals', goal)} aria-label={`Remove ${goal}`}>×</button></span>
-            ))}
-          </div>
-        )}
-        {form.fitnessGoals.length === 0 && <p className="text-xs muted mt-2">Select at least one so we can tailor training.</p>}
-      </div>
-
       <div className="mt-4">
         <div className="planner-head">
           <span>Equipment Access</span>

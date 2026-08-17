@@ -162,32 +162,6 @@ export default function WorkoutsPageClient({
         onShiftWeek={handleShiftWeek}
       />
 
-      <section className="hero-card page-hero bn-route-hero bn-train-hero">
-        <div className="page-hero-copy">
-          <div className="eyebrow">Workout builder</div>
-          <div>
-            <h1 className="page-hero-title">{workout?.name || 'No workout planned'}</h1>
-            <p className="page-hero-text">
-              {workout
-                ? `${workout.duration || profile.workoutDuration || 30} minutes · ${workout.difficulty || 'beginner'} · ${workout.muscleGroup || 'full body'}`
-                : 'Generate a session for the selected day or move to another date.'}
-            </p>
-          </div>
-        </div>
-        <aside className="hero-panel hero-metrics">
-          <div className="metric-card">
-            <div className="metric-label">Selected day</div>
-            <div className="metric-value">{selectedISO}</div>
-            <div className="metric-detail">{workout ? 'Plan ready for this day.' : 'No plan saved yet.'}</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-label">Session target</div>
-            <div className="metric-value">{profile.workoutDuration || 30}<span className="unit">min</span></div>
-            <div className="metric-detail">Based on your profile defaults.</div>
-          </div>
-        </aside>
-      </section>
-
       <section className="section-grid bn-route-grid">
         {!workout && generatorPanel}
 
