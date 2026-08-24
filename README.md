@@ -49,6 +49,19 @@ npm run migrate:deploy
 npm run admin:grant -- you@example.com
 ```
 
+## Stripe web billing
+
+Web subscriptions use Stripe Checkout and the Stripe customer portal. Configure these server-only values in `.env` (never expose the secret key in browser code):
+
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_MONTHLY=price_1U85ZX2ORNaK6on1HHSNfq3i
+APP_URL=https://your-domain.example
+```
+
+Register `https://your-domain.example/api/stripe/webhook` as a Stripe webhook destination and select `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+
 ## Mobile Wrapper
 
 The mobile app lives in `apps/mobile` and wraps the hosted web app with Capacitor.
