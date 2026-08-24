@@ -13,7 +13,7 @@ export default async function AdminAccessPage() {
             <div>
               <h1 className="page-hero-title">Access control</h1>
               <p className="page-hero-text">
-                Search for a user, inspect their current app access, and grant or revoke manual full access.
+                Search for a user, manage administrator roles, and grant or revoke manual full access.
               </p>
             </div>
           </div>
