@@ -108,7 +108,7 @@ export async function POST(req) {
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-5.4",
       messages: [{ role: "user", content }],
       response_format: { type: "json_schema", json_schema: ESTIMATE_SCHEMA },
       temperature: 0.2,

@@ -181,7 +181,7 @@ function workoutHasUsableInstructions(workout) {
 
 async function generateStructuredWorkouts(messages) {
   const completion = await openai.chat.completions.create({
-    model: process.env.OPENAI_WORKOUT_MODEL || "gpt-4o",
+    model: process.env.OPENAI_WORKOUT_MODEL || "gpt-5.4",
     messages,
     response_format: { type: "json_schema", json_schema: WORKOUT_SCHEMA },
     temperature: 0.7,
