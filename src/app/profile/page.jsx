@@ -4,6 +4,7 @@ import { getSessionUserProfile } from "@/lib/auth";
 import ThemePreferencesCard from "@/components/ThemePreferencesCard";
 import { redirect } from "next/navigation";
 import StripeBillingButton from "@/components/StripeBillingButton";
+import prisma from "@/lib/prisma";
 
 export default async function ProfilePage(){
   const { session } = await requireAppSession();
@@ -11,6 +12,11 @@ export default async function ProfilePage(){
   if (!profile) redirect('/onboarding/1');
   const goal = profile.fitnessGoal || profile.fitnessGoals?.[0] || 'General fitness';
   const goalLabel = goal.replace(/[_-]/g, ' ');
+  const stripeSubscription = await prisma.subscription.findUnique({
+    where: { userId: String(session.user.id) },
+    select: { provider: true, providerCustomerId: true },
+  });
+  const hasStripeSubscription = stripeSubscription?.provider === "stripe" && Boolean(stripeSubscription.providerCustomerId);
 
   return (
     <main className="bn-route-page bn-profile-page">
@@ -25,7 +31,9 @@ export default async function ProfilePage(){
 
         <article className="card bn-route-stage">
           <header className="card-head"><div><h3>Billing</h3><div className="sub">Manage your BurnNByte web subscription and payment method.</div></div></header>
-          <StripeBillingButton action="portal" className="bn-access-primary">Manage subscription</StripeBillingButton>
+          <StripeBillingButton action={hasStripeSubscription ? "portal" : "checkout"} className="bn-access-primary">
+            {hasStripeSubscription ? "Manage subscription" : "Subscribe for $11.99/month"}
+          </StripeBillingButton>
         </article>
 
         <article className="card bn-route-stage">
