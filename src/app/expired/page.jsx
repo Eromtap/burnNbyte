@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getUserAppAccess } from "@/lib/access";
 import { ArrowRight, Clock3, LockKeyhole, ShieldCheck } from "lucide-react";
+import StripeBillingButton from "@/components/StripeBillingButton";
 
 export default async function ExpiredPage() {
   const session = await getServerSession(authOptions);
@@ -23,10 +24,7 @@ export default async function ExpiredPage() {
               exactly where you left off.
             </p>
             <div className="bn-access-actions">
-              <Link href={session ? "/" : "/signin"} className="bn-access-primary">
-                {session ? "Check access again" : "Return to sign in"}
-                <ArrowRight size={17} aria-hidden />
-              </Link>
+              {session ? <StripeBillingButton className="bn-access-primary">Subscribe for $11.99/month <ArrowRight size={17} aria-hidden /></StripeBillingButton> : <Link href="/signin" className="bn-access-primary">Return to sign in <ArrowRight size={17} aria-hidden /></Link>}
               <span>No data has been deleted.</span>
             </div>
           </div>

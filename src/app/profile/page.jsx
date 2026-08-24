@@ -3,6 +3,7 @@ import ProfileForm from "@/components/ProfileForm";
 import { getSessionUserProfile } from "@/lib/auth";
 import ThemePreferencesCard from "@/components/ThemePreferencesCard";
 import { redirect } from "next/navigation";
+import StripeBillingButton from "@/components/StripeBillingButton";
 
 export default async function ProfilePage(){
   const { session } = await requireAppSession();
@@ -21,6 +22,11 @@ export default async function ProfilePage(){
         </section>
 
         <ThemePreferencesCard />
+
+        <article className="card bn-route-stage">
+          <header className="card-head"><div><h3>Billing</h3><div className="sub">Manage your BurnNByte web subscription and payment method.</div></div></header>
+          <StripeBillingButton action="portal" className="bn-access-primary">Manage subscription</StripeBillingButton>
+        </article>
 
         <article className="card bn-route-stage">
           <header className="card-head">
