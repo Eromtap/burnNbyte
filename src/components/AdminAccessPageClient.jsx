@@ -105,6 +105,27 @@ export default function AdminAccessPageClient() {
     }
   }
 
+  async function setAdmin(isAdmin) {
+    if (!lookup?.user?.email) return;
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/access-grants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: lookup.user.email, isAdmin }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Administrator update failed');
+      setLookup((current) => ({ ...current, user: data.user, access: data.access }));
+      setMessage({ type: 'success', text: isAdmin ? 'Administrator access granted.' : 'Administrator access removed.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Administrator update failed' });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   const lookupAccess = lookup?.access;
   const grants = lookup?.grants || [];
 
@@ -163,6 +184,24 @@ export default function AdminAccessPageClient() {
           </section>
 
           <div className="admin-grid">
+            <article className="card bn-route-stage">
+              <header className="card-head">
+                <div>
+                  <h3>Administrator access</h3>
+                  <div className="sub">Admins can open this page and manage access grants.</div>
+                </div>
+              </header>
+              <p className="muted">Current role: <strong>{lookup.user.isAdmin ? 'Administrator' : 'Standard user'}</strong></p>
+              <button
+                className={lookup.user.isAdmin ? 'btn btn-outline' : 'btn btn-primary'}
+                type="button"
+                disabled={submitting}
+                onClick={() => setAdmin(!lookup.user.isAdmin)}
+              >
+                <span className="label">{submitting ? 'Saving…' : lookup.user.isAdmin ? 'Remove administrator' : 'Make administrator'}</span>
+              </button>
+            </article>
+
             <article className="card bn-route-stage">
               <header className="card-head">
                 <div>

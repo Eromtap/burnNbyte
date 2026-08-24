@@ -34,7 +34,7 @@ export async function GET(req) {
 
   const user = await prisma.user.findFirst({
     where: email ? { email } : { id: userId },
-    select: { id: true, email: true, name: true },
+    select: { id: true, email: true, name: true, isAdmin: true },
   });
 
   if (!user) {
@@ -123,4 +123,34 @@ export async function DELETE(req) {
 
   const access = await getUserAppAccess(existingGrant.userId);
   return NextResponse.json({ ok: true, access }, { status: 200 });
+}
+
+export async function PATCH(req) {
+  const session = await getServerSession(authOptions);
+  if (!(await isAdminSession(session))) return unauthorized();
+
+  const body = await req.json().catch(() => null);
+  const email = body?.email?.trim().toLowerCase();
+  const userId = body?.userId?.trim();
+  const isAdmin = body?.isAdmin;
+  if ((!email && !userId) || typeof isAdmin !== "boolean") {
+    return NextResponse.json({ error: "email or userId and isAdmin are required" }, { status: 400 });
+  }
+
+  const user = await prisma.user.findFirst({
+    where: email ? { email } : { id: userId },
+    select: { id: true, email: true, name: true, isAdmin: true },
+  });
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!isAdmin && String(user.id) === String(session.user?.id)) {
+    return NextResponse.json({ error: "You cannot remove your own administrator access." }, { status: 400 });
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { isAdmin },
+    select: { id: true, email: true, name: true, isAdmin: true },
+  });
+  const access = await getUserAppAccess(updatedUser.id);
+  return NextResponse.json({ user: updatedUser, access }, { status: 200 });
 }
