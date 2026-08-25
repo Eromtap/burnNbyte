@@ -6,6 +6,8 @@ import ExerciseLogPanel from '@/components/ExerciseLogPanel';
 import GenerateWorkout from '@/components/GenerateWorkout';
 import WorkoutCompletionToggle from '@/components/WorkoutCompletionToggle';
 import MobileDisclosure from '@/components/MobileDisclosure';
+import ReplaceExerciseButton from '@/components/ReplaceExerciseButton';
+import ReplaceWorkoutButton from '@/components/ReplaceWorkoutButton';
 
 function toYMDLocal(d){
   const x = new Date(d);
@@ -188,16 +190,26 @@ export default function WorkoutsPageClient({
                   <strong>{workout.name}</strong>
                   <div className="muted" style={{ marginTop: 4 }}>{workout.muscleGroup || 'General training'} • {workout.duration} minutes</div>
                 </div>
-                <WorkoutCompletionToggle
-                  key={workout.id}
-                  workoutId={workout.id}
-                  initialCompleted={workout.isCompleted}
-                  className="workout-session-toggle"
-                  onUpdated={(updatedWorkout) => {
-                    if (!updatedWorkout) return;
-                    setWorkout((prev) => (prev ? { ...prev, ...updatedWorkout } : updatedWorkout));
-                  }}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <ReplaceWorkoutButton
+                    workoutId={workout.id}
+                    workoutName={workout.name}
+                    onReplaced={(updatedWorkout) => {
+                      setWorkout(updatedWorkout);
+                      setExerciseSuggestions(extractExerciseSuggestions(updatedWorkout.instructions));
+                    }}
+                  />
+                  <WorkoutCompletionToggle
+                    key={workout.id}
+                    workoutId={workout.id}
+                    initialCompleted={workout.isCompleted}
+                    className="workout-session-toggle"
+                    onUpdated={(updatedWorkout) => {
+                      if (!updatedWorkout) return;
+                      setWorkout((prev) => (prev ? { ...prev, ...updatedWorkout } : updatedWorkout));
+                    }}
+                  />
+                </div>
               </div>
               {Array.isArray(workout.instructions) && workout.instructions.length > 0 && (
                 <MobileDisclosure
@@ -224,6 +236,17 @@ export default function WorkoutsPageClient({
                             >
                               Watch a demo on YouTube
                             </a>
+                            <div style={{ marginTop: 10 }}>
+                              <ReplaceExerciseButton
+                                workoutId={workout.id}
+                                instructionIndex={i}
+                                currentInstruction={step}
+                                onReplaced={(updatedWorkout) => {
+                                  setWorkout(updatedWorkout);
+                                  setExerciseSuggestions(extractExerciseSuggestions(updatedWorkout.instructions));
+                                }}
+                              />
+                            </div>
                           </div>
                         </li>
                       ))}
