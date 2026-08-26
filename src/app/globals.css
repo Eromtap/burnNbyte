@@ -3818,7 +3818,8 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
 
   .bn-topbar{
     min-height:78px;
-    padding:14px 16px;
+    /* Keep the greeting below a notch/status area, plus a 10px visual buffer. */
+    padding:calc(24px + env(safe-area-inset-top)) 16px 14px;
     grid-template-columns:minmax(0,1fr);
     justify-items:center;
     gap:0;
@@ -3862,7 +3863,8 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
     z-index:60;
     left:10px;
     right:10px;
-    bottom:9px;
+    /* Clear Android's gesture/navigation area, with a small visual buffer above it. */
+    bottom:calc(19px + env(safe-area-inset-bottom));
     height:66px;
     padding:6px;
     border:1px solid var(--edge-strong);
