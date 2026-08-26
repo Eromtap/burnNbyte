@@ -3861,14 +3861,14 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   .bn-mobile-nav{
     position:fixed;
     z-index:60;
-    left:10px;
-    right:10px;
-    /* Clear Android's gesture/navigation area, with a small visual buffer above it. */
-    bottom:calc(19px + env(safe-area-inset-bottom));
-    height:66px;
-    padding:6px;
-    border:1px solid var(--edge-strong);
-    border-radius:21px;
+    inset-inline:0;
+    /* Extend behind Android's controls, but reserve their area so app controls stay above it. */
+    bottom:0;
+    height:calc(66px + max(19px, env(safe-area-inset-bottom)));
+    padding:6px 10px max(19px, env(safe-area-inset-bottom));
+    border:0;
+    border-top:1px solid var(--edge-strong);
+    border-radius:0;
     /* An opaque surface keeps scrolling content from showing through the app chrome. */
     background:var(--bg);
     backdrop-filter:blur(28px);
@@ -3971,10 +3971,6 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
     padding-inline:8px;
   }
 
-  .bn-mobile-nav{
-    left:7px;
-    right:7px;
-  }
 }
 
 /* Access state page */
