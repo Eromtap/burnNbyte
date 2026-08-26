@@ -3869,7 +3869,8 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
     padding:6px;
     border:1px solid var(--edge-strong);
     border-radius:21px;
-    background:color-mix(in oklab,var(--surface) 88%,transparent);
+    /* An opaque surface keeps scrolling content from showing through the app chrome. */
+    background:var(--bg);
     backdrop-filter:blur(28px);
     box-shadow:0 18px 50px rgba(0,0,0,.44);
     display:grid;
@@ -5947,7 +5948,7 @@ body::before{
 
   .bn-mobile-nav{
     border-color:var(--edge);
-    background:color-mix(in oklab,var(--bg) 92%,transparent);
+    background:var(--bg);
     box-shadow:0 16px 42px rgba(0,0,0,.36);
   }
 
