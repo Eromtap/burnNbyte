@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
 const OnboardingContext = createContext();
 
@@ -37,9 +37,9 @@ export function OnboardingProvider({ children }) {
     workoutDays: [],
   });
 
-  const updateForm = (updates) => {
+  const updateForm = useCallback((updates) => {
     setFormData((prev) => ({ ...prev, ...updates }));
-  };
+  }, []);
 
   return (
     <OnboardingContext.Provider value={{ formData, updateForm }}>

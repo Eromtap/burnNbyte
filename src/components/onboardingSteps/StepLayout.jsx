@@ -13,3 +13,8 @@ export default function StepLayout({ stepNumber, totalSteps, title, description,
     </section>
   );
 }
+
+export function FieldError({ id, children }) {
+  if (!children) return null;
+  return <small className="onboard-field-error" id={id} role="alert">{children}</small>;
+}

@@ -1,159 +1,119 @@
-﻿'use client';
-import { useMemo } from 'react';
-import StepLayout from './StepLayout';
+'use client';
 
-export default function Step1({ formData, updateForm }) {
-  const calculateAge = (birthday) => {
-    if (!birthday) return '';
-    const today = new Date();
-    const birthDate = new Date(birthday);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
+import { useState } from 'react';
+import { Check, Plus } from 'lucide-react';
+import StepLayout, { FieldError } from './StepLayout';
+import { FITNESS_GOALS, labelForFitnessGoal } from '@/constants/fitnessGoals';
+
+export default function Step1({ formData, updateForm, errors = {} }) {
+  const goals = Array.isArray(formData.fitnessGoals) ? formData.fitnessGoals : [];
+  const primaryGoal = formData.fitnessGoal || goals[0] || '';
+  const [customGoal, setCustomGoal] = useState('');
+
+  const choosePrimary = (goal) => {
+    updateForm({
+      fitnessGoal: goal,
+      fitnessGoals: [goal, ...goals.filter((item) => item !== goal)],
+    });
   };
 
-  const age = useMemo(() => calculateAge(formData.birthday), [formData.birthday]);
+  const toggleSecondary = (goal) => {
+    const next = goals.includes(goal)
+      ? goals.filter((item) => item !== goal)
+      : [...goals, goal];
+    updateForm({ fitnessGoals: [primaryGoal, ...next.filter((item) => item !== primaryGoal)] });
+  };
+
+  const addCustomGoal = () => {
+    const cleaned = customGoal.trim();
+    if (!cleaned) return;
+    if (!primaryGoal) choosePrimary(cleaned);
+    else if (!goals.includes(cleaned)) updateForm({ fitnessGoals: [...goals, cleaned] });
+    setCustomGoal('');
+  };
 
   return (
     <StepLayout
       stepNumber={1}
-      totalSteps={3}
-      title="Body profile"
-      description="Start with the numbers that change calorie targets, workout intensity, and the way the app personalizes your plan."
+      totalSteps={5}
+      title="What are you working toward?"
+      description="Choose the outcome that should lead your training and nutrition plan."
     >
-      <div className="onboard-grid onboard-grid-2">
-        <label>
-          <span>First name</span>
-          <input
-            type="text"
-            className="input"
-            value={formData.firstName}
-            onChange={(e) => updateForm({ firstName: e.target.value })}
-            required
-          />
-        </label>
-        <label>
-          <span>Last name</span>
-          <input
-            type="text"
-            className="input"
-            value={formData.lastName}
-            onChange={(e) => updateForm({ lastName: e.target.value })}
-            required
-          />
-        </label>
-      </div>
-
-      <div className="onboard-grid onboard-grid-2">
-        <label>
-          <span>Birthday</span>
-          <input
-            type="date"
-            className="input"
-            value={formData.birthday || ''}
-            onChange={(e) => updateForm({ birthday: e.target.value })}
-            required
-          />
-        </label>
-        <div className="onboard-info-card">
-          <div className="metric-label">Age preview</div>
-          <div className="metric-value" style={{ fontSize: '1.6rem' }}>{age || '--'}</div>
-          <div className="metric-detail">Used to tailor recommendations and pacing.</div>
+      <div className="onboard-section">
+        <div className="onboard-section-head">
+          <div>
+            <div className="planner-head">Primary goal</div>
+            <div className="muted text-xs">Pick the result that matters most right now.</div>
+          </div>
         </div>
+        <div className="prefs-grid onboard-choice-grid mt-2" role="radiogroup" data-onboard-invalid={Boolean(errors.fitnessGoal)} aria-describedby={errors.fitnessGoal ? 'fitness-goal-error' : undefined}>
+          {FITNESS_GOALS.map((goal) => {
+            const active = primaryGoal === goal.id;
+            return (
+              <button
+                key={goal.id}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                className={`pref-card ${active ? 'pref-card-active' : ''}`}
+                onClick={() => choosePrimary(goal.id)}
+              >
+                <span>{goal.label}{active ? <Check size={16} aria-hidden /> : null}</span>
+                <small>{goal.description}</small>
+              </button>
+            );
+          })}
+        </div>
+        <FieldError id="fitness-goal-error">{errors.fitnessGoal}</FieldError>
       </div>
 
-      <div className="onboard-grid onboard-grid-2">
-        <label>
-          <span>Gender</span>
-          <select
-            className="input"
-            value={formData.gender}
-            onChange={(e) => updateForm({ gender: e.target.value })}
-            required
-          >
-            <option value="">Select</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-        <label>
-          <span>Activity level</span>
-          <select
-            className="input"
-            value={formData.activityLevel}
-            onChange={(e) => updateForm({ activityLevel: e.target.value })}
-            required
-          >
-            <option value="">Select</option>
-            <option value="sedentary">Sedentary</option>
-            <option value="light">Light</option>
-            <option value="moderate">Moderate</option>
-            <option value="active">Active</option>
-            <option value="very active">Very active</option>
-          </select>
-        </label>
-      </div>
-
-      <div className="onboard-grid onboard-grid-2">
-        <div className="onboard-inline-fields">
-          <label>
-            <span>Height (ft)</span>
+      {primaryGoal ? (
+        <details className="onboard-optional">
+          <summary>Secondary goals <span>Optional</span></summary>
+          <div className="prefs-grid onboard-choice-grid mt-4">
+            {FITNESS_GOALS.filter((goal) => goal.id !== primaryGoal).map((goal) => {
+              const active = goals.includes(goal.id);
+              return (
+                <button
+                  key={goal.id}
+                  type="button"
+                  aria-pressed={active}
+                  className={`pref-card ${active ? 'pref-card-active' : ''}`}
+                  onClick={() => toggleSecondary(goal.id)}
+                >
+                  <span>{goal.label}{active ? <Check size={16} aria-hidden /> : null}</span>
+                  <small>{goal.description}</small>
+                </button>
+              );
+            })}
+          </div>
+          <div className="onboard-inline-fields mt-4">
             <input
-              type="number"
+              type="text"
               className="input"
-              placeholder="5"
-              value={formData.heightFt}
-              onChange={(e) => updateForm({ heightFt: e.target.value })}
-              required
+              placeholder="Add another goal"
+              value={customGoal}
+              onChange={(event) => setCustomGoal(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  addCustomGoal();
+                }
+              }}
             />
-          </label>
-          <label>
-            <span>Height (in)</span>
-            <input
-              type="number"
-              className="input"
-              placeholder="10"
-              value={formData.heightIn}
-              onChange={(e) => updateForm({ heightIn: e.target.value })}
-              required
-            />
-          </label>
-        </div>
-        <label>
-          <span>Weight (lb)</span>
-          <input
-            type="number"
-            className="input"
-            value={formData.weight}
-            onChange={(e) => updateForm({ weight: e.target.value })}
-            min="1"
-            required
-          />
-        </label>
-      </div>
-
-      <div className="onboard-grid onboard-grid-2">
-        <label>
-          <span>Goal weight (lb)</span>
-          <input
-            type="number"
-            className="input"
-            value={formData.goalWeight ?? ''}
-            onChange={(e) => updateForm({ goalWeight: e.target.value })}
-            min="1"
-            placeholder="Optional"
-          />
-        </label>
-        <div className="onboard-info-card">
-          <div className="metric-label">Weight target</div>
-          <div className="metric-value" style={{ fontSize: '1.6rem' }}>{formData.goalWeight || '--'}</div>
-          <div className="metric-detail">Optional. Used in progress tracking if you want a visible target.</div>
-        </div>
-      </div>
+            <button type="button" className="btn btn-secondary" onClick={addCustomGoal}>
+              <Plus size={16} aria-hidden /> Add
+            </button>
+          </div>
+          {goals.length > 1 ? (
+            <div className="selected-prefs mt-4">
+              {goals.filter((goal) => goal !== primaryGoal).map((goal) => (
+                <span key={goal} className="pref-pill">{labelForFitnessGoal(goal)}</span>
+              ))}
+            </div>
+          ) : null}
+        </details>
+      ) : null}
     </StepLayout>
   );
 }

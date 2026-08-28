@@ -12,7 +12,7 @@ import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import CheatPlanner from "@/components/CheatPlanner";
 import HomeMealsCard from "@/components/HomeMealsCard";
 import DashboardSpotlightCarousel from "@/components/DashboardSpotlightCarousel";
-import { Activity, ArrowUpRight, Dumbbell, Flame, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, ArrowUpRight, CheckCircle2, CircleAlert, Dumbbell, Flame, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -98,6 +98,7 @@ export default async function HomePage({ searchParams }) {
   const todayISO = toYMDInTimeZone(new Date(), timeZone);
   const params = await searchParams;
   const requestedDate = typeof params?.get === "function" ? params.get("date") : params?.date;
+  const onboardingStatus = typeof params?.get === "function" ? params.get("onboarding") : params?.onboarding;
   const selectedISO = /^\d{4}-\d{2}-\d{2}$/.test(String(requestedDate || ""))
     ? String(requestedDate)
     : todayISO;
@@ -156,6 +157,18 @@ export default async function HomePage({ searchParams }) {
   return (
     <main className="bn-home-dashboard">
       <div className="dashboard-shell">
+        {onboardingStatus === "complete" ? (
+          <section className="bn-onboarding-result is-success">
+            <CheckCircle2 size={20} aria-hidden />
+            <span><strong>Your first week is ready.</strong><small>Start with today, then adjust anything that does not fit.</small></span>
+          </section>
+        ) : null}
+        {onboardingStatus === "partial" ? (
+          <section className="bn-onboarding-result is-warning">
+            <CircleAlert size={20} aria-hidden />
+            <span><strong>Your profile is ready.</strong><small>Open Train or Fuel to finish any plan that could not be generated.</small></span>
+          </section>
+        ) : null}
         <div className="bn-home-layout">
           <section className="bn-home-primary">
             <section className="bn-home-signal bn-home-signal-compact">
