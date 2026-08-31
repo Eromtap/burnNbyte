@@ -52,7 +52,7 @@ export async function POST(req) {
       data: { weight: latestEntry?.weight ?? null },
     });
 
-    return NextResponse.json({ ok: true, entry });
+    return NextResponse.json({ ok: true, entry, currentWeight: latestEntry?.weight ?? null });
   } catch (err) {
     console.error("weight entry failed", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

@@ -226,7 +226,7 @@ select{color:var(--text)}
 /* Modal */
 .modal{position:fixed;inset:0;display:none;z-index:1200}
 .modal[aria-hidden="false"]{display:block}
-.modal-backdrop{position:absolute;inset:0;background:color-mix(in oklab, black 50%, transparent);backdrop-filter:blur(2px)}
+.modal-backdrop{position:absolute;inset:0;background:color-mix(in oklab, black 68%, transparent);backdrop-filter:blur(2px)}
 .modal-dialog{position:absolute;left:50%;bottom:0;transform:translateX(-50%);inline-size:min(720px, 100%);background:var(--surface);border:1px solid color-mix(in oklab, var(--elev) 60%, transparent);border-radius:18px 18px 0 0;box-shadow:var(--shadow);padding:12px;isolation:isolate}
 .modal-head,.modal-foot{display:flex;align-items:center;justify-content:space-between;padding:6px}
 .modal-body{display:grid;gap:10px;padding:6px}
@@ -463,6 +463,8 @@ select{color:var(--text)}
 html[data-theme="tech-red"]{
   --bg:#050505;
   --surface:rgba(17,17,18,.86);
+  --modal-surface:#111112;
+  --modal-elev:#141416;
   --elev:#141416;
   --text:#f5f3ef;
   --muted:rgba(245,243,239,.72);
@@ -482,6 +484,8 @@ html[data-theme="tech-red"]{
 html[data-theme="slate"]{
   --bg:#f4efe9;
   --surface:rgba(255,255,255,.9);
+  --modal-surface:#fffdf9;
+  --modal-elev:#f7f2ed;
   --elev:#ffffff;
   --text:#191513;
   --muted:rgba(25,21,19,.72);
@@ -1345,7 +1349,7 @@ input:focus,select:focus,textarea:focus{
   overflow:hidden;
   background:
     radial-gradient(circle at top right, color-mix(in oklab, var(--accent) 16%, transparent), transparent 34%),
-    linear-gradient(180deg, color-mix(in oklab, var(--surface) 98%, transparent), color-mix(in oklab, var(--elev) 98%, transparent));
+    linear-gradient(180deg, var(--modal-surface), var(--modal-elev));
 }
 
 .tracker-modal-soft{
@@ -1372,6 +1376,10 @@ input:focus,select:focus,textarea:focus{
   padding:0;
 }
 
+.tracker-modal-foot{
+  padding-top:10px;
+}
+
 .tracker-modal-head{
   align-items:flex-start;
 }
@@ -1388,6 +1396,42 @@ input:focus,select:focus,textarea:focus{
   display:grid;
   justify-items:end;
   gap:8px;
+}
+
+.tracker-review-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.tracker-library-toggle{
+  min-height:30px;
+  padding:5px 9px;
+  border:1px solid var(--edge);
+  border-radius:999px;
+  color:var(--muted);
+  background:transparent;
+  font-size:.72rem;
+  white-space:nowrap;
+}
+
+.tracker-library-toggle-active{
+  border-color:color-mix(in oklab, var(--accent) 58%, var(--edge));
+  color:var(--text);
+  background:color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.meal-library-save{
+  min-height:32px;
+  padding:6px 10px;
+  font-size:.76rem;
+  white-space:nowrap;
+}
+
+.meal-library-save-done{
+  color:var(--ok);
 }
 
 .tracker-save-hint{
@@ -1506,6 +1550,64 @@ input:focus,select:focus,textarea:focus{
   border:1px solid var(--edge);
   border-radius:20px;
   background:color-mix(in oklab, var(--surface-soft) 92%, transparent);
+}
+
+.tracker-photo-preview{
+  width:100%;
+  max-height:220px;
+  object-fit:cover;
+  border:1px solid var(--edge);
+  border-radius:14px;
+  background:var(--surface);
+}
+
+.tracker-photo-status{
+  display:grid;
+  gap:4px;
+  padding:12px 14px;
+  border:1px solid color-mix(in oklab, var(--accent) 42%, var(--edge));
+  border-radius:14px;
+  background:color-mix(in oklab, var(--accent) 12%, var(--modal-surface));
+}
+
+.tracker-photo-status strong{
+  color:var(--text);
+  font-size:.9rem;
+}
+
+.tracker-photo-status span{
+  color:var(--muted);
+  font-size:.78rem;
+  line-height:1.4;
+}
+
+.tracker-photo-status-loading strong::after{
+  content:"";
+  display:inline-block;
+  width:.55em;
+  height:.55em;
+  margin-left:.45em;
+  border:2px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:tracker-photo-spin .8s linear infinite;
+}
+
+@keyframes tracker-photo-spin{
+  to{transform:rotate(360deg)}
+}
+
+.tracker-photo-servings{
+  display:grid;
+  grid-template-columns:1fr minmax(84px, .35fr);
+  align-items:center;
+  gap:12px;
+}
+
+.tracker-photo-servings label{
+  color:var(--text);
+  font-size:.84rem;
+  font-weight:700;
 }
 
 .tracker-macro-row{
@@ -1732,9 +1834,13 @@ input:focus,select:focus,textarea:focus{
   }
   .tracker-modal{
     inline-size:100%;
-    max-height:92vh;
+    max-height:96vh;
     padding:14px;
     border-radius:22px 22px 0 0;
+  }
+  .tracker-modal-add-food{
+    height:96dvh;
+    max-height:96dvh;
   }
   .tracker-modal-body{
     padding:14px 0;
@@ -6211,6 +6317,12 @@ body::before{
   body:has(.modal[aria-hidden="false"]) .bn-mobile-nav{
     opacity:0;
     pointer-events:none;
+  }
+
+  /* Keep every bottom sheet above the Android navigation controls / iPhone home indicator. */
+  .modal-dialog{
+    bottom:0;
+    padding-bottom:max(41px, calc(env(safe-area-inset-bottom) + 22px));
   }
 
   .bn-topbar{

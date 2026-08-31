@@ -66,9 +66,12 @@ export async function POST(req) {
         type: "text",
         text: [
           "You are a nutrition assistant helping a user log a meal or snack.",
-          "Estimate calories, protein, carbs, fat, ingredients, and a realistic U.S. grocery cost for the consumed portion only.",
+          "Estimate calories, protein, carbs, fat, ingredients, and a realistic U.S. grocery cost.",
           "The result should be usable as a meal tracker entry, not a generated meal plan.",
           "If the user provides a description, trust it over visual ambiguity.",
+          hasPhoto
+            ? "For a photo submission, infer a realistic serving size from the image. Treat the full visible plate or item as one serving when the user gives no serving details; the app applies any additional serving count separately."
+            : "For a description-only submission, estimate the stated consumed portion.",
           `Meal category hint: ${mealType}.`,
           description ? `User description: ${description}` : "",
           portionNote ? `Optional portion note: ${portionNote}` : "",

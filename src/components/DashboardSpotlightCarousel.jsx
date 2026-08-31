@@ -65,6 +65,7 @@ export default function DashboardSpotlightCarousel({
   const touchStartX = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [points, setPoints] = useState(weightPoints);
+  const [displayedCurrentWeight, setDisplayedCurrentWeight] = useState(currentWeight);
   const [weightInput, setWeightInput] = useState('');
   const [error, setError] = useState('');
   const [compactChart, setCompactChart] = useState(false);
@@ -73,6 +74,10 @@ export default function DashboardSpotlightCarousel({
   useEffect(() => {
     setPoints(weightPoints);
   }, [weightPoints]);
+
+  useEffect(() => {
+    setDisplayedCurrentWeight(currentWeight);
+  }, [currentWeight]);
 
   useEffect(() => {
     setActiveIndex(normalizeSpotlightIndex(getStoredSpotlightIndex()));
@@ -142,6 +147,7 @@ export default function DashboardSpotlightCarousel({
           if (existingIndex === -1) return [...prev, nextPoint];
           return prev.map((point) => point.id === nextPoint.id ? nextPoint : point);
         });
+        setDisplayedCurrentWeight(data?.currentWeight ?? value);
         setWeightInput('');
         router.refresh();
       } catch (err) {
@@ -162,6 +168,7 @@ export default function DashboardSpotlightCarousel({
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Failed to delete weight entry');
         setPoints((prev) => prev.filter((point) => point.id !== entry.id));
+        setDisplayedCurrentWeight(data?.currentWeight ?? null);
         router.refresh();
       } catch (err) {
         setError(err?.message || 'Failed to delete weight entry');
@@ -241,7 +248,7 @@ export default function DashboardSpotlightCarousel({
                 <div className="dashboard-weight-summary-line">
                   <div className="stat-label">Current weight</div>
                   <div className="brand-macro-value">
-                    {currentWeight ?? '--'}
+                    {displayedCurrentWeight ?? '--'}
                     <span className="unit">lb</span>
                   </div>
                 </div>

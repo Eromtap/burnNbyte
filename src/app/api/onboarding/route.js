@@ -151,6 +151,7 @@ export async function POST(req) {
     const dietaryPreferences = normalizeList(data.dietaryPreferences);
     const fitnessGoals = normalizeList(data.fitnessGoals);
     const equipmentAccess = normalizeList(data.equipmentAccess);
+    const mealPrepMode = data.mealPrepMode === true || data.mealPrepMode === 'true';
 
     // Normalize dislikedFoods to an array of strings
     const dislikedFoods = normalizeList(data.dislikedFoods);
@@ -173,7 +174,7 @@ export async function POST(req) {
       fitnessGoals,
       dietaryPreferences,
       dislikedFoods,
-      mealPrepMode: Boolean(data.mealPrepMode),
+      mealPrepMode,
       macroTargetMode: data.macroTargetMode || 'grams',
       calorieTarget: toPositiveIntOrNull(data.calorieTarget),
       proteinTarget: toPositiveFloatOrNull(data.proteinTarget),
@@ -216,7 +217,7 @@ export async function POST(req) {
       fitnessGoals,
       dietaryPreferences,
       dislikedFoods,
-      mealPrepMode: Boolean(data.mealPrepMode),
+      mealPrepMode,
       macroTargetMode: data.macroTargetMode || 'grams',
       calorieTarget: toPositiveIntOrNull(data.calorieTarget),
       proteinTarget: toPositiveFloatOrNull(data.proteinTarget),

@@ -54,9 +54,11 @@ export async function requireAppSession(options = {}) {
 }
 
 export async function getSessionUserProfile(session) {
-  const cachedProfile = session?.user?.preferences;
-  if (cachedProfile?.id) return cachedProfile;
   if (!session?.user?.id) return null;
+
+  // Session preferences are hydrated when the user signs in. Profile fields can
+  // change during a session (for example, when a weight entry is saved), so use
+  // the database as the source of truth for page data.
   return prisma.userProfile.findUnique({
     where: { userId: String(session.user.id) },
   });

@@ -50,11 +50,18 @@ export default function AddFoodPanel({
   onSaved,
 }) {
   const fileInputRef = useRef(null);
+  const photoUploadInputRef = useRef(null);
+  const photoStatusRef = useRef(null);
+  const reviewSectionRef = useRef(null);
   const pantryCameraRef = useRef(null);
   const pantryLibraryRef = useRef(null);
   const [mode, setMode] = useState('text');
   const [draft, setDraft] = useState(() => emptyDraft(initialType));
   const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
+  const [photoSourceOpen, setPhotoSourceOpen] = useState(false);
+  const [servings, setServings] = useState('1');
+  const [estimateBase, setEstimateBase] = useState(null);
   const [pantryFiles, setPantryFiles] = useState([]);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -75,6 +82,9 @@ export default function AddFoodPanel({
     setMode('text');
     setDraft(emptyDraft(nextType));
     setPhotoFile(null);
+    setPhotoSourceOpen(false);
+    setServings('1');
+    setEstimateBase(null);
     setPantryFiles([]);
     setEstimateNotes('');
     setHasEstimateResult(false);
@@ -98,6 +108,41 @@ export default function AddFoodPanel({
       resetComposer(initialType || 'snack');
     }
   }, [initialType, typeSignal, open, resetComposer]);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreviewUrl('');
+      return undefined;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(photoFile);
+    setPhotoPreviewUrl(nextPreviewUrl);
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [photoFile]);
+
+  useEffect(() => {
+    if (!photoFile) return;
+    photoStatusRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [photoFile]);
+
+  useEffect(() => {
+    if (mode !== 'photo' || !hasEstimateResult) return;
+    reviewSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [hasEstimateResult, mode]);
+
+  useEffect(() => {
+    const servingCount = Number(servings);
+    if (!estimateBase || !Number.isFinite(servingCount) || servingCount <= 0) return;
+
+    setDraft((current) => ({
+      ...current,
+      calories: Math.round(estimateBase.calories * servingCount),
+      costPerServing: Math.round(estimateBase.costPerServing * servingCount * 100) / 100,
+      protein: Math.round(estimateBase.protein * servingCount * 10) / 10,
+      carbs: Math.round(estimateBase.carbs * servingCount * 10) / 10,
+      fat: Math.round(estimateBase.fat * servingCount * 10) / 10,
+    }));
+  }, [estimateBase, servings]);
 
   const filteredLibraryItems = useMemo(() => (
     libraryItems.filter((item) => {
@@ -129,18 +174,29 @@ export default function AddFoodPanel({
     if (['type', 'description', 'portionNote'].includes(key)) {
       setHasEstimateResult(false);
       setSaveAttempted(false);
+      setEstimateBase(null);
     }
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
-  async function handleEstimate() {
+  function handlePhotoSelected(event) {
+    const nextFile = event.target.files?.[0] || null;
+    setPhotoFile(nextFile);
+    setPhotoSourceOpen(false);
+    setHasEstimateResult(false);
+    setSaveAttempted(false);
+    setEstimateBase(null);
+    if (event.target) event.target.value = '';
+  }
+
+  async function handleEstimate(photo = photoFile) {
     setEstimateLoading(true);
     setError('');
     setEstimateNotes('');
 
     try {
       const formData = new FormData();
-      if (photoFile) formData.append('photo', photoFile);
+      if (photo) formData.append('photo', photo);
       if (draft.description.trim()) formData.append('description', draft.description.trim());
       if (draft.portionNote.trim()) formData.append('portionNote', draft.portionNote.trim());
       formData.append('type', draft.type);
@@ -155,14 +211,21 @@ export default function AddFoodPanel({
       setDraft((current) => ({
         ...current,
         name: data?.name || current.name,
-        calories: data?.calories ?? current.calories,
-        costPerServing: data?.costPerServing ?? current.costPerServing,
-        protein: data?.protein ?? current.protein,
-        carbs: data?.carbs ?? current.carbs,
-        fat: data?.fat ?? current.fat,
+        calories: Math.round((Number(data?.calories) || 0) * Number(servings)),
+        costPerServing: Math.round((Number(data?.costPerServing) || 0) * Number(servings) * 100) / 100,
+        protein: Math.round((Number(data?.protein) || 0) * Number(servings) * 10) / 10,
+        carbs: Math.round((Number(data?.carbs) || 0) * Number(servings) * 10) / 10,
+        fat: Math.round((Number(data?.fat) || 0) * Number(servings) * 10) / 10,
         ingredientsText: Array.isArray(data?.ingredients) ? data.ingredients.join('\n') : current.ingredientsText,
         recipe: data?.recipe ?? current.recipe,
       }));
+      setEstimateBase({
+        calories: Number(data?.calories) || 0,
+        costPerServing: Number(data?.costPerServing) || 0,
+        protein: Number(data?.protein) || 0,
+        carbs: Number(data?.carbs) || 0,
+        fat: Number(data?.fat) || 0,
+      });
       setEstimateNotes(data?.notes || '');
       setHasEstimateResult(true);
       setSaveAttempted(false);
@@ -243,7 +306,7 @@ export default function AddFoodPanel({
     return data;
   }
 
-  async function handleSave() {
+  async function handleSave(options = {}) {
     if (!reviewReady) {
       setSaveAttempted(true);
       return;
@@ -263,7 +326,7 @@ export default function AddFoodPanel({
         fat: draft.fat,
         ingredients: draft.ingredientsText,
         recipe: draft.recipe,
-      });
+      }, options);
 
       if (data?.libraryItem) {
         setLibraryItems((current) => [data.libraryItem, ...current.filter((item) => item.id !== data.libraryItem.id)]);
@@ -327,7 +390,7 @@ export default function AddFoodPanel({
   return (
     <div className="modal" aria-hidden={!open} role="dialog" aria-modal="true" aria-labelledby="addFoodModalTitle">
       <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal-dialog tracker-modal">
+      <div className="modal-dialog tracker-modal tracker-modal-add-food">
         <header className="modal-head tracker-modal-head">
           <div>
             <div className="eyebrow">Meal tracker</div>
@@ -359,12 +422,35 @@ export default function AddFoodPanel({
                   key={item.id}
                   type="button"
                   className={`exercise-pill ${mode === item.id ? 'exercise-pill-active' : ''}`}
-                  onClick={() => setMode(item.id)}
+                  onClick={() => {
+                    if (item.id === 'photo') {
+                      setMode('photo');
+                      setPhotoSourceOpen(true);
+                      return;
+                    }
+                    setMode(item.id);
+                  }}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              onChange={handlePhotoSelected}
+            />
+            <input
+              ref={photoUploadInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handlePhotoSelected}
+            />
 
             {mode === 'text' && (
               <div className="tracker-capture-card">
@@ -391,52 +477,79 @@ export default function AddFoodPanel({
               </div>
             )}
 
-            {mode === 'photo' && (
+            {mode === 'photo' && !photoFile && photoSourceOpen && (
               <div className="tracker-capture-card">
+                <div className="planner-head">Add a meal photo</div>
+                <div className="page-hero-actions">
+                  <button type="button" className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
+                    Take photo
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => photoUploadInputRef.current?.click()}>
+                    Upload image
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mode === 'photo' && photoFile && (
+              <div className="tracker-capture-card">
+                <div
+                  ref={photoStatusRef}
+                  className={`tracker-photo-status${estimateLoading ? ' tracker-photo-status-loading' : ''}`}
+                  aria-live="polite"
+                >
+                  <strong>{estimateLoading ? 'Analyzing your photo…' : hasEstimateResult ? 'Your estimate is ready' : 'Photo selected'}</strong>
+                  <span>
+                    {estimateLoading
+                      ? 'We’re identifying the food and estimating portions.'
+                      : hasEstimateResult
+                        ? 'Review the nutrition below, then save it to your day.'
+                        : 'Add a name or serving count if you know it, or let us estimate the plate.'}
+                  </span>
+                </div>
+                {photoPreviewUrl && <img className="tracker-photo-preview" src={photoPreviewUrl} alt="Selected meal" />}
                 <div className="page-hero-actions">
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      setPhotoFile(null);
+                      setPhotoSourceOpen(true);
+                      setEstimateBase(null);
+                    }}
                   >
-                    {photoFile ? 'Change photo' : 'Take or upload photo'}
+                    Change photo
                   </button>
-                  {photoFile && <span className="muted">{photoFile.name}</span>}
+                  <span className="muted">{photoFile.name}</span>
                 </div>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  style={{ display: 'none' }}
-                  onChange={(event) => {
-                    const nextFile = event.target.files?.[0] || null;
-                    setPhotoFile(nextFile);
-                    setHasEstimateResult(false);
-                    setSaveAttempted(false);
-                    if (event.target) event.target.value = '';
-                  }}
-                />
-                <input
                   type="text"
-                  placeholder="Optional description to help the estimate"
+                  placeholder="What is this? (optional — e.g. McDonald’s Double Cheeseburger)"
                   value={draft.description}
                   onChange={(event) => updateDraft('description', event.target.value)}
                 />
-                <input
-                  type="text"
-                  placeholder="Optional portion note"
-                  value={draft.portionNote}
-                  onChange={(event) => updateDraft('portionNote', event.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleEstimate}
-                  disabled={estimateLoading || !hasEstimateInput}
-                >
-                  {estimateLoading ? 'Estimating…' : 'Estimate from photo'}
-                </button>
+                <div className="tracker-photo-servings">
+                  <label htmlFor="photoServings">Servings</label>
+                  <input
+                    id="photoServings"
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    inputMode="decimal"
+                    value={servings}
+                    onChange={(event) => setServings(event.target.value)}
+                  />
+                </div>
+                {!hasEstimateResult && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => handleEstimate()}
+                    disabled={estimateLoading || !Number.isFinite(Number(servings)) || Number(servings) <= 0}
+                  >
+                    {estimateLoading ? 'Analyzing photo…' : 'Analyze meal'}
+                  </button>
+                )}
               </div>
             )}
 
@@ -583,10 +696,19 @@ export default function AddFoodPanel({
 
           {mode !== 'saved' && (
             <>
-              <section className="tracker-section">
+              <section ref={reviewSectionRef} className="tracker-section">
                 <div className="tracker-label-row">
                   <span className="planner-head">3. Review before saving</span>
-                  {estimateNotes && <span className="muted text-xs">{estimateNotes}</span>}
+                  <div className="tracker-review-actions">
+                    {estimateNotes && <span className="muted text-xs">{estimateNotes}</span>}
+                    <button
+                      type="button"
+                      className={`tracker-library-toggle${saveToLibrary ? ' tracker-library-toggle-active' : ''}`}
+                      onClick={() => setSaveToLibrary((current) => !current)}
+                    >
+                      {saveToLibrary ? 'Will save to library' : 'Also save to library'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="tracker-review-card">
@@ -678,59 +800,7 @@ export default function AddFoodPanel({
                 </div>
               </section>
 
-              <section className="tracker-section">
-                <div className="tracker-save-row">
-                  <label className="tracker-toggle-card">
-                    <input
-                      type="checkbox"
-                      checked={markCompleted}
-                      onChange={(event) => setMarkCompleted(event.target.checked)}
-                    />
-                    <span>
-                      <strong>Count as eaten now</strong>
-                      <small>Include it in today&apos;s progress immediately.</small>
-                    </span>
-                  </label>
-
-                  <label className="tracker-toggle-card">
-                    <input
-                      type="checkbox"
-                      checked={saveToLibrary}
-                      onChange={(event) => setSaveToLibrary(event.target.checked)}
-                    />
-                    <span>
-                      <strong>Save to library</strong>
-                      <small>Reuse it later without re-entering everything.</small>
-                    </span>
-                  </label>
-                </div>
-
-                {saveToLibrary && (
-                  <select value={libraryKind} onChange={(event) => setLibraryKind(event.target.value)} style={{ minWidth: 140 }}>
-                    <option value="FOOD">Save as food</option>
-                    <option value="MEAL">Save as meal</option>
-                  </select>
-                )}
-              </section>
             </>
-          )}
-
-          {mode === 'saved' && (
-            <section className="tracker-section">
-              <div className="tracker-save-row tracker-save-row-single">
-                <label className="tracker-toggle-card">
-                  <input
-                    type="checkbox"
-                    checked={markCompleted}
-                    onChange={(event) => setMarkCompleted(event.target.checked)}
-                  />
-                  <span>
-                    <strong>Count as eaten now</strong>
-                    <small>Include it in today&apos;s progress immediately.</small>
-                  </span>
-                </label>
-              </div>
-            </section>
           )}
 
           {error && <div className="muted" style={{ color: 'var(--danger)' }}>{error}</div>}
@@ -741,7 +811,9 @@ export default function AddFoodPanel({
           <div className="tracker-footer-actions">
             {saveAttempted && needsEstimateBeforeSave && (
               <div className="tracker-save-hint">
-                Hit <strong>Estimate meal</strong> first so you can review it before saving.
+                {mode === 'photo' && photoFile
+                  ? <>Let the photo finish analyzing so you can review it before saving.</>
+                  : <>Hit <strong>Estimate meal</strong> first so you can review it before saving.</>}
               </div>
             )}
             <button
@@ -750,7 +822,7 @@ export default function AddFoodPanel({
               disabled={saveLoading || (mode === 'saved' ? !selectedLibraryItem : false)}
               onClick={mode === 'saved' ? handleAddSavedItem : handleSave}
             >
-              {saveLoading ? 'Saving…' : mode === 'saved' ? 'Add to day' : 'Save to day'}
+              {saveLoading ? 'Saving…' : mode === 'saved' ? 'Add to day' : saveToLibrary ? 'Save to day + library' : 'Save to day'}
             </button>
           </div>
         </footer>

@@ -118,7 +118,12 @@ export default function OnboardingForm() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
-          updateForm(parsed);
+          updateForm({
+            ...parsed,
+            // Older drafts can contain the strings "true" or "false". Only an
+            // explicit true should enable this opt-in mode.
+            mealPrepMode: parsed.mealPrepMode === true || parsed.mealPrepMode === 'true',
+          });
           restored = true;
         }
       }
