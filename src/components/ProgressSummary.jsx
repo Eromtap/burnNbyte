@@ -19,6 +19,7 @@ function getLocalYMD() {
 export default function ProgressSummary({ weightPoints = [], nutrition = {}, workoutsCompleted = 0, currentWeight = null, goalWeight = null }) {
   const router = useRouter();
   const [points, setPoints] = useState(weightPoints);
+  const [displayedCurrentWeight, setDisplayedCurrentWeight] = useState(currentWeight);
   const [weightInput, setWeightInput] = useState('');
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState(null);
@@ -27,6 +28,10 @@ export default function ProgressSummary({ weightPoints = [], nutrition = {}, wor
     setPoints(weightPoints);
   }, [weightPoints]);
 
+  useEffect(() => {
+    setDisplayedCurrentWeight(currentWeight);
+  }, [currentWeight]);
+
   const nutritionData = {
     daysLogged: Number(nutrition?.daysLogged || 0),
     averageCalories: Number(nutrition?.averageCalories || 0),
@@ -34,8 +39,8 @@ export default function ProgressSummary({ weightPoints = [], nutrition = {}, wor
     averageCarbs: Number(nutrition?.averageCarbs || 0),
     averageFat: Number(nutrition?.averageFat || 0),
   };
-  const poundsToGoal = goalWeight != null && currentWeight != null
-    ? Math.round((Number(currentWeight) - Number(goalWeight)) * 10) / 10
+  const poundsToGoal = goalWeight != null && displayedCurrentWeight != null
+    ? Math.round((Number(displayedCurrentWeight) - Number(goalWeight)) * 10) / 10
     : null;
 
   const handleAddWeight = () => {
@@ -61,6 +66,7 @@ export default function ProgressSummary({ weightPoints = [], nutrition = {}, wor
           if (existingIndex === -1) return [...prev, nextPoint];
           return prev.map((point) => point.id === nextPoint.id ? nextPoint : point);
         });
+        setDisplayedCurrentWeight(data?.currentWeight ?? val);
         setWeightInput('');
         router.refresh();
       } catch (e) {

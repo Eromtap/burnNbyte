@@ -9,6 +9,7 @@ import MealDeleteButton from '@/components/MealDeleteButton';
 import { useState } from 'react';
 import MobileDisclosure from '@/components/MobileDisclosure';
 import MealFeedbackButtons from '@/components/MealFeedbackButtons';
+import SaveMealToLibraryButton from '@/components/SaveMealToLibraryButton';
 import { normalizeMealIdentity } from '@/lib/mealFeedback';
 import AddFoodPanel from '@/components/AddFoodPanel';
 import { deriveNutritionTargets } from '@/lib/nutritionTargets';
@@ -246,6 +247,7 @@ export default function MealsPageClient({
                                   }));
                                 }}
                               />
+                              <SaveMealToLibraryButton meal={meal} />
                             </div>
                             <div className="stack">
                               {Array.isArray(meal.ingredients) && meal.ingredients.length > 0 && (
