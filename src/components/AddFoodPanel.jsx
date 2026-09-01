@@ -126,7 +126,7 @@ export default function AddFoodPanel({
   }, [photoFile]);
 
   useEffect(() => {
-    if (mode !== 'photo' || !hasEstimateResult) return;
+    if (mode === 'saved' || !hasEstimateResult) return;
     reviewSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [hasEstimateResult, mode]);
 
@@ -820,7 +820,7 @@ export default function AddFoodPanel({
               type="button"
               className="btn btn-primary"
               disabled={saveLoading || (mode === 'saved' ? !selectedLibraryItem : false)}
-              onClick={mode === 'saved' ? handleAddSavedItem : handleSave}
+              onClick={mode === 'saved' ? handleAddSavedItem : () => handleSave()}
             >
               {saveLoading ? 'Saving…' : mode === 'saved' ? 'Add to day' : saveToLibrary ? 'Save to day + library' : 'Save to day'}
             </button>

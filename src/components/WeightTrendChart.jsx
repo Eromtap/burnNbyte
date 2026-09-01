@@ -97,7 +97,17 @@ export default function WeightTrendChart({
             <YAxis domain={yDomain} tick={{ fill: 'var(--muted)', fontSize: 12 }} tickLine={false} axisLine={false} width={yAxisWidth} />
             <Tooltip active={tooltipDismissed ? false : undefined} formatter={(value) => [`${value} lb`, 'Weight']} contentStyle={{ background: 'var(--elev)', border: '1px solid var(--edge)', borderRadius: 14 }} />
             {goalWeight != null ? <ReferenceLine y={goalWeight} stroke="var(--ok)" strokeDasharray="4 4" /> : null}
-            <Line type="monotone" dataKey="value" stroke="var(--accent)" strokeWidth={3} dot={(props) => <WeightDot {...props} onSelect={selectEntry} />} activeDot={{ r: 5 }} />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="var(--accent)"
+              strokeWidth={3}
+              dot={(props) => {
+                const { key, ...dotProps } = props;
+                return <WeightDot key={key} {...dotProps} onSelect={selectEntry} />;
+              }}
+              activeDot={{ r: 5 }}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
