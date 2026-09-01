@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Dumbbell,
   Home,
+  History,
   Lightbulb,
   LogOut,
   Menu,
@@ -33,6 +34,7 @@ const PRIMARY_NAV_ITEMS = [
 const PROFILE_NAV_ITEM = { href: '/profile', label: 'Profile', icon: UserRound };
 
 const SECONDARY_NAV_ITEMS = [
+  { href: '/workout-log', label: 'Workout log', icon: History },
   { href: '/groceries', label: 'Groceries', icon: ShoppingBag },
   { href: '/meal-library', label: 'Meal library', icon: BookOpen },
   { href: '/healthCalendar', label: 'Calendar', icon: CalendarDays },
@@ -42,6 +44,7 @@ const SECONDARY_NAV_ITEMS = [
 const ROUTE_META = {
   '/': { eyebrow: 'YOUR DAY', title: 'Today' },
   '/workouts': { eyebrow: 'TRAINING', title: 'Your training plan' },
+  '/workout-log': { eyebrow: 'TRAINING HISTORY', title: 'Workout log' },
   '/meals': { eyebrow: 'NUTRITION', title: 'Fuel the work' },
   '/progress': { eyebrow: 'MOMENTUM', title: 'See what is changing' },
   '/groceries': { eyebrow: 'WEEKLY PREP', title: 'Grocery run' },
