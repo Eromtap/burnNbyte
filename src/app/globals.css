@@ -1442,6 +1442,32 @@ input:focus,select:focus,textarea:focus{
   font-weight:400;
 }
 
+.grocery-list-toggle{
+  display:flex;
+  gap:4px;
+  padding:3px;
+  border:1px solid var(--edge);
+  border-radius:12px;
+  background:var(--surface-soft);
+}
+
+.grocery-list-toggle button{
+  min-height:32px;
+  padding:6px 10px;
+  border:0;
+  border-radius:9px;
+  color:var(--muted);
+  background:transparent;
+  font-size:.76rem;
+  white-space:nowrap;
+}
+
+.grocery-list-toggle button.active{
+  color:var(--text);
+  background:var(--surface);
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+
 .tracker-save-hint{
   max-width:260px;
   color:var(--muted);

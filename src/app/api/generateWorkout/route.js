@@ -274,7 +274,7 @@ export async function POST(req) {
     }
     const equipmentList = normalizeEquipmentAccess(equipmentAccess);
 
-    const targetDates = Array.isArray(dates)
+    const requestedTargetDates = Array.isArray(dates)
       ? dates
           .map((d) => {
             try {
@@ -290,9 +290,11 @@ export async function POST(req) {
           })
           .filter(Boolean)
       : [];
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const targetDates = requestedTargetDates.filter((date) => date >= todayISO);
 
     if (!targetDates.length) {
-      return NextResponse.json({ error: "No target dates supplied" }, { status: 400 });
+      return NextResponse.json({ error: "Choose today or a future date to generate a workout." }, { status: 400 });
     }
 
     const normalizeUTCDate = (value) => {

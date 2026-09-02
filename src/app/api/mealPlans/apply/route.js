@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { requireAppApiSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 
 function toUTC(ymd){
   const [y,m,d] = String(ymd||'').split('-').map(Number);
@@ -41,6 +42,15 @@ export async function POST(req){
         fat: meal.fat != null ? Number(meal.fat) : null,
         ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
         recipe: meal.recipe || ''
+      }
+    });
+
+    after(async () => {
+      try {
+        await refreshStoreSummariesForDates({ userId, dates: [date] });
+      } catch (groceryError) {
+        // Saving the meal should still succeed if the convenience list cannot refresh.
+        console.error('Automatic grocery summary refresh failed', groceryError);
       }
     });
 

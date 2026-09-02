@@ -44,15 +44,18 @@ export default function GenerateMealPlan({
   const { data: session, update } = useSession();
   const pantryCameraRef = useRef(null);
   const pantryLibraryRef = useRef(null);
-  const anchorISO = selectedISO || toYMDLocal(new Date());
+  const todayISO = toYMDLocal(new Date());
+  // A historical plan can be viewed, but new plans must always begin today or later.
+  const anchorISO = !selectedISO || selectedISO < todayISO ? todayISO : selectedISO;
   const plannerStartDate = useMemo(
     () => startOfWeekLocal(parseYMDLocal(anchorISO)),
     [anchorISO]
   );
   const plannerStartISO = toYMDLocal(plannerStartDate);
   const plannerDateOptions = useMemo(
-    () => Array.from({ length: 14 }, (_, index) => toYMDLocal(addDaysLocal(plannerStartDate, index))),
-    [plannerStartDate]
+    () => Array.from({ length: 14 }, (_, index) => toYMDLocal(addDaysLocal(plannerStartDate, index)))
+      .filter((dateISO) => dateISO >= todayISO),
+    [plannerStartDate, todayISO]
   );
   const dayPlannerDateOptions = useMemo(
     () => Array.from({ length: 14 }, (_, index) => toYMDLocal(addDaysLocal(parseYMDLocal(anchorISO), index))),
@@ -236,7 +239,7 @@ export default function GenerateMealPlan({
               <div className="sub">
                 {planningScope === 'day'
                   ? `Build meals for ${anchorISO}. Add other days from the next two weeks if you want to expand the plan.`
-                  : `Build the selected calendar week starting ${selectedLabel}. You can also choose dates from the following week.`}
+                  : `Build from ${selectedLabel} onward. You can also choose dates from the following week.`}
               </div>
             </div>
             <button type="button" className="modal-close-icon" onClick={() => setOpen(false)} aria-label="Close meal planner" disabled={loading}>
@@ -253,8 +256,8 @@ export default function GenerateMealPlan({
             />
             <section className="tracker-section">
               <div className="tracker-label-row">
-                <span className="planner-head">Which days? <span className="muted text-xs">{planningScope === 'day' ? 'Next 14 days' : 'This week + next week'}</span></span>
-                <span className="muted text-xs">{selectedDates.length} of 14 selected</span>
+                <span className="planner-head">Which days? <span className="muted text-xs">{planningScope === 'day' ? 'Next 14 days' : 'Today + next week'}</span></span>
+                <span className="muted text-xs">{selectedDates.length} of {activeDateOptions.length} selected</span>
               </div>
               <div className="planner-date-strip-scroll">
                 {activeDateOptions.map((dateISO) => {

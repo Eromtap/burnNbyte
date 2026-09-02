@@ -131,11 +131,13 @@ export async function POST(req) {
       return NextResponse.json({ error: "No images provided. Include 1-3 pantry or fridge photos." }, { status: 400 });
     }
 
-    const targetDates = explicitTargetDates.length
+    const requestedTargetDates = explicitTargetDates.length
       ? explicitTargetDates
       : datesInclusive({ startDate, endDate });
+    const todayISO = toISO(new Date());
+    const targetDates = requestedTargetDates.filter((date) => date >= todayISO);
     if (!targetDates.length) {
-      return NextResponse.json({ error: "No dates to generate." }, { status: 400 });
+      return NextResponse.json({ error: "Choose today or a future date to generate a meal plan." }, { status: 400 });
     }
 
     const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
