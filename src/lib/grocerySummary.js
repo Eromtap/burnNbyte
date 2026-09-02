@@ -32,6 +32,21 @@ function normalizeStoreItems(items = [], { resetChecked = false, summaryId } = {
   }));
 }
 
+function collapseIngredientLines(lines = []) {
+  const grouped = new Map();
+  for (const raw of lines) {
+    const line = String(raw || '').trim();
+    if (!line) continue;
+    const key = line.toLowerCase().replace(/\s+/g, ' ');
+    const current = grouped.get(key) || { line, count: 0 };
+    current.count += 1;
+    grouped.set(key, current);
+  }
+  return [...grouped.values()].map(({ line, count }) => (
+    count > 1 ? `${line} (used in ${count} recipes)` : line
+  ));
+}
+
 const SHOP_SCHEMA = {
   name: 'shopping_list',
   strict: true,
@@ -40,8 +55,9 @@ const SHOP_SCHEMA = {
     additionalProperties: false,
     required: ['items'],
     properties: {
-      items: {
-        type: 'array',
+        items: {
+          type: 'array',
+          maxItems: 80,
         items: {
           type: 'object',
           additionalProperties: false,
@@ -83,14 +99,17 @@ export async function refreshStoreSummary({ userId, weekStart, unitSystem = 'imp
     });
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
+  const inputLines = collapseIngredientLines(rawLines);
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 45000, maxRetries: 0 });
   if (!openai.apiKey) throw new Error('Missing OPENAI_API_KEY server env var');
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-5.4',
+    // Grocery aggregation is structured extraction/arithmetic, not recipe creation.
+    model: 'gpt-4o-mini',
+    max_completion_tokens: 2500,
     messages: [{
       role: 'user',
-      content: `You are a grocery planner. Given recipe ingredient lines for a week, combine like items and output a consolidated shopping list using real-world store purchase units. Respect the requested unit system (${unitSystem}).\n\nInput lines:\n${rawLines.map((line) => `- ${line}`).join('\n')}\n\nGuidelines:\n- Convert recipe quantities to whole store purchases.\n- Combine matching items across all meals.\n- Use sensible packages: bags, cans, bottles, cartons, dozen, pounds/kilograms.\n- Round up to whole packages.\n- Keep names generic unless a specific product is required.\nRespond only with JSON matching the schema.`,
+      content: `You are a grocery planner. Given recipe ingredient lines for a week, combine like items and output a concise consolidated shopping list using real-world store purchase units. Respect the requested unit system (${unitSystem}). A line marked “used in N recipes” must be counted N times.\n\nInput lines:\n${inputLines.map((line) => `- ${line}`).join('\n')}\n\nGuidelines:\n- Convert recipe quantities to whole store purchases.\n- Combine matching items across all meals.\n- Use sensible packages: bags, cans, bottles, cartons, dozen, pounds/kilograms.\n- Round up to whole packages.\n- Keep names generic unless a specific product is required.\n- Return no more than 80 store items.\nRespond only with JSON matching the schema.`,
     }],
     response_format: { type: 'json_schema', json_schema: SHOP_SCHEMA },
     temperature: 0.2,

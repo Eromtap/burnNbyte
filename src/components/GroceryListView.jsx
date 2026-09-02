@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import OperationFeedback from '@/components/OperationFeedback';
 import RawGroceryList from '@/components/RawGroceryList';
 import StoreReadyList from '@/components/StoreReadyList';
-import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export default function GroceryListView({
   selectedISO,
@@ -15,44 +13,15 @@ export default function GroceryListView({
   shouldPrepare = false,
 }) {
   const router = useRouter();
-  const requestRef = useRef(null);
   const [view, setView] = useState('store');
-  const [preparing, setPreparing] = useState(false);
-  const [error, setError] = useState('');
-  const unitSystem = summary?.unitSystem || 'imperial';
-  const requestKey = `${selectedISO}:${unitSystem}:${shouldPrepare}`;
 
   useEffect(() => {
-    if (!shouldPrepare || requestRef.current === requestKey) return;
-
-    requestRef.current = requestKey;
-    let active = true;
-    setPreparing(true);
-    setError('');
-
-    fetchWithTimeout('/api/groceries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        unitSystem,
-        date: selectedISO,
-        refresh: Boolean(summary),
-      }),
-    }, 100000)
-      .then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data?.error || 'Failed to prepare the store list.');
-        if (active) router.refresh();
-      })
-      .catch((err) => {
-        if (active) setError(err?.message || 'Failed to prepare the store list.');
-      })
-      .finally(() => {
-        if (active) setPreparing(false);
-      });
-
-    return () => { active = false; };
-  }, [requestKey, router, selectedISO, shouldPrepare, summary, unitSystem]);
+    if (!shouldPrepare) return undefined;
+    // The meal action owns the AI job. This only checks the saved result; it never
+    // starts another conversion when the user opens or revisits this page.
+    const refreshTimer = window.setInterval(() => router.refresh(), 8000);
+    return () => window.clearInterval(refreshTimer);
+  }, [router, shouldPrepare]);
 
   return (
     <section className="stack">
@@ -83,16 +52,7 @@ export default function GroceryListView({
         </header>
       </article>
 
-      {view === 'store' && preparing && (
-        <OperationFeedback
-          active
-          title="Preparing your store purchases"
-          steps={['Reading the meal plan', 'Combining ingredients', 'Converting package sizes', 'Saving the shopping list']}
-          timeoutSeconds={100}
-        />
-      )}
-
-      {view === 'store' && !preparing && summary && (
+      {view === 'store' && summary && (
         <StoreReadyList
           summaryId={summary.id}
           items={summary.items}
@@ -104,12 +64,12 @@ export default function GroceryListView({
         />
       )}
 
-      {view === 'store' && !preparing && !summary && !rawItems.length && (
-        <article className="card bn-route-stage"><div className="muted">No meal ingredients are planned for this week yet.</div></article>
+      {view === 'store' && shouldPrepare && (
+        <article className="card bn-route-stage"><div className="muted">Your store purchases are updating in the background. You can use the raw ingredient list while they finish.</div></article>
       )}
 
-      {view === 'store' && error && (
-        <article className="card bn-route-stage"><div className="muted" style={{ color: 'var(--danger)' }}>{error}</div></article>
+      {view === 'store' && !summary && !rawItems.length && (
+        <article className="card bn-route-stage"><div className="muted">No meal ingredients are planned for this week yet.</div></article>
       )}
 
       {view === 'raw' && <RawGroceryList items={rawItems} rangeLabel={rangeLabel} />}
