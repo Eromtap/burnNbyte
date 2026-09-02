@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -6,6 +6,7 @@ import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
 import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
 import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
 import { deriveNutritionTargets } from "@/lib/nutritionTargets";
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -205,11 +206,13 @@ export async function POST(req) {
     }
 
     const requestedDates = normalizeTargetDates(targetDates);
-    const mealPlanDates = requestedDates.length
+    const requestedMealPlanDates = requestedDates.length
       ? requestedDates
       : datesInclusive({ startDate, endDate, numDays });
+    const todayISO = toISO(new Date());
+    const mealPlanDates = requestedMealPlanDates.filter((date) => date >= todayISO);
     if (!mealPlanDates.length) {
-      return NextResponse.json({ error: "No dates to generate" }, { status: 400 });
+      return NextResponse.json({ error: "Choose today or a future date to generate a meal plan." }, { status: 400 });
     }
 
     const prompt = {
@@ -368,6 +371,15 @@ Output shape:
         results.push(plan);
       }
       return results;
+    });
+
+    after(async () => {
+      try {
+        await refreshStoreSummariesForDates({ userId, dates: mealPlanDates });
+      } catch (groceryError) {
+        // Meal plans are still usable if the convenience grocery refresh fails.
+        console.error('Automatic grocery summary refresh failed', groceryError);
+      }
     });
 
     return NextResponse.json({ ok: true, count: saved.length, dates: mealPlanDates }, { status: 200 });

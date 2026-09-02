@@ -2,10 +2,8 @@ import { requireAppSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getSessionUserProfile } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import GroceryOptimizer from '@/components/GroceryOptimizer';
-import RawGroceryList from '@/components/RawGroceryList';
 import DateStrip from '@/components/DateStrip';
-import StoreReadyList from '@/components/StoreReadyList';
+import GroceryListView from '@/components/GroceryListView';
 
 function toYMDLocal(d){
   const y = d.getFullYear();
@@ -88,6 +86,12 @@ export default async function GroceriesPage({ searchParams }) {
 
   const items = Array.from(map.values()).sort((a, b) => a.item.localeCompare(b.item));
   const displayRangeLabel = `${startOfWeek.toLocaleDateString()} - ${addDaysUTC(start, 6).toLocaleDateString()}`;
+  const latestMealPlanUpdate = plans.reduce((latest, plan) => (
+    !latest || plan.updatedAt > latest ? plan.updatedAt : latest
+  ), null);
+  const shouldPrepareStoreList = items.length > 0 && (
+    !summary || (latestMealPlanUpdate && summary.updatedAt < latestMealPlanUpdate)
+  );
 
   return (
     <main className="bn-route-page bn-groceries-page">
@@ -106,33 +110,13 @@ export default async function GroceriesPage({ searchParams }) {
               <small>{items.length} raw ingredient{items.length === 1 ? '' : 's'} in the plan</small>
             </aside>
           </section>
-          {summary && (
-            <StoreReadyList
-              summaryId={summary.id}
-              items={summary.items}
-              archivedItems={summary.archivedItems}
-              unitSystem={summary.unitSystem}
-              updatedAt={summary.updatedAt}
-              clearedAt={summary.clearedAt}
-              archivedAt={summary.archivedAt}
-            />
-          )}
-
-          <article className="card bn-route-stage">
-            <header className="card-head">
-              <h3>AI Optimization</h3>
-              <div className="sub">Combine items and convert to store units</div>
-            </header>
-            <GroceryOptimizer selectedISO={selectedISO} />
-          </article>
-
-          <article className="card bn-route-stage">
-            <header className="card-head">
-              <h3>Raw Ingredients</h3>
-              <div className="sub">Direct from meal plans</div>
-            </header>
-            <RawGroceryList items={items} rangeLabel={displayRangeLabel} />
-          </article>
+          <GroceryListView
+            selectedISO={selectedISO}
+            rawItems={items}
+            rangeLabel={displayRangeLabel}
+            summary={summary}
+            shouldPrepare={shouldPrepareStoreList}
+          />
         </div>
       </div>
     </main>

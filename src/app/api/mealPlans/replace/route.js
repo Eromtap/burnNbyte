@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { requireAppApiSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import OpenAI from 'openai';
@@ -6,6 +6,7 @@ import { describeDietaryPreferences } from '@/constants/dietaryPreferences';
 import { describeFitnessGoals, normalizeFitnessGoals } from '@/constants/fitnessGoals';
 import { summarizeMealFeedbackForPrompt } from '@/lib/mealFeedback';
 import { deriveNutritionTargets } from '@/lib/nutritionTargets';
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 
 function toUTC(ymd){
   const [y,m,d] = String(ymd||'').split('-').map(Number);
@@ -145,6 +146,18 @@ export async function POST(req){
       }
       results.push({ date, ok:true });
     }
+
+    after(async () => {
+      try {
+        await refreshStoreSummariesForDates({
+          userId: session.user.id,
+          dates: items.map((item) => item?.date),
+        });
+      } catch (groceryError) {
+        // Do not roll back a successful meal replacement if grocery generation fails.
+        console.error('Automatic grocery summary refresh failed', groceryError);
+      }
+    });
 
     return NextResponse.json({ ok:true, results });
   } catch(err){

@@ -16,7 +16,9 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
   const userPrefs = sessionPrefs || initialPreferences || {};
   const todayLocal = new Date();
   todayLocal.setHours(0,0,0,0);
-  const selectedISO = selectedISOProp || searchParams.get('date') || toYMDLocal(todayLocal);
+  const requestedISO = selectedISOProp || searchParams.get('date') || toYMDLocal(todayLocal);
+  // Workout history remains viewable, but creating a workout for a past day is not useful.
+  const selectedISO = requestedISO < toYMDLocal(todayLocal) ? toYMDLocal(todayLocal) : requestedISO;
   const selectedLabel = new Date(`${selectedISO}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   function toYMDLocal(d){

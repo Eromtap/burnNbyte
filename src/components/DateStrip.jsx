@@ -11,7 +11,6 @@ function toYMDLocal(d){
   return `${y}-${m}-${day}`;
 }
 function addDaysLocal(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
-function startOfWeekLocal(d){ const x = new Date(d); const dow = x.getDay(); return addDaysLocal(x, -dow); }
 function parseYMDLocal(ymd){
   if (!ymd) return new Date();
   const [y,m,d] = ymd.split('-').map(Number);
@@ -21,10 +20,11 @@ function parseYMDLocal(ymd){
 export default function DateStrip({ basePath, selectedISO, span = 7, onSelectDate, onShiftWeek }){
   const router = useRouter();
   const selectedDate = useMemo(() => parseYMDLocal(selectedISO) , [selectedISO]);
-  const start = useMemo(() => startOfWeekLocal(selectedDate), [selectedDate]);
+  // This is a forward-looking slider, not a week grid: lead with the selected day
+  // (normally today) instead of putting it in the middle after earlier weekdays.
+  const start = useMemo(() => new Date(selectedDate), [selectedDate]);
   const days = useMemo(() => Array.from({ length: span }, (_, i) => addDaysLocal(start, i)), [start, span]);
-  const mid = useMemo(() => addDaysLocal(start, Math.floor(span/2)), [start, span]);
-  const monthLabel = useMemo(() => mid.toLocaleString(undefined, { month: 'long', year: 'numeric' }), [mid]);
+  const monthLabel = useMemo(() => start.toLocaleString(undefined, { month: 'long', year: 'numeric' }), [start]);
   const isInteractive = typeof onSelectDate === 'function';
 
   function shiftWeek(direction){
