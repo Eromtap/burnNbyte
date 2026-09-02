@@ -1,6 +1,6 @@
 ﻿'use client';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 function toYMDLocal(d){
@@ -20,9 +20,17 @@ function parseYMDLocal(ymd){
 export default function DateStrip({ basePath, selectedISO, span = 7, onSelectDate, onShiftWeek }){
   const router = useRouter();
   const selectedDate = useMemo(() => parseYMDLocal(selectedISO) , [selectedISO]);
-  // This is a forward-looking slider, not a week grid: lead with the selected day
-  // (normally today) instead of putting it in the middle after earlier weekdays.
-  const start = useMemo(() => new Date(selectedDate), [selectedDate]);
+  const [windowStart, setWindowStart] = useState(() => new Date(selectedDate));
+  // Keep the selected date visible, but do not slide the whole window when the
+  // user taps another day already on screen.
+  useEffect(() => {
+    setWindowStart((current) => {
+      const startISO = toYMDLocal(current);
+      const endISO = toYMDLocal(addDaysLocal(current, span - 1));
+      return selectedISO >= startISO && selectedISO <= endISO ? current : new Date(selectedDate);
+    });
+  }, [selectedDate, selectedISO, span]);
+  const start = windowStart;
   const days = useMemo(() => Array.from({ length: span }, (_, i) => addDaysLocal(start, i)), [start, span]);
   const monthLabel = useMemo(() => start.toLocaleString(undefined, { month: 'long', year: 'numeric' }), [start]);
   const isInteractive = typeof onSelectDate === 'function';
@@ -32,7 +40,8 @@ export default function DateStrip({ basePath, selectedISO, span = 7, onSelectDat
       onShiftWeek(direction);
       return;
     }
-    const nextDate = addDaysLocal(selectedDate, direction * 7);
+    const nextDate = addDaysLocal(windowStart, direction * 7);
+    setWindowStart(nextDate);
     const href = `${basePath}?date=${toYMDLocal(nextDate)}`;
     window.dispatchEvent(new CustomEvent('bn:navigation-start', { detail: { href: new URL(href, window.location.href).href } }));
     router.push(href);

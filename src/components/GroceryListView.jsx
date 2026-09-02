@@ -16,12 +16,16 @@ export default function GroceryListView({
   const [view, setView] = useState('store');
 
   useEffect(() => {
-    if (!shouldPrepare) return undefined;
-    // The meal action owns the AI job. This only checks the saved result; it never
-    // starts another conversion when the user opens or revisits this page.
+    if (!rawItems.length) return undefined;
+    // The meal action owns the AI job. Briefly revalidate its saved result so a
+    // swap updates the visible list without a manual browser refresh.
     const refreshTimer = window.setInterval(() => router.refresh(), 8000);
-    return () => window.clearInterval(refreshTimer);
-  }, [router, shouldPrepare]);
+    const stopTimer = window.setTimeout(() => window.clearInterval(refreshTimer), 120000);
+    return () => {
+      window.clearInterval(refreshTimer);
+      window.clearTimeout(stopTimer);
+    };
+  }, [rawItems.length, router]);
 
   return (
     <section className="stack">

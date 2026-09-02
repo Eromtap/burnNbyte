@@ -19,6 +19,7 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
   const [selectedType, setSelectedType] = useState(type || 'snack');
   const [mode, setMode] = useState('ai');
   const [rebalance, setRebalance] = useState(false);
+  const [includeInGroceries, setIncludeInGroceries] = useState(true);
   const [description, setDescription] = useState('');
   const [portionNote, setPortionNote] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
@@ -33,6 +34,7 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
     setSelectedType(type || 'snack');
     setMode('ai');
     setRebalance(false);
+    setIncludeInGroceries(true);
     setDescription('');
     setPortionNote('');
     setPhotoFile(null);
@@ -56,7 +58,7 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
       const res = await fetchWithTimeout('/api/mealPlans/replace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [{ date: dateISO, types: [selectedType] }], rebalance }),
+        body: JSON.stringify({ items: [{ date: dateISO, types: [selectedType] }], rebalance, includeInGroceries }),
       }, 100000);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to replace meal.');
@@ -145,6 +147,7 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
           date: dateISO,
           type: selectedType,
           mode: 'replace',
+          includeInGroceries,
           meal: {
             name: estimate.name,
             calories: estimate.calories,
@@ -202,6 +205,13 @@ export default function ReplaceMealButton({ dateISO, type, label = 'Replace Meal
                   ))}
                 </select>
               </div>
+            </section>
+
+            <section className="tracker-section">
+              <label className="muted tracker-toggle">
+                <input type="checkbox" checked={includeInGroceries} onChange={(e) => setIncludeInGroceries(e.target.checked)} />
+                Add ingredients to grocery list
+              </label>
             </section>
 
             <section className="tracker-section">

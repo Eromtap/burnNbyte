@@ -60,6 +60,7 @@ export async function PATCH(req, { params }) {
         fat: toNullableFloat(body?.fat),
         ingredients: normalizeStringList(body?.ingredients).slice(0, 24),
         recipe: String(body?.recipe || "").trim() || null,
+        recipeYield: body?.recipeYield == null || body?.recipeYield === "" ? null : Math.max(1, Math.round(Number(body.recipeYield))),
       },
     });
 

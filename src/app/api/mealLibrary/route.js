@@ -61,6 +61,7 @@ export async function POST(req) {
         fat: body?.fat == null || body?.fat === "" ? null : Number(body.fat),
         ingredients: Array.isArray(body?.ingredients) ? body.ingredients.map((item) => String(item || "").trim()).filter(Boolean) : [],
         recipe: String(body?.recipe || "").trim() || null,
+        recipeYield: body?.recipeYield == null || body?.recipeYield === "" ? null : Math.max(1, Math.round(Number(body.recipeYield))),
       },
     });
 

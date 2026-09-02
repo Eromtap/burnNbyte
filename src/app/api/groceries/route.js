@@ -73,6 +73,7 @@ export async function GET() {
     const map = new Map();
     for (const p of plans) {
       for (const m of p.meals || []) {
+        if (!m.includeInGroceries || m.isCompleted) continue;
         const ingredients = Array.isArray(m.ingredients) ? m.ingredients : [];
         for (const raw of ingredients) {
           const item = String(raw || '').trim();
@@ -122,6 +123,7 @@ export async function POST(req) {
     const rawLines = [];
     for (const p of plans) {
       for (const m of p.meals || []) {
+        if (!m.includeInGroceries || m.isCompleted) continue;
         const ings = Array.isArray(m.ingredients) ? m.ingredients : [];
         for (const line of ings) {
           const s = String(line || '').trim();

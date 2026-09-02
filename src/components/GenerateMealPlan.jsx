@@ -159,6 +159,7 @@ export default function GenerateMealPlan({
             dietaryPreferences: prefs.dietaryPreferences || [],
             dislikedFoods: prefs.dislikedFoods || [],
             mealPrepMode: Boolean(prefs.mealPrepMode),
+            defaultCookServings: Math.max(1, Number(prefs.defaultCookServings) || 1),
             allergies: prefs.allergies || [],
             targetDates: selectedDates,
           }),

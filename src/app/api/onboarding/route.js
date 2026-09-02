@@ -175,6 +175,7 @@ export async function POST(req) {
       dietaryPreferences,
       dislikedFoods,
       mealPrepMode,
+      defaultCookServings: Math.max(1, Math.round(Number(data.defaultCookServings) || 1)),
       macroTargetMode: data.macroTargetMode || 'grams',
       calorieTarget: toPositiveIntOrNull(data.calorieTarget),
       proteinTarget: toPositiveFloatOrNull(data.proteinTarget),

@@ -8,7 +8,7 @@ const RECIPE_SCHEMA = {
   schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['name', 'defaultMealType', 'description', 'calories', 'costPerServing', 'protein', 'carbs', 'fat', 'ingredients', 'recipe'],
+    required: ['name', 'defaultMealType', 'description', 'calories', 'costPerServing', 'protein', 'carbs', 'fat', 'ingredients', 'recipe', 'recipeYield'],
     properties: {
       name: { type: 'string' },
       defaultMealType: { enum: ['breakfast', 'lunch', 'dinner', 'snack'] },
@@ -20,6 +20,7 @@ const RECIPE_SCHEMA = {
       fat: { type: 'number' },
       ingredients: { type: 'array', minItems: 1, items: { type: 'string' } },
       recipe: { type: 'string' },
+      recipeYield: { type: 'integer', minimum: 1, maximum: 24 },
     },
   },
 };
@@ -127,7 +128,7 @@ export async function POST(req) {
       response_format: { type: 'json_schema', json_schema: RECIPE_SCHEMA },
       messages: [{
         role: 'user',
-        content: `Extract one cookable recipe from this public recipe page. Preserve the recipe's ingredients and instructions. Nutrition should be per serving; use the page's nutrition when available and otherwise make a clearly reasonable estimate. Estimate cost per serving in USD. Do not invent a recipe unrelated to the source. Provide recipe steps as numbered lines.\n\nSource URL: ${url}\n\nStructured recipe data:\n${JSON.stringify(structuredRecipe).slice(0, 25000)}\n\nVisible page text:\n${pageText}`,
+        content: `Extract one cookable recipe from this public recipe page. Preserve the recipe's ingredients and instructions. recipeYield is REQUIRED: use the source's yield/servings, or carefully infer it from the full ingredient quantities. Nutrition and cost must be for one serving, never the entire batch. Do not invent a recipe unrelated to the source. Provide recipe steps as numbered lines.\n\nSource URL: ${url}\n\nStructured recipe data:\n${JSON.stringify(structuredRecipe).slice(0, 25000)}\n\nVisible page text:\n${pageText}`,
       }],
     });
     const content = completion.choices?.[0]?.message?.content || '';

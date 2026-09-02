@@ -90,5 +90,9 @@ export function sanitizeMealPayload(input = {}) {
     fat: toNullableFloat(input.fat),
     ingredients: normalizeStringList(input.ingredients).slice(0, 24),
     recipe: String(input.recipe || "").trim(),
+    recipeYield: (() => {
+      const value = toNullableInt(input.recipeYield);
+      return value == null ? null : Math.max(1, value);
+    })(),
   };
 }

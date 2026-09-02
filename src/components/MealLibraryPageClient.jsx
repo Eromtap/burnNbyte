@@ -24,6 +24,7 @@ function emptyForm() {
     fat: '',
     ingredientsText: '',
     recipe: '',
+    recipeYield: '',
   };
 }
 
@@ -40,6 +41,7 @@ function toForm(item) {
     fat: item?.fat ?? '',
     ingredientsText: Array.isArray(item?.ingredients) ? item.ingredients.join('\n') : '',
     recipe: item?.recipe || '',
+    recipeYield: item?.recipeYield ?? '',
   };
 }
 
@@ -148,6 +150,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
         fat: recipe.fat ?? '',
         ingredientsText: Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : '',
         recipe: recipe.recipe || '',
+        recipeYield: recipe.recipeYield ?? '',
       });
       setEstimateNotes('Imported from the recipe link. Review anything you want to change before saving.');
       setHasEstimateResult(true);
@@ -222,6 +225,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
         fat: form.fat,
         ingredients: normalizeStringList(form.ingredientsText),
         recipe: form.recipe,
+        recipeYield: form.recipeYield,
       };
 
       const endpoint = editorMode === 'edit'
@@ -388,7 +392,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
                     <div className="tracker-capture-card meal-library-form">
                       <select value={form.kind} onChange={(event) => updateField('kind', event.target.value)}>
                         <option value="FOOD">Food</option>
-                        <option value="MEAL">Meal</option>
+                        <option value="MEAL">Meal recipe</option>
                       </select>
                       <input
                         type="text"
@@ -453,6 +457,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
                             <input type="number" step="0.1" placeholder="Protein" value={form.protein} onChange={(event) => updateField('protein', event.target.value)} />
                             <input type="number" step="0.1" placeholder="Carbs" value={form.carbs} onChange={(event) => updateField('carbs', event.target.value)} />
                             <input type="number" step="0.1" placeholder="Fat" value={form.fat} onChange={(event) => updateField('fat', event.target.value)} />
+                            <input type="number" min="1" step="1" placeholder="Recipe servings" value={form.recipeYield} onChange={(event) => updateField('recipeYield', event.target.value)} />
                             <textarea placeholder="Ingredients, one per line" rows={6} value={form.ingredientsText} onChange={(event) => updateField('ingredientsText', event.target.value)} />
                             <textarea placeholder="Recipe or prep notes" rows={6} value={form.recipe} onChange={(event) => updateField('recipe', event.target.value)} />
                           </div>
@@ -470,7 +475,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
                 <div className="meal-library-form-row">
                   <select value={form.kind} onChange={(event) => updateField('kind', event.target.value)}>
                     <option value="FOOD">Food</option>
-                    <option value="MEAL">Meal</option>
+                    <option value="MEAL">Meal recipe</option>
                   </select>
                   {form.kind === 'MEAL' && (
                     <select value={form.defaultMealType} onChange={(event) => updateField('defaultMealType', event.target.value)}>
@@ -486,6 +491,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
                   <input type="number" step="0.1" placeholder="Protein" value={form.protein} onChange={(event) => updateField('protein', event.target.value)} />
                   <input type="number" step="0.1" placeholder="Carbs" value={form.carbs} onChange={(event) => updateField('carbs', event.target.value)} />
                   <input type="number" step="0.1" placeholder="Fat" value={form.fat} onChange={(event) => updateField('fat', event.target.value)} />
+                  {form.kind === 'MEAL' && <input type="number" min="1" step="1" placeholder="Recipe servings" value={form.recipeYield} onChange={(event) => updateField('recipeYield', event.target.value)} />}
                 </div>
                 <textarea
                   placeholder="Ingredients, one per line"

@@ -49,7 +49,8 @@ const MEALPLAN_SCHEMA = {
                   "carbs",
                   "fat",
                   "ingredients",
-                  "recipe"
+                  "recipe",
+                  "recipeYield"
                 ],
                 properties: {
                   name: { type: "string" },
@@ -60,7 +61,8 @@ const MEALPLAN_SCHEMA = {
                   carbs:   { anyOf: [{ type: "integer" }, { type: "number" }] },
                   fat:     { anyOf: [{ type: "integer" }, { type: "number" }] },
                   ingredients: { type: "array", items: { type: "string" } },
-                  recipe: { type: "string" }
+                  recipe: { type: "string" },
+                  recipeYield: { type: "integer", minimum: 1, maximum: 12 }
                 }
               }
             }
@@ -155,6 +157,7 @@ export async function POST(req) {
       dietaryPreferences = [],
       dislikedFoods = [],
       mealPrepMode = false,
+      defaultCookServings = 1,
       allergies = [],
       targetDates,
       // range controls: pass either (startDate+endDate) or numDays
@@ -241,6 +244,7 @@ User:
   fat: macroTargets.fatPct,
 })}
 - mealPrepMode: ${JSON.stringify(Boolean(mealPrepMode))}
+- servingsToCookPerMeal: ${JSON.stringify(Math.max(1, Number(defaultCookServings) || 1))}
 - dietaryPreferences (soft, emphasize these foods/cuisines): ${JSON.stringify(prefsDietFriendly.length ? prefsDietFriendly : prefsDiet)}
 - dislikedFoods (soft avoid): ${JSON.stringify(prefsDislikes)}
 - allergies/exclusions (HARD AVOID): ${JSON.stringify(prefsAllergies)}
@@ -265,6 +269,7 @@ Rules:
 - If mealPrepMode is true, it is acceptable for lunches and dinners to repeat across multiple weekdays when that improves meal prep practicality.
 - If mealPrepMode is false, you may reuse older liked meals selectively, but keep the plan feeling varied.
 - Each recipe must be a single string of 3-6 numbered steps (e.g., "1. Preheat skillet...") separated by line breaks so a beginner can follow prep through serving.
+- recipeYield is REQUIRED: make every recipe yield servingsToCookPerMeal. Calories and macros MUST be for one serving, not the full batch.
 - Dates MUST match the provided list and use ISO yyyy-mm-dd.
 - Respond ONLY with JSON that matches the provided schema (no prose, no fences).
 
@@ -286,7 +291,8 @@ Output shape:
           "carbs": 0,
           "fat": 0,
           "ingredients": ["item (qty, unit)", "..."],
-          "recipe": "1. Preheat oven to 400 F.\\n2. Toss veggies with olive oil and roast 18 min.\\n3. Plate with quinoa and drizzle yogurt sauce."
+          "recipe": "1. Preheat oven to 400 F.\\n2. Toss veggies with olive oil and roast 18 min.\\n3. Plate with quinoa and drizzle yogurt sauce.",
+          "recipeYield": 2
         }
       ]
     }
@@ -328,7 +334,7 @@ Output shape:
       const results = [];
       for (const p of ai.mealPlans) {
         const date = normalizeDate(p.date);
-        const existing = await tx.mealPlan.findFirst({ where: { userId, date } });
+        const existing = await tx.mealPlan.findFirst({ where: { userId, date }, include: { meals: true } });
         let plan;
         if (existing) {
           plan = await tx.mealPlan.update({
@@ -339,7 +345,9 @@ Output shape:
               totalCalories: Number(p.totalCalories) || null
             }
           });
-          await tx.meal.deleteMany({ where: { mealPlanId: existing.id } });
+          // Replanning must never erase food already marked as eaten. Those
+          // entries are the user's historical record and also occupy their meal type.
+          await tx.meal.deleteMany({ where: { mealPlanId: existing.id, isCompleted: false } });
         } else {
           plan = await tx.mealPlan.create({
             data: {
@@ -352,7 +360,12 @@ Output shape:
           });
         }
 
-        const mealData = (p.meals || []).map((m) => ({
+        const completedTypes = new Set((existing?.meals || [])
+          .filter((meal) => meal.isCompleted)
+          .map((meal) => String(meal.type || '').toLowerCase()));
+        const mealData = (p.meals || [])
+          .filter((m) => !completedTypes.has(String(m.type || '').toLowerCase()))
+          .map((m) => ({
           mealPlanId: plan.id,
           name: m.name,
           type: m.type,
@@ -362,12 +375,16 @@ Output shape:
           carbs: Number(m.carbs) || null,
           fat: Number(m.fat) || null,
           ingredients: Array.isArray(m.ingredients) ? m.ingredients : [],
-          recipe: m.recipe || ""
-        }));
+          recipe: m.recipe || "",
+          recipeYield: Math.max(1, Math.round(Number(m.recipeYield) || 1)),
+          cookServings: Math.max(1, Math.round(Number(defaultCookServings) || 1)),
+          }));
 
         if (mealData.length) {
           await tx.meal.createMany({ data: mealData });
         }
+        const totals = await tx.meal.aggregate({ where: { mealPlanId: plan.id }, _sum: { calories: true } });
+        await tx.mealPlan.update({ where: { id: plan.id }, data: { totalCalories: totals?._sum?.calories ?? null } });
         results.push(plan);
       }
       return results;

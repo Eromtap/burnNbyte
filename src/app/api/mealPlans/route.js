@@ -22,6 +22,7 @@ import { NextResponse } from "next/server";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { buildMealFeedbackMap } from "@/lib/mealFeedback";
+import { applyNutritionTargetOverride, deriveNutritionTargets } from "@/lib/nutritionTargets";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = String(ymd || "").split("-").map(Number);
@@ -39,10 +40,14 @@ export async function GET(req) {
 
     if (date) {
       const baseUtc = toUTCDateFromLocalYMD(date);
-      const mealPlan = await prisma.mealPlan.findFirst({
-        where: { userId: session.user.id, date: baseUtc },
-        include: { meals: true },
-      });
+      const [mealPlan, profile, targetOverride] = await Promise.all([
+        prisma.mealPlan.findFirst({
+          where: { userId: session.user.id, date: baseUtc },
+          include: { meals: true },
+        }),
+        prisma.userProfile.findUnique({ where: { userId: session.user.id } }),
+        prisma.nutritionTargetOverride.findUnique({ where: { userId_date: { userId: session.user.id, date: baseUtc } } }),
+      ]);
       const canReadMealFeedback = typeof prisma.mealFeedback?.findMany === "function";
       const feedbackRows = canReadMealFeedback && mealPlan?.meals?.length
         ? await prisma.mealFeedback.findMany({
@@ -53,7 +58,11 @@ export async function GET(req) {
             orderBy: { createdAt: "desc" },
           })
         : [];
-      return NextResponse.json({ mealPlan, mealFeedback: buildMealFeedbackMap(feedbackRows) });
+      return NextResponse.json({
+        mealPlan,
+        mealFeedback: buildMealFeedbackMap(feedbackRows),
+        nutritionTarget: applyNutritionTargetOverride(deriveNutritionTargets(profile || {}), targetOverride),
+      });
     }
 
     // Include related meals

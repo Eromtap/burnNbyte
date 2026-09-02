@@ -55,10 +55,9 @@ export default async function ProgressPage() {
 
   const rangeStart = new Date(today);
   rangeStart.setUTCDate(rangeStart.getUTCDate() - 27);
-  const [mealPlans, workouts, weightHistory] = await Promise.all([
-    prisma.mealPlan.findMany({
-      where: { userId: session.user.id, date: { gte: rangeStart, lte: today } },
-      include: { meals: true },
+  const [foodLogs, workouts, weightHistory] = await Promise.all([
+    prisma.foodLogEntry.findMany({
+      where: { userId: session.user.id, date: { gte: rangeStart, lte: today }, isCompleted: true },
     }),
     prisma.workout.findMany({
       where: { userId: session.user.id, date: { gte: rangeStart, lte: today } },
@@ -66,9 +65,12 @@ export default async function ProgressPage() {
     prisma.weightHistory.findMany({ where: { profileId: profile.id }, orderBy: { date: 'desc' }, take: 60 }),
   ]);
 
-  const loggedDays = mealPlans.map((mealPlan) => (
-    (mealPlan.meals || []).filter((meal) => meal.isCompleted)
-  )).filter((meals) => meals.length > 0);
+  const logsByDay = new Map();
+  foodLogs.forEach((entry) => {
+    const key = entry.date.toISOString().slice(0, 10);
+    logsByDay.set(key, [...(logsByDay.get(key) || []), entry]);
+  });
+  const loggedDays = [...logsByDay.values()];
   const loggedMacros = loggedDays.flat().reduce(
     (totals, meal) => ({
       calories: totals.calories + (Number(meal?.calories) || 0),

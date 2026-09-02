@@ -73,6 +73,7 @@ export default async function GroceriesPage({ searchParams }) {
   const map = new Map();
   for (const p of plans) {
     for (const m of p.meals || []) {
+      if (!m.includeInGroceries || m.isCompleted) continue;
       const ingredients = Array.isArray(m.ingredients) ? m.ingredients : [];
       for (const raw of ingredients) {
         const item = String(raw || '').trim();
@@ -86,12 +87,10 @@ export default async function GroceriesPage({ searchParams }) {
 
   const items = Array.from(map.values()).sort((a, b) => a.item.localeCompare(b.item));
   const displayRangeLabel = `${startOfWeek.toLocaleDateString()} - ${addDaysUTC(start, 6).toLocaleDateString()}`;
-  const latestMealPlanUpdate = plans.reduce((latest, plan) => (
-    !latest || plan.updatedAt > latest ? plan.updatedAt : latest
-  ), null);
-  const shouldPrepareStoreList = items.length > 0 && (
-    !summary || (latestMealPlanUpdate && summary.updatedAt < latestMealPlanUpdate)
-  );
+  // A missing list means a newly created plan is still being prepared. Existing
+  // summaries are refreshed by the plan action itself; do not infer freshness from
+  // MealPlan.updatedAt because ordinary food logging also updates that timestamp.
+  const shouldPrepareStoreList = items.length > 0 && !summary;
 
   return (
     <main className="bn-route-page bn-groceries-page">

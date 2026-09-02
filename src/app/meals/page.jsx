@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import MealsPageClient from "@/components/MealsPageClient";
 import { buildMealFeedbackMap } from "@/lib/mealFeedback";
+import { applyNutritionTargetOverride, deriveNutritionTargets } from "@/lib/nutritionTargets";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -53,13 +54,14 @@ export default async function MealsPage({ searchParams }){
   const selectedISO = paramDate ? String(paramDate) : todayISO;
   const baseUtc = toUTCDateFromLocalYMD(selectedISO);
 
-  const [mealPlan, libraryItems] = await Promise.all([
+  const [mealPlan, libraryItems, targetOverride] = await Promise.all([
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: baseUtc }, include: { meals: true } }),
     prisma.mealLibraryItem.findMany({
       where: { userId: session.user.id },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       take: 24,
     }),
+    prisma.nutritionTargetOverride.findUnique({ where: { userId_date: { userId: session.user.id, date: baseUtc } } }),
   ]);
   const canReadMealFeedback = typeof prisma.mealFeedback?.findMany === "function";
   const feedbackRows = canReadMealFeedback && mealPlan?.meals?.length
@@ -82,6 +84,7 @@ export default async function MealsPage({ searchParams }){
           initialMealPlan={mealPlan}
           initialMealFeedback={mealFeedback}
           initialLibraryItems={libraryItems}
+          initialMacroTargets={applyNutritionTargetOverride(deriveNutritionTargets(profile), targetOverride)}
         />
       </div>
     </main>

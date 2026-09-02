@@ -21,6 +21,7 @@ export async function POST(req){
     if (!dayUtc) return NextResponse.json({ error:'Invalid date' }, { status:400 });
 
     const userId = String(session.user.id);
+    const includeInGroceries = body?.includeInGroceries !== false;
 
     const plan = await prisma.mealPlan.findFirst({ where:{ userId, date: dayUtc } });
     const mealPlan = plan ?? await prisma.mealPlan.create({ data:{ userId, date: dayUtc, title: `Meal Plan ${date}`, description:'' } });
@@ -41,7 +42,8 @@ export async function POST(req){
         carbs: meal.carbs != null ? Number(meal.carbs) : null,
         fat: meal.fat != null ? Number(meal.fat) : null,
         ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
-        recipe: meal.recipe || ''
+        recipe: meal.recipe || '',
+        includeInGroceries,
       }
     });
 

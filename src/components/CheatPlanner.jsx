@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import OperationFeedback from '@/components/OperationFeedback';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 export default function CheatPlanner({ currentDateISO }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [adjustWeek, setAdjustWeek] = useState(true);
@@ -31,6 +33,7 @@ export default function CheatPlanner({ currentDateISO }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Failed to build cheat plan');
       setResult(data);
+      router.refresh();
     } catch (err) {
       setError(err?.message || 'Failed to build cheat plan');
     } finally {
@@ -101,7 +104,7 @@ export default function CheatPlanner({ currentDateISO }) {
               <div className="card cheat-result-card">
                 <div className={`cheat-status-pill ${result.adjustment && (result.adjustment.mealPlansUpdated > 0 || result.adjustment.workoutsUpdated > 0) ? 'cheat-status-pill-success' : ''}`}>
                   {result.adjustment && (result.adjustment.mealPlansUpdated > 0 || result.adjustment.workoutsUpdated > 0)
-                    ? 'Plan updated: future meals and workouts were adjusted.'
+                    ? 'Plan updated: portions and future workout add-ons were adjusted.'
                     : 'Estimate complete: no future plans were changed.'}
                 </div>
                 <div className="list-row">
@@ -117,8 +120,12 @@ export default function CheatPlanner({ currentDateISO }) {
                     <div className="list-row">
                       <span>Plan adjustment</span>
                       <span className="muted">
-                        {result.adjustment.remainingDays} planned day(s), about {result.adjustment.dailyMealReduction} kcal less food and {result.adjustment.dailyWorkoutMinutes} extra workout min per day.
+                        {result.adjustment.remainingDays} day(s) to balance, about {result.adjustment.dailyMealReduction} kcal less food and {result.adjustment.dailyWorkoutMinutes} extra workout min per day.
                       </span>
+                    </div>
+                    <div className="list-row">
+                      <span>Daily target</span>
+                      <span className="muted">Updated for {result.adjustment.targetDaysUpdated || 0} day(s){result.adjustment.adjustedDailyTarget ? `, starting around ${result.adjustment.adjustedDailyTarget} kcal/day.` : '.'}</span>
                     </div>
                     {result.adjustment.scopeLabel && (
                       <div className="list-row">
@@ -129,9 +136,24 @@ export default function CheatPlanner({ currentDateISO }) {
                     <div className="list-row">
                       <span>Changes applied</span>
                       <span className="muted">
-                        Reduced calories on {result.adjustment.mealPlansUpdated} meal day(s) and added cardio/duration on {result.adjustment.workoutsUpdated} workout day(s)
+                        Added visible portion guidance on {result.adjustment.mealPlansUpdated} meal day(s) and cardio add-ons on {result.adjustment.workoutsUpdated} workout day(s)
                       </span>
                     </div>
+                    {result.adjustment.portionAdjustments?.length > 0 && (
+                      <div className="cheat-portion-preview">
+                        <strong>What to eat</strong>
+                        <span className="muted">Each adjusted meal now shows its exact serving on your Food page.</span>
+                        {result.adjustment.portionAdjustments.slice(0, 4).map((item) => (
+                          <div key={`${item.date}-${item.mealName}`} className="list-row">
+                            <span>{item.mealName}</span>
+                            <strong>{item.portionPercent}% ({item.servings} serving)</strong>
+                          </div>
+                        ))}
+                        {result.adjustment.portionAdjustments.length > 4 && (
+                          <span className="muted">Plus {result.adjustment.portionAdjustments.length - 4} more adjusted meal{result.adjustment.portionAdjustments.length - 4 === 1 ? '' : 's'}.</span>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
                 {!result.adjustment && (
