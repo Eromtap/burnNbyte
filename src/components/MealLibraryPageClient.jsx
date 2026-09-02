@@ -14,6 +14,7 @@ const KIND_OPTIONS = [
 function emptyForm() {
   return {
     kind: 'FOOD',
+    defaultMealType: 'dinner',
     name: '',
     description: '',
     calories: '',
@@ -29,6 +30,7 @@ function emptyForm() {
 function toForm(item) {
   return {
     kind: item?.kind || 'FOOD',
+    defaultMealType: item?.defaultMealType || 'dinner',
     name: item?.name || '',
     description: item?.description || '',
     calories: item?.calories ?? '',
@@ -52,12 +54,15 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
   const [kindFilter, setKindFilter] = useState('ALL');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState('create');
+  const [createSource, setCreateSource] = useState('describe');
   const [editingItemId, setEditingItemId] = useState('');
   const [form, setForm] = useState(emptyForm());
   const [portionNote, setPortionNote] = useState('');
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [hasEstimateResult, setHasEstimateResult] = useState(false);
   const [estimateNotes, setEstimateNotes] = useState('');
+  const [recipeUrl, setRecipeUrl] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -96,8 +101,15 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
     setPortionNote('');
     setHasEstimateResult(false);
     setEstimateNotes('');
+    setCreateSource('describe');
+    setRecipeUrl('');
     setSaveError('');
     setEditorOpen(true);
+  }
+
+  function openImport() {
+    openCreate();
+    setCreateSource('url');
   }
 
   function openEdit(item) {
@@ -109,6 +121,41 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
     setEstimateNotes('');
     setSaveError('');
     setEditorOpen(true);
+  }
+
+  async function handleRecipeImport() {
+    setImportLoading(true);
+    setSaveError('');
+    try {
+      const res = await fetchWithTimeout('/api/mealLibrary/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: recipeUrl.trim() }),
+      }, 120000);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Could not import that recipe.');
+      const recipe = data?.recipe;
+      if (!recipe?.name) throw new Error('That page did not return a usable recipe.');
+      setForm({
+        kind: 'MEAL',
+        defaultMealType: recipe.defaultMealType || 'dinner',
+        name: recipe.name || '',
+        description: recipe.description || '',
+        calories: recipe.calories ?? '',
+        costPerServing: recipe.costPerServing ?? '',
+        protein: recipe.protein ?? '',
+        carbs: recipe.carbs ?? '',
+        fat: recipe.fat ?? '',
+        ingredientsText: Array.isArray(recipe.ingredients) ? recipe.ingredients.join('\n') : '',
+        recipe: recipe.recipe || '',
+      });
+      setEstimateNotes('Imported from the recipe link. Review anything you want to change before saving.');
+      setHasEstimateResult(true);
+    } catch (err) {
+      setSaveError(err.message || 'Could not import that recipe.');
+    } finally {
+      setImportLoading(false);
+    }
   }
 
   async function handleEstimate() {
@@ -165,6 +212,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
     try {
       const payload = {
         kind: form.kind,
+        defaultMealType: form.kind === 'MEAL' ? form.defaultMealType : '',
         name: form.name,
         description: form.description,
         calories: form.calories,
@@ -234,6 +282,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
           </div>
           <div className="page-hero-actions home-meals-actions">
             <button type="button" className="btn btn-primary" onClick={openCreate}>Add library item</button>
+            <button type="button" className="btn btn-secondary" onClick={openImport}>Import recipe link</button>
           </div>
         </div>
       </section>
@@ -303,7 +352,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
             <div>
               <div className="eyebrow">Meal library</div>
               <h3 id="mealLibraryEditorTitle">{editorMode === 'edit' ? 'Edit library item' : 'Add library item'}</h3>
-              <div className="sub">Save reusable foods or meals so they are easy to find later.</div>
+              <div className="sub">{createSource === 'url' && editorMode === 'create' ? 'Paste a public recipe link and we’ll pull in the ingredients, directions, and nutrition.' : 'Save reusable foods or meals so they are easy to find later.'}</div>
             </div>
             <button type="button" className="modal-close-icon" onClick={() => setEditorOpen(false)} aria-label="Close meal library editor">
               <span aria-hidden="true">✕</span>
@@ -312,33 +361,57 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
           <div className="modal-body tracker-modal-body">
             {editorMode === 'create' ? (
               <>
-                <section className="tracker-section">
-                  <div className="tracker-capture-card meal-library-form">
-                    <select value={form.kind} onChange={(event) => updateField('kind', event.target.value)}>
-                      <option value="FOOD">Food</option>
-                      <option value="MEAL">Meal</option>
-                    </select>
-                    <input
-                      type="text"
-                      placeholder={form.kind === 'MEAL' ? 'Describe the meal you want to save' : 'Describe the food you want to save'}
-                      value={form.description}
-                      onChange={(event) => updateField('description', event.target.value)}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Optional portion note"
-                      value={portionNote}
-                      onChange={(event) => {
-                        setPortionNote(event.target.value);
-                        setHasEstimateResult(false);
-                        setEstimateNotes('');
-                      }}
-                    />
-                    <button type="button" className="btn btn-primary" onClick={handleEstimate} disabled={estimateLoading || !form.description.trim()}>
-                      {estimateLoading ? 'Estimating…' : 'Estimate item'}
-                    </button>
-                  </div>
-                </section>
+                {createSource === 'url' ? (
+                  <section className="tracker-section">
+                    <div className="tracker-capture-card meal-library-form">
+                      <label className="planner-head" htmlFor="recipeImportUrl">Recipe link</label>
+                      <input
+                        id="recipeImportUrl"
+                        type="url"
+                        inputMode="url"
+                        placeholder="https://example.com/recipe"
+                        value={recipeUrl}
+                        onChange={(event) => {
+                          setRecipeUrl(event.target.value);
+                          setHasEstimateResult(false);
+                          setEstimateNotes('');
+                        }}
+                      />
+                      <div className="muted text-xs">Works best with public recipe pages. Paywalls and login-only links cannot be imported.</div>
+                      <button type="button" className="btn btn-primary" onClick={handleRecipeImport} disabled={importLoading || !recipeUrl.trim()}>
+                        {importLoading ? 'Importing recipe…' : 'Import recipe'}
+                      </button>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="tracker-section">
+                    <div className="tracker-capture-card meal-library-form">
+                      <select value={form.kind} onChange={(event) => updateField('kind', event.target.value)}>
+                        <option value="FOOD">Food</option>
+                        <option value="MEAL">Meal</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder={form.kind === 'MEAL' ? 'Describe the meal you want to save' : 'Describe the food you want to save'}
+                        value={form.description}
+                        onChange={(event) => updateField('description', event.target.value)}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Optional portion note"
+                        value={portionNote}
+                        onChange={(event) => {
+                          setPortionNote(event.target.value);
+                          setHasEstimateResult(false);
+                          setEstimateNotes('');
+                        }}
+                      />
+                      <button type="button" className="btn btn-primary" onClick={handleEstimate} disabled={estimateLoading || !form.description.trim()}>
+                        {estimateLoading ? 'Estimating…' : 'Estimate item'}
+                      </button>
+                    </div>
+                  </section>
+                )}
 
                 <section className="tracker-section">
                   <div className="tracker-label-row">
@@ -349,6 +422,11 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
                     {hasEstimateResult ? (
                       <>
                         <input type="text" placeholder="Name" value={form.name} onChange={(event) => updateField('name', event.target.value)} />
+                        {form.kind === 'MEAL' && (
+                          <select value={form.defaultMealType} onChange={(event) => updateField('defaultMealType', event.target.value)}>
+                            {['breakfast', 'lunch', 'dinner', 'snack'].map((type) => <option key={type} value={type}>{type}</option>)}
+                          </select>
+                        )}
                         <div className="tracker-macro-row">
                           <div className="tracker-metric">
                             <span className="metric-label">Calories</span>
@@ -394,6 +472,11 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
                     <option value="FOOD">Food</option>
                     <option value="MEAL">Meal</option>
                   </select>
+                  {form.kind === 'MEAL' && (
+                    <select value={form.defaultMealType} onChange={(event) => updateField('defaultMealType', event.target.value)}>
+                      {['breakfast', 'lunch', 'dinner', 'snack'].map((type) => <option key={type} value={type}>{type}</option>)}
+                    </select>
+                  )}
                 </div>
                 <input type="text" placeholder="Name" value={form.name} onChange={(event) => updateField('name', event.target.value)} />
                 <input type="text" placeholder="Description" value={form.description} onChange={(event) => updateField('description', event.target.value)} />
