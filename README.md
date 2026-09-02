@@ -33,8 +33,8 @@ Admins can open `/admin/access` to search for users and grant or revoke manual f
 ## Access Model
 
 Current access rules:
-- New users get 7 days of full app access.
-- After 7 days, users need an active subscription or a manual full-access grant.
+- New users get 14 days of full app access.
+- After 14 days, users need an active subscription or a manual full-access grant.
 - Specific users can be comped through the admin access UI.
 - Admin users bypass app-access enforcement automatically.
 
