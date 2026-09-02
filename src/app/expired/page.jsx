@@ -58,7 +58,7 @@ export default async function ExpiredPage() {
           </div>
           <div className="bn-access-next-copy">
             <p>
-              New accounts receive seven days of full access. After that, an active subscription
+              New accounts receive 14 days of full access. After that, an active subscription
               or manual access grant is required.
             </p>
             <p>

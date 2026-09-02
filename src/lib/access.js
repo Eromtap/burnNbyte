@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing"]);
-const TRIAL_LENGTH_DAYS = 7;
+const TRIAL_LENGTH_DAYS = 14;
 
 function isGrantActive(grant, now) {
   if (!grant) return false;
