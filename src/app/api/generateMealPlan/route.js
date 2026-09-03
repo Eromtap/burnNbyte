@@ -98,6 +98,11 @@ function normalizeTargetDates(input) {
   }
   return out.sort();
 }
+
+function normalizeISODate(value) {
+  const date = String(value || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+}
 function datesInclusive({ startDate, endDate, numDays }) {
   if (startDate && endDate) {
     const start = new Date(startDate);
@@ -160,6 +165,7 @@ export async function POST(req) {
       defaultCookServings = 1,
       allergies = [],
       targetDates,
+      clientTodayISO,
       // range controls: pass either (startDate+endDate) or numDays
       startDate,         // "yyyy-mm-dd" optional
       endDate,           // "yyyy-mm-dd" optional
@@ -174,7 +180,20 @@ export async function POST(req) {
     const prefsDietFriendly = describeDietaryPreferences(prefsDiet);
     const prefsDislikes = normArray(dislikedFoods);
     const prefsAllergies = normArray(allergies);
-    const goalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    // The browser's JWT can be one profile update behind. Keep the request
+    // values when present, but use the user's persisted profile as a fallback
+    // so a valid account cannot fail meal planning for a missing client goal.
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId: String(session.user.id) },
+      select: { fitnessGoal: true, fitnessGoals: true },
+    });
+    const requestGoalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    const profileGoalList = normalizeFitnessGoals(profile?.fitnessGoals?.length
+      ? profile.fitnessGoals
+      : profile?.fitnessGoal);
+    const goalList = requestGoalList.length
+      ? requestGoalList
+      : (profileGoalList.length ? profileGoalList : ['general_fitness']);
     const macroTargets = deriveNutritionTargets({
       weight,
       activityLevel,
@@ -189,7 +208,7 @@ export async function POST(req) {
       carbsPctTarget: normalizeOptionalTarget(carbsPctTarget),
       fatPctTarget: normalizeOptionalTarget(fatPctTarget),
     });
-    const primaryGoal = goalList[0] || (typeof fitnessGoal === "string" ? fitnessGoal : "");
+    const primaryGoal = goalList[0];
     const goalFriendly = describeFitnessGoals(goalList);
     const mealFeedback = typeof prisma.mealFeedback?.findMany === "function"
       ? await prisma.mealFeedback.findMany({
@@ -204,15 +223,14 @@ export async function POST(req) {
       recentLikedMeals,
     } = summarizeMealFeedbackForPrompt(mealFeedback);
 
-    if (!primaryGoal) {
-      return NextResponse.json({ error: "Missing required field: fitnessGoal" }, { status: 400 });
-    }
-
     const requestedDates = normalizeTargetDates(targetDates);
     const requestedMealPlanDates = requestedDates.length
       ? requestedDates
       : datesInclusive({ startDate, endDate, numDays });
-    const todayISO = toISO(new Date());
+    // Calendar dates belong to the user's local day, not the server's UTC day.
+    // The client provides its validated local date so late-evening users can
+    // still plan for today.
+    const todayISO = normalizeISODate(clientTodayISO) || toISO(new Date());
     const mealPlanDates = requestedMealPlanDates.filter((date) => date >= todayISO);
     if (!mealPlanDates.length) {
       return NextResponse.json({ error: "Choose today or a future date to generate a meal plan." }, { status: 400 });
