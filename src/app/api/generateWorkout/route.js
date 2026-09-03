@@ -262,6 +262,7 @@ export async function POST(req) {
       workoutDays,
       equipmentAccess,
       dateRange = today + ' - ' + todayPlus7,
+      clientTodayISO,
       dates = []
     } = body;
 
@@ -290,7 +291,12 @@ export async function POST(req) {
           })
           .filter(Boolean)
       : [];
-    const todayISO = new Date().toISOString().slice(0, 10);
+    // Calendar planning follows the user's local date. UTC can already be
+    // tomorrow while it is still today on the user's device.
+    const suppliedToday = String(clientTodayISO || '').slice(0, 10);
+    const todayISO = /^\d{4}-\d{2}-\d{2}$/.test(suppliedToday)
+      ? suppliedToday
+      : new Date().toISOString().slice(0, 10);
     const targetDates = requestedTargetDates.filter((date) => date >= todayISO);
 
     if (!targetDates.length) {
