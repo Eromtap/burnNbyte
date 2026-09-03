@@ -92,7 +92,9 @@ export function sanitizeMealPayload(input = {}) {
     recipe: String(input.recipe || "").trim(),
     recipeYield: (() => {
       const value = toNullableInt(input.recipeYield);
-      return value == null ? null : Math.max(1, value);
+      // A manually logged food is one serving unless a recipe yield is supplied.
+      // This also keeps the value valid for databases that enforce a recipe yield.
+      return value == null ? 1 : Math.max(1, value);
     })(),
   };
 }
