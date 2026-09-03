@@ -18,6 +18,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS "NutritionTargetOverride_userId_date_key"
 CREATE INDEX IF NOT EXISTS "NutritionTargetOverride_userId_date_idx"
   ON "NutritionTargetOverride"("userId", "date");
 
-ALTER TABLE "NutritionTargetOverride"
-  ADD CONSTRAINT "NutritionTargetOverride_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "NutritionTargetOverride"
+    ADD CONSTRAINT "NutritionTargetOverride_userId_fkey"
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
