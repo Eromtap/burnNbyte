@@ -18,6 +18,9 @@ export default function StoreReadyList({
   const [localArchived, setLocalArchived] = useState(archivedItems);
   const [error, setError] = useState(null);
   const [savingId, setSavingId] = useState(null);
+  const [manualName, setManualName] = useState('');
+  const [manualQuantity, setManualQuantity] = useState('1');
+  const [adding, setAdding] = useState(false);
   const [clearing, startClearing] = useTransition();
   const [restoring, startRestoring] = useTransition();
 
@@ -50,6 +53,29 @@ export default function StoreReadyList({
       setLocalItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, checked: !nextChecked } : it)));
     } finally {
       setSavingId(null);
+      router.refresh();
+    }
+  }
+
+  async function addManualItem(event) {
+    event.preventDefault();
+    if (!summaryId || !manualName.trim() || adding) return;
+    setAdding(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/groceries/checklist', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summaryId, action: 'addItem', name: manualName.trim(), quantity: manualQuantity }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Failed to add item');
+      setLocalItems(data.items || []);
+      setManualName('');
+      setManualQuantity('1');
+    } catch (e) {
+      setError(e.message || 'Failed to add item');
+    } finally {
+      setAdding(false);
       router.refresh();
     }
   }
@@ -125,6 +151,12 @@ export default function StoreReadyList({
 
       {error && <div className="muted" style={{ color: 'var(--danger, #b91c1c)' }}>{error}</div>}
 
+      <form className="grocery-manual-add" onSubmit={addManualItem}>
+        <input value={manualName} onChange={(event) => setManualName(event.target.value)} placeholder="Add an item" aria-label="Manual grocery item" disabled={!summaryId || adding} />
+        <input type="number" min="1" step="1" value={manualQuantity} onChange={(event) => setManualQuantity(event.target.value)} aria-label="Quantity" disabled={!summaryId || adding} />
+        <button type="submit" className="btn btn-outline" disabled={!summaryId || !manualName.trim() || adding}>{adding ? 'Adding…' : 'Add item'}</button>
+      </form>
+
       {open && (
         Array.isArray(localItems) && localItems.length > 0 ? (
           <div className="stack" style={{ marginTop: 8 }}>
@@ -176,4 +208,3 @@ export default function StoreReadyList({
     </article>
   );
 }
-

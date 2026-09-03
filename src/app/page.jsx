@@ -6,13 +6,13 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { sumMealMacros } from "@/lib/macros";
-import { deriveNutritionTargets } from "@/lib/nutritionTargets";
+import { applyNutritionTargetOverride, deriveNutritionTargets } from "@/lib/nutritionTargets";
 import { getSessionUserProfile } from "@/lib/auth";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import CheatPlanner from "@/components/CheatPlanner";
 import HomeMealsCard from "@/components/HomeMealsCard";
 import DashboardSpotlightCarousel from "@/components/DashboardSpotlightCarousel";
-import { Activity, ArrowUpRight, CheckCircle2, CircleAlert, Dumbbell, Flame, ShoppingBag, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, ArrowUpRight, CheckCircle2, CircleAlert, Dumbbell, Flame, TrendingDown, TrendingUp } from "lucide-react";
 
 function toUTCDateFromLocalYMD(ymd) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -104,9 +104,10 @@ export default async function HomePage({ searchParams }) {
     : todayISO;
   const selectedDate = toUTCDateFromLocalYMD(selectedISO);
 
-  const [workout, mealPlan, libraryItems, weightHistory, initialWeightEntry] = await Promise.all([
+  const [workout, mealPlan, foodLogs, libraryItems, weightHistory, initialWeightEntry, targetOverride] = await Promise.all([
     prisma.workout.findFirst({ where: { userId: session.user.id, date: selectedDate } }),
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: selectedDate }, include: { meals: true } }),
+    prisma.foodLogEntry.findMany({ where: { userId: session.user.id, date: selectedDate }, orderBy: { createdAt: 'asc' } }),
     prisma.mealLibraryItem.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -121,9 +122,13 @@ export default async function HomePage({ searchParams }) {
       where: { profileId: profile.id },
       orderBy: { date: 'asc' },
     }),
+    prisma.nutritionTargetOverride.findUnique({ where: { userId_date: { userId: session.user.id, date: selectedDate } } }),
   ]);
 
-  const completedMeals = (mealPlan?.meals || []).filter((m) => m.isCompleted);
+  const completedMeals = [
+    ...(mealPlan?.meals || []).filter((m) => m.isCompleted),
+    ...foodLogs.filter((m) => m.isCompleted),
+  ];
   const consumedMacros = sumMealMacros(completedMeals);
   const consumedCalories = consumedMacros.calories;
 
@@ -134,7 +139,7 @@ export default async function HomePage({ searchParams }) {
   const durationH = (workout?.duration || 0) / 60;
   const workoutCalories = weightKg ? Math.round(met * weightKg * durationH) : null;
 
-  const macroTargets = deriveNutritionTargets(profile);
+  const macroTargets = applyNutritionTargetOverride(deriveNutritionTargets(profile), targetOverride);
   const weightPoints = (weightHistory?.length
     ? [...weightHistory].reverse().map((entry) => ({
         id: entry.id,
@@ -194,6 +199,16 @@ export default async function HomePage({ searchParams }) {
               nutritionLabel={selectedISO === todayISO ? "Today at a glance" : `Plan for ${selectedISO}`}
             />
 
+            <HomeMealsCard
+              todayISO={selectedISO}
+              isToday={selectedISO === todayISO}
+              profile={profile}
+              macroTargets={macroTargets}
+              initialMealPlan={mealPlan}
+              initialFoodLogs={foodLogs}
+              initialLibraryItems={libraryItems}
+            />
+
             <section className="bn-home-next">
               <header>
                 <div>
@@ -231,22 +246,8 @@ export default async function HomePage({ searchParams }) {
               </div>
             </section>
 
-            <HomeMealsCard
-              todayISO={selectedISO}
-              isToday={selectedISO === todayISO}
-              profile={profile}
-              initialMealPlan={mealPlan}
-              initialLibraryItems={libraryItems}
-            />
           </section>
 
-          <aside className="bn-home-insights">
-            <Link className="bn-home-grocery-link" href={`/groceries?date=${selectedISO}`}>
-              <span><ShoppingBag size={18} aria-hidden /><strong>Grocery list</strong></span>
-              <small>Open this week&apos;s ingredients</small>
-              <ArrowUpRight size={16} aria-hidden />
-            </Link>
-          </aside>
         </div>
 
         <section className="bn-home-support bn-home-support-single">

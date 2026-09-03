@@ -90,6 +90,7 @@ export default function ProfileForm({ initial }){
     dietaryPreferences: Array.isArray(initial.dietaryPreferences) ? initial.dietaryPreferences : [],
     dislikedFoods: Array.isArray(initial.dislikedFoods) ? initial.dislikedFoods : [],
     mealPrepMode: Boolean(initial.mealPrepMode),
+    defaultCookServings: initial.defaultCookServings ?? 1,
     macroTargetMode: initial.macroTargetMode || 'grams',
     calorieTarget: initial.calorieTarget ?? '',
     proteinTarget: initial.proteinTarget ?? '',
@@ -236,6 +237,7 @@ export default function ProfileForm({ initial }){
           dietaryPreferences: Array.isArray(data.profile.dietaryPreferences) ? data.profile.dietaryPreferences : [],
           dislikedFoods: Array.isArray(data.profile.dislikedFoods) ? data.profile.dislikedFoods : [],
           mealPrepMode: Boolean(data.profile.mealPrepMode),
+          defaultCookServings: data.profile.defaultCookServings ?? 1,
           macroTargetMode: data.profile.macroTargetMode || 'grams',
           calorieTarget: data.profile.calorieTarget ?? '',
           proteinTarget: data.profile.proteinTarget ?? '',
@@ -617,6 +619,10 @@ export default function ProfileForm({ initial }){
       <label>
         <span>Meals Per Day</span>
         <input type="number" value={form.mealsPerDay} onChange={e=>updateField('mealsPerDay', e.target.value)} />
+      </label>
+      <label>
+        <span>Default servings to cook</span>
+        <input type="number" min="1" step="1" value={form.defaultCookServings} onChange={e=>updateField('defaultCookServings', e.target.value)} />
       </label>
 
       <div className="mt-4">

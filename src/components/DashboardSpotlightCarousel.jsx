@@ -9,7 +9,7 @@ const SPOTLIGHT_STORAGE_KEY = 'bn_dashboard_spotlight';
 
 function macroPct(value, target) {
   if (!target) return 0;
-  return Math.max(0, Math.min(100, Math.round((value / target) * 100)));
+  return Math.max(0, Math.round((value / target) * 100));
 }
 
 function formatDateLabel(label) {
@@ -219,17 +219,19 @@ export default function DashboardSpotlightCarousel({
           <section className="dashboard-spotlight-panel">
             <div className="dashboard-macro-circles">
               {nutritionMetrics.map(({ label, value, target, unit }) => {
-                const progress = macroPct(value, target);
+                const percent = macroPct(value, target);
+                const progress = Math.min(100, percent);
+                const overage = Math.min(100, Math.max(0, percent - 100));
                 return (
                   <div className="dashboard-macro-circle-card" key={label}>
                     <div
-                      className="dashboard-macro-ring"
-                      style={{ '--dashboard-macro-progress': `${progress * 3.6}deg` }}
-                      aria-label={`${label}: ${progress}% of target`}
+                      className={`dashboard-macro-ring${overage ? ' dashboard-macro-ring-over' : ''}`}
+                      style={{ '--dashboard-macro-progress': `${progress * 3.6}deg`, '--dashboard-macro-overage': `${overage * 3.6}deg` }}
+                      aria-label={`${label}: ${percent}% of target`}
                     >
                       <div>
                         <strong>{value.toLocaleString()}</strong>
-                        <span>{progress}%</span>
+                        <span>{percent}%</span>
                       </div>
                     </div>
                     <div className="dashboard-macro-circle-copy">

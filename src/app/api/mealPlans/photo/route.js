@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 import OpenAI from "openai";
 
 export const runtime = "nodejs";
@@ -176,6 +177,17 @@ export async function POST(req) {
       });
 
       return { planId: plan.id, meal: created, date: plan.date };
+    });
+
+    after(async () => {
+      try {
+        await refreshStoreSummariesForDates({
+          userId: session.user.id,
+          dates: [baseUtc.toISOString().slice(0, 10)],
+        });
+      } catch (groceryError) {
+        console.error('Automatic grocery summary refresh failed', groceryError);
+      }
     });
 
     return NextResponse.json({ ...parsed, type, date: baseUtc, mealId: result.meal.id });

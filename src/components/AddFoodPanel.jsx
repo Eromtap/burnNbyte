@@ -48,6 +48,7 @@ export default function AddFoodPanel({
   typeSignal = 0,
   initialLibraryItems = [],
   onSaved,
+  purpose = 'log',
 }) {
   const fileInputRef = useRef(null);
   const photoUploadInputRef = useRef(null);
@@ -70,6 +71,7 @@ export default function AddFoodPanel({
   const [saveAttempted, setSaveAttempted] = useState(false);
   const [error, setError] = useState('');
   const [saveToLibrary, setSaveToLibrary] = useState(false);
+  const [includeInGroceries, setIncludeInGroceries] = useState(purpose === 'plan');
   const [libraryKind, setLibraryKind] = useState('FOOD');
   const [markCompleted, setMarkCompleted] = useState(true);
   const [libraryItems, setLibraryItems] = useState(initialLibraryItems);
@@ -91,13 +93,14 @@ export default function AddFoodPanel({
     setSaveAttempted(false);
     setError('');
     setSaveToLibrary(false);
+    setIncludeInGroceries(purpose === 'plan');
     setLibraryKind('FOOD');
-    setMarkCompleted(true);
+    setMarkCompleted(purpose === 'log');
     setLibraryFilter('ALL');
     setLibrarySearch('');
     setSelectedLibraryItemId('');
     setSavedServings('1');
-  }, []);
+  }, [purpose]);
 
   useEffect(() => {
     setLibraryItems(initialLibraryItems);
@@ -288,7 +291,7 @@ export default function AddFoodPanel({
   }
 
   async function saveMeal(mealPayload, options = {}) {
-    const res = await fetch('/api/mealPlans/entries', {
+    const res = await fetch(purpose === 'log' ? '/api/foodLogs' : '/api/mealPlans/entries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -298,6 +301,7 @@ export default function AddFoodPanel({
         libraryKind,
         libraryDescription: draft.description,
         completed: markCompleted,
+        includeInGroceries,
         ...options,
       }),
     });
@@ -368,6 +372,7 @@ export default function AddFoodPanel({
         fat: scaleSavedValue(selectedLibraryItem.fat, servings),
         ingredients: selectedLibraryItem.ingredients || [],
         recipe: selectedLibraryItem.recipe || '',
+        recipeYield: selectedLibraryItem.recipeYield ?? null,
       }, {
         saveToLibrary: false,
       });
@@ -404,14 +409,26 @@ export default function AddFoodPanel({
 
         <div className="modal-body tracker-modal-body">
           <section className="tracker-section">
-            <div className="tracker-label-row">
-              <span className="planner-head">1. Where should this go?</span>
-              <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)} style={{ minWidth: 140 }}>
+              <div className="tracker-label-row">
+                <span className="planner-head">1. Where should this go?</span>
+                <select value={draft.type} onChange={(event) => updateDraft('type', event.target.value)} style={{ minWidth: 140 }}>
                 {MEAL_TYPES.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
-              </select>
-            </div>
+                </select>
+              </div>
+              {purpose === 'log' && (
+                <div className="tracker-inline-toggle">
+                  <input id="food-log-ate-it" type="checkbox" checked={markCompleted} onChange={(event) => setMarkCompleted(event.target.checked)} />
+                  <label htmlFor="food-log-ate-it">Ate it</label>
+                </div>
+              )}
+              {purpose === 'plan' && (
+                <div className="tracker-inline-toggle">
+                  <input id="planned-meal-groceries" type="checkbox" checked={includeInGroceries} onChange={(event) => setIncludeInGroceries(event.target.checked)} />
+                  <label htmlFor="planned-meal-groceries">Add ingredients to grocery list</label>
+                </div>
+              )}
           </section>
 
           <section className="tracker-section">

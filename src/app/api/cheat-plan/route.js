@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { requireAppApiSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { deriveNutritionTargets } from '@/lib/nutritionTargets';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 90000, maxRetries: 0 });
 const MAX_DAILY_MEAL_REDUCTION = 250;
@@ -40,11 +41,19 @@ function roundToStep(value, step = 5) {
   return Math.max(0, Math.round(Number(value || 0) / step) * step);
 }
 
-function scaleMealValue(value, ratio) {
-  if (value == null) return null;
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return null;
-  return Math.max(0, Math.round(numeric * ratio));
+function portionMultiplierFor(meal) {
+  const multiplier = Number(meal?.portionMultiplier);
+  return Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+}
+
+function effectiveMealCalories(meal) {
+  return (Number(meal?.calories) || 0) * portionMultiplierFor(meal);
+}
+
+function formatPortionNote(multiplier) {
+  const percent = Math.round(multiplier * 100);
+  const servings = Math.round(multiplier * 20) / 20;
+  return `Cheat-plan portion: eat about ${percent}% of the planned serving (${servings} serving).`;
 }
 
 function minDailyCaloriesForProfile(gender) {
@@ -69,10 +78,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Missing cheat description' }, { status: 400 });
     }
 
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId: String(session.user.id) },
-      select: { gender: true },
-    });
+    const profile = await prisma.userProfile.findUnique({ where: { userId: String(session.user.id) } });
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -130,6 +136,7 @@ export async function POST(req) {
         where: {
           userId: session.user.id,
           date: { gte: currentDate },
+          isCompleted: false,
         },
         orderBy: { date: 'asc' },
       }),
@@ -145,32 +152,24 @@ export async function POST(req) {
       ...mealPlanDates,
       ...workoutDates,
     ]);
+    // Even without a meal plan, give the user a concrete upcoming target to
+    // follow instead of making the offset disappear until they generate meals.
+    if (!mealPlanDates.length) {
+      for (let offset = 0; offset < 7; offset += 1) {
+        const date = new Date(currentDate);
+        date.setUTCDate(date.getUTCDate() + offset);
+        dates.add(toISO(date));
+      }
+    }
     const remainingDays = dates.size;
     const mealDayCount = mealPlanDates.length;
     const workoutDayCount = workoutDates.length;
 
-    if (!remainingDays) {
-      return NextResponse.json({
-        ok: true,
-        estimate: normalizedEstimate,
-        adjustment: {
-          remainingDays: 0,
-          dailyMealReduction: 0,
-          dailyWorkoutMinutes: 0,
-          mealPlansUpdated: 0,
-          workoutsUpdated: 0,
-          scopeLabel: 'No upcoming unfinished meal plans or future workouts were available to adjust.',
-        },
-      });
-    }
-
     const minDailyCalories = minDailyCaloriesForProfile(profile?.gender);
-    const dailyMealReduction = mealDayCount
-      ? Math.min(
-          MAX_DAILY_MEAL_REDUCTION,
-          roundToStep((normalizedEstimate.calories * 0.6) / mealDayCount, 10)
-        )
-      : 0;
+    const dailyMealReduction = Math.min(
+      MAX_DAILY_MEAL_REDUCTION,
+      roundToStep((normalizedEstimate.calories * 0.6) / remainingDays, 10)
+    );
     const dailyWorkoutMinutes = workoutDayCount
       ? Math.min(
           MAX_EXTRA_WORKOUT_MINUTES,
@@ -178,7 +177,46 @@ export async function POST(req) {
         )
       : 0;
 
-    const adjustmentNote = `Cheat offset plan: trim about ${dailyMealReduction} kcal from unfinished meals without taking the day below ${minDailyCalories} kcal, and add ${dailyWorkoutMinutes} minutes of easy cardio on each upcoming planned workout day to absorb the extra intake from ${normalizedEstimate.summary}.`;
+    const adjustmentNote = `Cheat offset plan for ${normalizedEstimate.summary}.`;
+    const portionAdjustments = [];
+
+    const adjustmentDates = [...dates].sort();
+    const existingOverrides = await prisma.nutritionTargetOverride.findMany({
+      where: {
+        userId: session.user.id,
+        date: { in: adjustmentDates.map(toUTCDateFromLocalYMD) },
+      },
+    });
+    const overridesByDate = new Map(existingOverrides.map((item) => [toISO(item.date), item]));
+    const baselineTargets = deriveNutritionTargets(profile || {});
+    const targetDaysUpdated = await prisma.$transaction(async (tx) => {
+      for (const dateISO of adjustmentDates) {
+        const currentTarget = overridesByDate.get(dateISO) || baselineTargets;
+        const currentCalories = Number(currentTarget.calories) || baselineTargets.calories;
+        const nextCalories = Math.max(minDailyCalories, Math.round(currentCalories - dailyMealReduction));
+        const targetRatio = currentCalories > 0 ? nextCalories / currentCalories : 1;
+        await tx.nutritionTargetOverride.upsert({
+          where: { userId_date: { userId: session.user.id, date: toUTCDateFromLocalYMD(dateISO) } },
+          create: {
+            userId: session.user.id,
+            date: toUTCDateFromLocalYMD(dateISO),
+            calories: nextCalories,
+            protein: Math.round((Number(currentTarget.protein) || 0) * targetRatio * 10) / 10,
+            carbs: Math.round((Number(currentTarget.carbs) || 0) * targetRatio * 10) / 10,
+            fat: Math.round((Number(currentTarget.fat) || 0) * targetRatio * 10) / 10,
+            reason: adjustmentNote,
+          },
+          update: {
+            calories: nextCalories,
+            protein: Math.round((Number(currentTarget.protein) || 0) * targetRatio * 10) / 10,
+            carbs: Math.round((Number(currentTarget.carbs) || 0) * targetRatio * 10) / 10,
+            fat: Math.round((Number(currentTarget.fat) || 0) * targetRatio * 10) / 10,
+            reason: adjustmentNote,
+          },
+        });
+      }
+      return adjustmentDates.length;
+    });
 
     const mealPlansUpdated = await prisma.$transaction(async (tx) => {
       let updatedPlans = 0;
@@ -186,33 +224,38 @@ export async function POST(req) {
       for (const plan of adjustableMealPlans) {
         const lockedMeals = (plan.meals || []).filter((meal) => meal.isCompleted);
         const adjustableMeals = (plan.meals || []).filter((meal) => !meal.isCompleted);
-        const lockedCalories = lockedMeals.reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
-        const adjustableCalories = adjustableMeals.reduce((sum, meal) => sum + (Number(meal.calories) || 0), 0);
+        const lockedCalories = lockedMeals.reduce((sum, meal) => sum + effectiveMealCalories(meal), 0);
+        const adjustableCalories = adjustableMeals.reduce((sum, meal) => sum + effectiveMealCalories(meal), 0);
         const currentTotalCalories = lockedCalories + adjustableCalories;
         const floorProtectedTotal = Math.max(currentTotalCalories - dailyMealReduction, minDailyCalories);
         const targetAdjustableCalories = Math.max(0, floorProtectedTotal - lockedCalories);
         const ratio = adjustableCalories > 0 ? Math.max(0.72, Math.min(1, targetAdjustableCalories / adjustableCalories)) : 1;
-        const nextTotalCalories = lockedCalories + targetAdjustableCalories;
-
-        await tx.mealPlan.update({
-          where: { id: plan.id },
-          data: {
-            totalCalories: nextTotalCalories || null,
-            description: [plan.description, adjustmentNote].filter(Boolean).join(' ').slice(0, 1200),
-          },
-        });
+        let nextTotalCalories = lockedCalories;
 
         for (const meal of adjustableMeals) {
+          const nextMultiplier = Math.max(0.5, Math.round(portionMultiplierFor(meal) * ratio * 20) / 20);
+          const nextCalories = (Number(meal.calories) || 0) * nextMultiplier;
+          nextTotalCalories += nextCalories;
+          const portionAdjustmentNote = formatPortionNote(nextMultiplier);
           await tx.meal.update({
             where: { id: meal.id },
             data: {
-              calories: scaleMealValue(meal.calories, ratio),
-              protein: scaleMealValue(meal.protein, ratio),
-              carbs: scaleMealValue(meal.carbs, ratio),
-              fat: scaleMealValue(meal.fat, ratio),
+              portionMultiplier: nextMultiplier,
+              portionAdjustmentNote,
             },
           });
+          portionAdjustments.push({
+            date: toISO(plan.date),
+            mealName: meal.name,
+            portionPercent: Math.round(nextMultiplier * 100),
+            servings: nextMultiplier,
+          });
         }
+
+        await tx.mealPlan.update({
+          where: { id: plan.id },
+          data: { totalCalories: Math.round(nextTotalCalories) || null },
+        });
 
         updatedPlans += 1;
       }
@@ -250,8 +293,11 @@ export async function POST(req) {
         dailyWorkoutMinutes,
         mealPlansUpdated,
         workoutsUpdated,
+        targetDaysUpdated,
+        adjustedDailyTarget: Math.max(minDailyCalories, Math.round((Number(baselineTargets.calories) || 0) - dailyMealReduction)),
+        portionAdjustments,
         scopeLabel: mealDayCount
-          ? `Only meals you have not marked as eaten were adjusted, and no day was pushed below ${minDailyCalories} kcal.`
+          ? `Recipes and grocery ingredients were not changed. Only meals you have not marked as eaten received a visible portion adjustment, and no day was pushed below ${minDailyCalories} kcal.`
           : `No unfinished meal plans were available, so only future workouts were adjusted. Extra cardio was capped at ${MAX_EXTRA_WORKOUT_MINUTES} minutes per workout.`,
       },
     });

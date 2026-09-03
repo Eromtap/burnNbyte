@@ -78,6 +78,11 @@ const SHOP_SCHEMA = {
 export async function refreshStoreSummary({ userId, weekStart, unitSystem = 'imperial' }) {
   const start = startOfWeek(weekStart);
   const end = addDays(start, 6);
+  const existingSummary = await prisma.grocerySummary.findUnique({
+    where: { userId_start_end_unitSystem: { userId, start, end, unitSystem } },
+  });
+  const manualItems = (Array.isArray(existingSummary?.items) ? existingSummary.items : [])
+    .filter((item) => item?.notes === 'Added manually');
   const plans = await prisma.mealPlan.findMany({
     where: { userId, date: { gte: start, lte: end } },
     include: { meals: true },
@@ -85,8 +90,15 @@ export async function refreshStoreSummary({ userId, weekStart, unitSystem = 'imp
   });
   const rawLines = plans.flatMap((plan) => (
     (plan.meals || []).flatMap((meal) => (
+      !meal.includeInGroceries || meal.isCompleted ? [] :
       (Array.isArray(meal.ingredients) ? meal.ingredients : [])
-        .map((ingredient) => String(ingredient || '').trim())
+        .map((ingredient) => {
+          const cookServings = Math.max(1, Number(meal.cookServings) || 1);
+          const recipeYield = Math.max(1, Number(meal.recipeYield) || 1);
+          const multiplier = cookServings / recipeYield;
+          const line = String(ingredient || '').trim();
+          return multiplier === 1 ? line : `${line} (scale recipe quantity × ${multiplier})`;
+        })
         .filter(Boolean)
     ))
   ));
@@ -94,8 +106,8 @@ export async function refreshStoreSummary({ userId, weekStart, unitSystem = 'imp
   if (!rawLines.length) {
     return prisma.grocerySummary.upsert({
       where: { userId_start_end_unitSystem: { userId, start, end, unitSystem } },
-      update: { items: [], note: 'No ingredients found' },
-      create: { userId, start, end, unitSystem, items: [], note: 'No ingredients found' },
+      update: { items: manualItems, note: manualItems.length ? null : 'No ingredients found' },
+      create: { userId, start, end, unitSystem, items: manualItems, note: manualItems.length ? null : 'No ingredients found' },
     });
   }
 
@@ -120,7 +132,7 @@ export async function refreshStoreSummary({ userId, weekStart, unitSystem = 'imp
     content = content.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
   }
   const parsed = JSON.parse(content);
-  const items = normalizeStoreItems(parsed.items, { resetChecked: true });
+  const items = [...normalizeStoreItems(parsed.items, { resetChecked: true }), ...manualItems];
 
   return prisma.grocerySummary.upsert({
     where: { userId_start_end_unitSystem: { userId, start, end, unitSystem } },

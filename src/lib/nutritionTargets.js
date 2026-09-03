@@ -163,3 +163,23 @@ export function deriveNutritionTargets(profile = {}) {
     mode: 'grams',
   };
 }
+
+export function applyNutritionTargetOverride(baseTargets, override) {
+  if (!override) return baseTargets;
+  const calories = normalizeNumber(override.calories);
+  const protein = normalizeNumber(override.protein);
+  const carbs = normalizeNumber(override.carbs);
+  const fat = normalizeNumber(override.fat);
+  if ([calories, protein, carbs, fat].some((value) => value == null)) return baseTargets;
+
+  return {
+    ...baseTargets,
+    calories,
+    protein,
+    carbs,
+    fat,
+    ...percentagesFromCalories({ calories, protein, carbs, fat }),
+    source: 'cheat-adjusted',
+    adjustmentReason: override.reason || 'Cheat-plan adjustment',
+  };
+}

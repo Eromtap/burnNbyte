@@ -2,7 +2,7 @@
 
 import DateStrip from '@/components/DateStrip';
 import GenerateMealPlan from '@/components/GenerateMealPlan';
-import { sumMealMacros, formatMacro } from '@/lib/macros';
+import { sumMealMacros, formatMacro, portionGuidance, scaledMealValue } from '@/lib/macros';
 import ReplaceMealButton from '@/components/ReplaceMealButton';
 import MealCompletionToggle from '@/components/MealCompletionToggle';
 import MealDeleteButton from '@/components/MealDeleteButton';
@@ -59,12 +59,20 @@ function formatCost(value) {
   return `$${Number(value).toFixed(2)}`;
 }
 
+function servingGuidance(meal) {
+  const yieldCount = Number(meal?.recipeYield);
+  return Number.isFinite(yieldCount) && yieldCount >= 1
+    ? `Makes ${yieldCount} serving${yieldCount === 1 ? '' : 's'} • nutrition shown per serving`
+    : 'Serving yield needs review • nutrition is per serving';
+}
+
 export default function MealsPageClient({
   profile,
   initialSelectedISO,
   initialMealPlan = null,
   initialMealFeedback = {},
   initialLibraryItems = [],
+  initialMacroTargets = null,
 }){
   const [selectedISO, setSelectedISO] = useState(initialSelectedISO);
   const [mealPlan, setMealPlan] = useState(initialMealPlan);
@@ -77,11 +85,11 @@ export default function MealsPageClient({
   const [defaultOpenMealType, setDefaultOpenMealType] = useState(
     getInitialOpenMealType(groupMeals(initialMealPlan?.meals || []))
   );
+  const [macroTargets, setMacroTargets] = useState(initialMacroTargets || deriveNutritionTargets(profile || {}));
 
   const meals = mealPlan?.meals || [];
   const mealMacros = sumMealMacros(meals);
   const grouped = groupMeals(meals);
-  const macroTargets = deriveNutritionTargets(profile || {});
 
   function syncUrl(nextISO){
     window.history.replaceState(null, '', `/meals?date=${nextISO}`);
@@ -103,6 +111,7 @@ export default function MealsPageClient({
       const nextMealPlan = data?.mealPlan || null;
       setMealPlan(nextMealPlan);
       setMealFeedback(data?.mealFeedback || {});
+      setMacroTargets(data?.nutritionTarget || deriveNutritionTargets(profile || {}));
       setDefaultOpenMealType(getInitialOpenMealType(groupMeals(nextMealPlan?.meals || [])));
     } catch (err) {
       setLoadError(err?.message || 'Failed to load meal plan');
@@ -136,6 +145,7 @@ export default function MealsPageClient({
           <span>Daily target</span>
           <strong>{formatMacro(macroTargets.calories)} <small>kcal</small></strong>
           <small>{formatMacro(macroTargets.protein)}g protein · {formatMacro(macroTargets.carbs)}g carbs · {formatMacro(macroTargets.fat)}g fat</small>
+          {macroTargets.source === 'cheat-adjusted' && <small className="meal-target-adjusted">Cheat-plan adjusted</small>}
         </div>
         <div className="bn-meals-actions">
           <button type="button" className="btn btn-outline" onClick={() => openAddFood('snack')}>Add food</button>
@@ -199,7 +209,9 @@ export default function MealsPageClient({
                             <header className="card-head">
                               <div>
                                 <h3>{meal.name}</h3>
-                                <div className="sub">{meal.calories ?? 0} kcal • {formatMacro(meal.protein)}g protein • {formatMacro(meal.carbs)}g carbs • {formatMacro(meal.fat)}g fat{formatCost(meal.costPerServing) ? ` • ~${formatCost(meal.costPerServing)}/serving` : ''}</div>
+                                <div className="sub">{formatMacro(scaledMealValue(meal, 'calories'))} kcal • {formatMacro(scaledMealValue(meal, 'protein'))}g protein • {formatMacro(scaledMealValue(meal, 'carbs'))}g carbs • {formatMacro(scaledMealValue(meal, 'fat'))}g fat{formatCost(meal.costPerServing) ? ` • ~${formatCost(meal.costPerServing)}/serving` : ''}</div>
+                                <div className="meal-serving-guidance">{servingGuidance(meal)}</div>
+                                {portionGuidance(meal) && <div className="meal-portion-guidance">{portionGuidance(meal)}</div>}
                               </div>
                               <div className="page-hero-actions" style={{ alignItems: 'center' }}>
                                 <MealCompletionToggle
@@ -328,6 +340,7 @@ export default function MealsPageClient({
           await refreshSelectedDay();
           setComposerOpen(false);
         }}
+        purpose="plan"
       />
     </>
   );

@@ -52,6 +52,8 @@ model User {
   exerciseLogs     ExerciseLog[]
   mealFeedback     MealFeedback[]
   mealPlans        MealPlan[]
+  foodLogs         FoodLogEntry[]
+  nutritionTargetOverrides NutritionTargetOverride[]
   socialPosts      SocialPost[]
   subscription     Subscription?
   groceryOrders    GroceryOrder[]
@@ -83,6 +85,7 @@ model UserProfile {
   dietaryPreferences String[]
   dislikedFoods      String[] @default([])
   mealPrepMode       Boolean  @default(false)
+  defaultCookServings Int @default(1)
   macroTargetMode    String?   @default("grams")
   calorieTarget      Int?
   proteinTarget      Float?
@@ -231,11 +234,59 @@ model Meal {
   fat         Float? // in grams
   ingredients String[]
   recipe      String?
+  recipeYield Int?
+  cookServings Int @default(1)
   isCompleted Boolean  @default(false)
   completedAt DateTime?
+  includeInGroceries Boolean @default(true)
+  portionMultiplier Float @default(1)
+  portionAdjustmentNote String?
 
   // Relations
   mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+}
+
+model FoodLogEntry {
+  id                 String   @id @default(uuid())
+  userId             String
+  date               DateTime
+  type               String
+  name               String
+  calories           Int?
+  costPerServing     Float?
+  protein            Float?
+  carbs              Float?
+  fat                Float?
+  ingredients        String[] @default([])
+  recipe             String?
+  isCompleted        Boolean  @default(true)
+  completedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+// A date-specific target, used when a planned indulgence is balanced across
+// upcoming days without changing the user's baseline profile preferences.
+model NutritionTargetOverride {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime
+  calories  Int
+  protein   Float
+  carbs     Float
+  fat       Float
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
 }
 
 model MealFeedback {
@@ -272,6 +323,7 @@ model MealLibraryItem {
   fat             Float?
   ingredients     String[]        @default([])
   recipe          String?
+  recipeYield     Int?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 

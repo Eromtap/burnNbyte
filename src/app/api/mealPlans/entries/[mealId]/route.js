@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { refreshMealPlanCalories } from "@/lib/mealPlanUtils";
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 
 export async function DELETE(_req, { params }) {
   try {
@@ -23,6 +24,8 @@ export async function DELETE(_req, { params }) {
       select: {
         id: true,
         mealPlanId: true,
+        includeInGroceries: true,
+        mealPlan: { select: { date: true } },
       },
     });
 
@@ -34,6 +37,19 @@ export async function DELETE(_req, { params }) {
       await tx.meal.delete({ where: { id: meal.id } });
       await refreshMealPlanCalories(tx, meal.mealPlanId);
     });
+
+    if (meal.includeInGroceries) {
+      after(async () => {
+        try {
+          await refreshStoreSummariesForDates({
+            userId: session.user.id,
+            dates: [meal.mealPlan.date.toISOString().slice(0, 10)],
+          });
+        } catch (groceryError) {
+          console.error('Automatic grocery summary refresh failed', groceryError);
+        }
+      });
+    }
 
     return NextResponse.json({ ok: true, mealId });
   } catch (err) {

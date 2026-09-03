@@ -40,7 +40,7 @@ export default function WorkoutCompletionToggle({ workoutId, initialCompleted = 
 
   return (
     <div className={className || 'list-row'} style={{ gap: 8, alignItems: 'center' }}>
-      <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <label className={`tracker-inline-toggle ${checked ? 'is-checked' : ''}`}>
         <input type="checkbox" checked={checked} disabled={pending} onChange={(e) => toggle(e.target.checked)} />
         <span>Completed</span>
       </label>

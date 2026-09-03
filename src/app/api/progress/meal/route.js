@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 
 export async function POST(req) {
   try {
@@ -17,6 +18,7 @@ export async function POST(req) {
 
     const meal = await prisma.meal.findFirst({
       where: { id: mealId, mealPlan: { userId: session.user.id } },
+      include: { mealPlan: { select: { date: true } } },
     });
     if (!meal) {
       return NextResponse.json({ error: "Meal not found" }, { status: 404 });
@@ -29,6 +31,19 @@ export async function POST(req) {
         completedAt: completed ? new Date() : null,
       },
     });
+
+    if (meal.includeInGroceries) {
+      after(async () => {
+        try {
+          await refreshStoreSummariesForDates({
+            userId: session.user.id,
+            dates: [meal.mealPlan.date.toISOString().slice(0, 10)],
+          });
+        } catch (groceryError) {
+          console.error('Automatic grocery summary refresh failed', groceryError);
+        }
+      });
+    }
 
     return NextResponse.json({ ok: true, meal: updated });
   } catch (err) {

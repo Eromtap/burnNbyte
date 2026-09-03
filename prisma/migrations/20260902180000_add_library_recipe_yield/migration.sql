@@ -1,0 +1,2 @@
+ALTER TABLE "MealLibraryItem"
+  ADD COLUMN IF NOT EXISTS "recipeYield" INTEGER;

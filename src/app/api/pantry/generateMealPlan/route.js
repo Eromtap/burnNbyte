@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { describeDietaryPreferences } from "@/constants/dietaryPreferences";
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 import { describeFitnessGoals, normalizeFitnessGoals } from "@/constants/fitnessGoals";
 import { summarizeMealFeedbackForPrompt } from "@/lib/mealFeedback";
 import { deriveNutritionTargets } from "@/lib/nutritionTargets";
@@ -41,7 +42,7 @@ const MEALPLAN_SCHEMA = {
               items: {
                 type: "object",
                 additionalProperties: false,
-                required: ["name", "type", "calories", "costPerServing", "protein", "carbs", "fat", "ingredients", "recipe"],
+                required: ["name", "type", "calories", "costPerServing", "protein", "carbs", "fat", "ingredients", "recipe", "recipeYield"],
                 properties: {
                   name: { type: "string" },
                   type: { enum: ["breakfast", "lunch", "dinner", "snack"] },
@@ -52,6 +53,7 @@ const MEALPLAN_SCHEMA = {
                   fat: { anyOf: [{ type: "integer" }, { type: "number" }] },
                   ingredients: { type: "array", items: { type: "string" } },
                   recipe: { type: "string" },
+                  recipeYield: { type: "integer", minimum: 1, maximum: 12 },
                 },
               },
             },
@@ -220,6 +222,7 @@ export async function POST(req) {
               : `- if mealPrepMode is false, keep the plan varied`,
             `- include a realistic AI-estimated costPerServing in USD for every meal`,
             `- recipe instructions: provide a single string of 3-6 numbered steps`,
+            `- recipeYield: REQUIRED number of standard servings made by the full recipe; all nutrition must be per serving`,
             `- if a calorie target is provided, keep each day reasonably close to it`,
             `- if macro targets are provided, keep each day reasonably close while staying realistic`,
             "Respond ONLY with JSON that matches the provided schema; no prose.",
@@ -292,6 +295,7 @@ export async function POST(req) {
           fat: Number(meal.fat) || null,
           ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
           recipe: meal.recipe || "",
+          recipeYield: Math.max(1, Math.round(Number(meal.recipeYield) || 1)),
         }));
         if (meals.length) {
           await tx.meal.createMany({ data: meals });
@@ -299,6 +303,14 @@ export async function POST(req) {
         results.push(plan);
       }
       return results;
+    });
+
+    after(async () => {
+      try {
+        await refreshStoreSummariesForDates({ userId, dates: targetDates });
+      } catch (groceryError) {
+        console.error('Automatic grocery summary refresh failed', groceryError);
+      }
     });
 
     return NextResponse.json({ ok: true, count: saved.length, dates: targetDates, sourcingMode });

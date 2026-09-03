@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { randomUUID } from "crypto";
 function normalizeItems(items = [], summaryId) {
   let changed = false;
   const normalized = (Array.isArray(items) ? items : []).map((item, idx) => {
@@ -85,13 +86,30 @@ export async function POST(req) {
     const body = (await req.json().catch(() => ({}))) || {};
     const summaryId = typeof body?.summaryId === "string" ? body.summaryId : "";
     const action = body?.action;
-    if (!summaryId || (action !== "completeList" && action !== "restore")) {
+    if (!summaryId || !["completeList", "restore", "addItem"].includes(action)) {
       return NextResponse.json({ error: "Missing summaryId or unsupported action" }, { status: 400 });
     }
 
     const summary = await loadSummary(summaryId, session.user.id);
     if (!summary) {
       return NextResponse.json({ error: "Shopping list not found" }, { status: 404 });
+    }
+
+    if (action === "addItem") {
+      const name = String(body?.name || "").trim();
+      if (!name) return NextResponse.json({ error: "Enter an item name" }, { status: 400 });
+      const { normalized: items } = normalizeBoth(summary.items, summary.id);
+      items.push({
+        id: randomUUID(),
+        name: name.slice(0, 120),
+        quantity: Number(body?.quantity) || 1,
+        unit: String(body?.unit || "").trim().slice(0, 32),
+        packageSize: "",
+        notes: "Added manually",
+        checked: false,
+      });
+      const updated = await prisma.grocerySummary.update({ where: { id: summary.id }, data: { items } });
+      return NextResponse.json({ ok: true, items: updated.items });
     }
 
     if (action === "completeList") {

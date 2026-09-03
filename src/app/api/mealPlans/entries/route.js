@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { requireAppApiSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
@@ -6,6 +6,7 @@ import {
   refreshMealPlanCalories,
   sanitizeMealPayload,
 } from "@/lib/mealPlanUtils";
+import { refreshStoreSummariesForDates } from '@/lib/grocerySummary';
 
 function normalizeLibraryKind(value) {
   const kind = String(value || "").toUpperCase();
@@ -34,7 +35,7 @@ export async function POST(req) {
     const saveToLibrary = Boolean(body?.saveToLibrary);
     const libraryKind = normalizeLibraryKind(body?.libraryKind);
     const libraryDescription = String(body?.libraryDescription || "").trim();
-    const completed = body?.completed !== false;
+    const includeInGroceries = body?.includeInGroceries !== false;
 
     if (saveToLibrary && !libraryKind) {
       return NextResponse.json({ error: "Choose whether to save this as a food or a meal." }, { status: 400 });
@@ -50,8 +51,9 @@ export async function POST(req) {
         data: {
           mealPlanId: mealPlan.id,
           ...mealData,
-          isCompleted: completed,
-          completedAt: completed ? new Date() : null,
+          isCompleted: false,
+          completedAt: null,
+          includeInGroceries,
         },
       });
 
@@ -73,12 +75,23 @@ export async function POST(req) {
             fat: mealData.fat,
             ingredients: mealData.ingredients,
             recipe: mealData.recipe || null,
+            recipeYield: mealData.recipeYield,
           },
         });
       }
 
       return { meal: createdMeal, libraryItem };
     });
+
+    if (includeInGroceries) {
+      after(async () => {
+        try {
+          await refreshStoreSummariesForDates({ userId: session.user.id, dates: [dateISO] });
+        } catch (groceryError) {
+          console.error('Automatic grocery summary refresh failed', groceryError);
+        }
+      });
+    }
 
     return NextResponse.json(result);
   } catch (err) {
