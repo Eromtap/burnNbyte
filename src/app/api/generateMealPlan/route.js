@@ -174,7 +174,18 @@ export async function POST(req) {
     const prefsDietFriendly = describeDietaryPreferences(prefsDiet);
     const prefsDislikes = normArray(dislikedFoods);
     const prefsAllergies = normArray(allergies);
-    const goalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    // The browser's JWT can be one profile update behind. Keep the request
+    // values when present, but use the user's persisted profile as a fallback
+    // so a valid account cannot fail meal planning for a missing client goal.
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId: String(session.user.id) },
+      select: { fitnessGoal: true, fitnessGoals: true },
+    });
+    const requestGoalList = normalizeFitnessGoals(fitnessGoals ?? fitnessGoal);
+    const profileGoalList = normalizeFitnessGoals(profile?.fitnessGoals?.length
+      ? profile.fitnessGoals
+      : profile?.fitnessGoal);
+    const goalList = requestGoalList.length ? requestGoalList : profileGoalList;
     const macroTargets = deriveNutritionTargets({
       weight,
       activityLevel,
@@ -189,7 +200,10 @@ export async function POST(req) {
       carbsPctTarget: normalizeOptionalTarget(carbsPctTarget),
       fatPctTarget: normalizeOptionalTarget(fatPctTarget),
     });
-    const primaryGoal = goalList[0] || (typeof fitnessGoal === "string" ? fitnessGoal : "");
+    const primaryGoal = goalList[0]
+      || (typeof fitnessGoal === "string" && fitnessGoal)
+      || profile?.fitnessGoal
+      || "";
     const goalFriendly = describeFitnessGoals(goalList);
     const mealFeedback = typeof prisma.mealFeedback?.findMany === "function"
       ? await prisma.mealFeedback.findMany({

@@ -124,7 +124,21 @@ export default function GenerateMealPlan({
       }
 
       if (sourceMode === 'standard') {
-        let prefs = session?.user?.preferences || initialPreferences || {};
+        const sessionPrefs = session?.user?.preferences || {};
+        // The JWT session can lag behind profile changes. Start with the profile
+        // rendered by the page, then layer in session values without allowing an
+        // empty session goal to erase a saved onboarding goal.
+        let prefs = { ...(initialPreferences || {}), ...sessionPrefs };
+        const sessionGoals = Array.isArray(sessionPrefs.fitnessGoals)
+          ? sessionPrefs.fitnessGoals.filter(Boolean)
+          : [];
+        const profileGoals = Array.isArray(initialPreferences?.fitnessGoals)
+          ? initialPreferences.fitnessGoals.filter(Boolean)
+          : [];
+        prefs.fitnessGoal = sessionPrefs.fitnessGoal || initialPreferences?.fitnessGoal || '';
+        prefs.fitnessGoals = sessionGoals.length
+          ? sessionGoals
+          : (profileGoals.length ? profileGoals : (prefs.fitnessGoal ? [prefs.fitnessGoal] : []));
         if (!Object.keys(prefs).length) {
           try {
             const fresh = await update();
@@ -255,6 +269,11 @@ export default function GenerateMealPlan({
               steps={['Checking nutrition targets', 'Choosing meals for each day', 'Balancing calories and macros', 'Saving meals to your plan']}
               timeoutSeconds={sourceMode === 'pantry' ? 180 : 150}
             />
+            {error && (
+              <div className="alert alert-error" role="alert">
+                {error}
+              </div>
+            )}
             <section className="tracker-section">
               <div className="tracker-label-row">
                 <span className="planner-head">Which days? <span className="muted text-xs">{planningScope === 'day' ? 'Next 14 days' : 'Today + next week'}</span></span>
@@ -384,8 +403,6 @@ export default function GenerateMealPlan({
                 </div>
               </section>
             )}
-
-            {error && <div className="muted" style={{ color: 'var(--danger)' }}>{error}</div>}
           </div>
 
           <footer className="modal-foot tracker-modal-foot">
