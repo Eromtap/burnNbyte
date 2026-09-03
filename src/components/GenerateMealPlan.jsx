@@ -175,6 +175,7 @@ export default function GenerateMealPlan({
             mealPrepMode: Boolean(prefs.mealPrepMode),
             defaultCookServings: Math.max(1, Number(prefs.defaultCookServings) || 1),
             allergies: prefs.allergies || [],
+            clientTodayISO: todayISO,
             targetDates: selectedDates,
           }),
         }, 150000);
