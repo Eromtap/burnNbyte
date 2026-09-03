@@ -102,6 +102,7 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
           dateRange: selectedOnly
             ? `${selectedISO} - ${selectedISO}`
             : `${toYMDLocal(todayLocal)} - ${toYMDLocal(new Date(todayLocal.getTime() + 6*24*60*60*1000))}`,
+          clientTodayISO: toYMDLocal(todayLocal),
           dates: targetDates,
         }),
       }, 195000);
