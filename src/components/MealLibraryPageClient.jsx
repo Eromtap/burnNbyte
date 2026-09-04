@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { formatMacro } from '@/lib/macros';
 import { normalizeStringList } from '@/lib/mealPlanUtils';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
+import MobileDisclosure from '@/components/MobileDisclosure';
 
 const KIND_OPTIONS = [
   { id: 'ALL', label: 'All items' },
@@ -109,9 +110,14 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
     setEditorOpen(true);
   }
 
-  function openImport() {
-    openCreate();
-    setCreateSource('url');
+  function selectCreateSource(source) {
+    setCreateSource(source);
+    setForm(emptyForm());
+    setPortionNote('');
+    setRecipeUrl('');
+    setHasEstimateResult(false);
+    setEstimateNotes('');
+    setSaveError('');
   }
 
   function openEdit(item) {
@@ -281,12 +287,11 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
           <div>
             <h1 className="page-hero-title">Saved foods and meals</h1>
             <p className="page-hero-text">
-              Manage the foods and meals you eat most often.
+              Keep your go-to foods and recipes ready to cook whenever you need them.
             </p>
           </div>
           <div className="page-hero-actions home-meals-actions">
             <button type="button" className="btn btn-primary" onClick={openCreate}>Add library item</button>
-            <button type="button" className="btn btn-secondary" onClick={openImport}>Import recipe link</button>
           </div>
         </div>
       </section>
@@ -295,7 +300,7 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
         <header className="card-head">
           <div>
             <h3>Library</h3>
-            <div className="sub">Search, edit, or remove reusable foods and meals.</div>
+            <div className="sub">Browse your saved foods and recipes, or edit reusable items.</div>
           </div>
           <div className="section-badge section-badge-meal">{items.length} saved</div>
         </header>
@@ -315,35 +320,70 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
         </div>
 
         <div className="meal-library-grid">
-          {filteredItems.length ? filteredItems.map((item) => (
-            <details key={item.id} className="meal-library-item-card meal-library-item-disclosure">
-              <summary className="meal-library-item-summary">
-                <div className="meal-library-item-summary-main">
-                  <div className="section-badge section-badge-meal">{item.kind === 'FOOD' ? 'Food' : 'Meal'}</div>
-                  <h3>{item.name}</h3>
+          {filteredItems.length ? filteredItems.map((item) => {
+            const recipeYield = Number(item.recipeYield);
+            return (
+              <details key={item.id} className="meal-library-item-card meal-library-item-disclosure">
+                <summary className="meal-library-item-summary">
+                  <div className="meal-library-item-summary-main">
+                    <div className="section-badge section-badge-meal">{item.kind === 'FOOD' ? 'Food' : 'Meal'}</div>
+                    <h3>{item.name}</h3>
+                  </div>
+                  <span className="meal-library-item-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div className="meal-library-item-body">
+                  <div className="meal-library-item-head">
+                    <div className="sub">
+                      {item.calories ?? 0} kcal • {formatMacro(item.protein)}g protein • {formatMacro(item.carbs)}g carbs • {formatMacro(item.fat)}g fat
+                      {formatCost(item.costPerServing) ? ` • ~${formatCost(item.costPerServing)}/serving` : ''}
+                    </div>
+                    <div className="meal-library-item-actions">
+                      <button type="button" className="btn btn-secondary" onClick={() => openEdit(item)}>Edit</button>
+                      <button type="button" className="btn btn-outline meal-delete-btn" onClick={() => setDeleteTarget(item)}>Delete</button>
+                    </div>
+                  </div>
+                  {item.description && <div className="muted">{item.description}</div>}
+                  {Number.isFinite(recipeYield) && recipeYield > 0 && (
+                    <div className="muted text-xs">Makes {recipeYield} serving{recipeYield === 1 ? '' : 's'}</div>
+                  )}
+                  {Array.isArray(item.ingredients) && item.ingredients.length > 0 && (
+                    <MobileDisclosure
+                      className="mobile-disclosure detail-disclosure"
+                      summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                      panelClassName="mobile-disclosure-panel"
+                      summary={(
+                        <>
+                          <span className="planner-head">Ingredients</span>
+                          <span className="mobile-disclosure-meta">{item.ingredients.length}</span>
+                        </>
+                      )}
+                    >
+                      <ul className="list">
+                        {item.ingredients.map((ingredient, index) => (
+                          <li key={`${item.id}-ingredient-${index}`} className="list-row"><span>{ingredient}</span></li>
+                        ))}
+                      </ul>
+                    </MobileDisclosure>
+                  )}
+                  {item.recipe && (
+                    <MobileDisclosure
+                      className="mobile-disclosure detail-disclosure"
+                      summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
+                      panelClassName="mobile-disclosure-panel"
+                      summary={(
+                        <>
+                          <span className="planner-head">Recipe</span>
+                          <span className="mobile-disclosure-meta">Steps</span>
+                        </>
+                      )}
+                    >
+                      <div className="list-row meal-entry-recipe"><span style={{ whiteSpace: 'pre-wrap' }}>{item.recipe}</span></div>
+                    </MobileDisclosure>
+                  )}
                 </div>
-                <span className="meal-library-item-chevron" aria-hidden="true">⌄</span>
-              </summary>
-              <div className="meal-library-item-body">
-                <div className="meal-library-item-head">
-                  <div className="sub">
-                    {item.calories ?? 0} kcal • {formatMacro(item.protein)}g protein • {formatMacro(item.carbs)}g carbs • {formatMacro(item.fat)}g fat
-                    {formatCost(item.costPerServing) ? ` • ~${formatCost(item.costPerServing)}/serving` : ''}
-                  </div>
-                  <div className="meal-library-item-actions">
-                    <button type="button" className="btn btn-secondary" onClick={() => openEdit(item)}>Edit</button>
-                    <button type="button" className="btn btn-outline meal-delete-btn" onClick={() => setDeleteTarget(item)}>Delete</button>
-                  </div>
-                </div>
-                {item.description && <div className="muted">{item.description}</div>}
-                {Array.isArray(item.ingredients) && item.ingredients.length > 0 && (
-                  <div className="list-row meal-library-ingredients">
-                    <span>{item.ingredients.slice(0, 6).join(' • ')}</span>
-                  </div>
-                )}
-              </div>
-            </details>
-          )) : (
+              </details>
+            );
+          }) : (
             <div className="list-row"><span className="muted">No saved library items match that search yet.</span></div>
           )}
         </div>
@@ -365,6 +405,20 @@ export default function MealLibraryPageClient({ initialItems = [] }) {
           <div className="modal-body tracker-modal-body">
             {editorMode === 'create' ? (
               <>
+                <section className="tracker-section">
+                  <div className="tracker-capture-card meal-library-form">
+                    <label className="planner-head" htmlFor="mealLibraryCreateSource">Add item from</label>
+                    <select
+                      id="mealLibraryCreateSource"
+                      value={createSource}
+                      onChange={(event) => selectCreateSource(event.target.value)}
+                    >
+                      <option value="describe">Describe a food or meal</option>
+                      <option value="url">Import recipe from URL</option>
+                    </select>
+                  </div>
+                </section>
+
                 {createSource === 'url' ? (
                   <section className="tracker-section">
                     <div className="tracker-capture-card meal-library-form">

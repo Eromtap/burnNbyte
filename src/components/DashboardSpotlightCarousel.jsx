@@ -52,6 +52,44 @@ function getStoredSpotlightIndex() {
   return 0;
 }
 
+function AnimatedMacroValue({ value }) {
+  const target = Number(value) || 0;
+  const [displayValue, setDisplayValue] = useState(target);
+  const displayRef = useRef(target);
+
+  useEffect(() => {
+    const startValue = displayRef.current;
+    const difference = target - startValue;
+    if (!difference) return undefined;
+    const prefersReducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      displayRef.current = target;
+      setDisplayValue(target);
+      return undefined;
+    }
+
+    const duration = 520;
+    const startTime = performance.now();
+    let frameId;
+    const tick = (now) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - ((1 - progress) ** 3);
+      const nextValue = startValue + difference * eased;
+      displayRef.current = nextValue;
+      setDisplayValue(nextValue);
+      if (progress < 1) frameId = requestAnimationFrame(tick);
+    };
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [target]);
+
+  const rounded = Number.isInteger(target)
+    ? Math.round(displayValue)
+    : Math.round(displayValue * 10) / 10;
+  return <>{rounded.toLocaleString()}</>;
+}
+
 export default function DashboardSpotlightCarousel({
   consumedCalories = 0,
   consumedMacros = {},
@@ -230,7 +268,7 @@ export default function DashboardSpotlightCarousel({
                       aria-label={`${label}: ${percent}% of target`}
                     >
                       <div>
-                        <strong>{value.toLocaleString()}</strong>
+                        <strong><AnimatedMacroValue value={value} /></strong>
                         <span>{percent}%</span>
                       </div>
                     </div>

@@ -5,14 +5,19 @@ import WorkoutLog from '@/components/WorkoutLog';
 export default async function WorkoutLogPage() {
   const { session } = await requireAppSession();
   const sessions = await prisma.workout.findMany({
-    where: { userId: session.user.id, isCompleted: true },
+    // A workout belongs in the log once the user has recorded at least one exercise.
+    // Completion remains a separate, session-level status.
+    where: {
+      userId: session.user.id,
+      exerciseLogs: { some: { userId: session.user.id } },
+    },
     include: {
       exerciseLogs: {
         where: { userId: session.user.id },
         orderBy: { createdAt: 'asc' },
       },
     },
-    orderBy: [{ completedAt: 'desc' }, { date: 'desc' }],
+    orderBy: { date: 'desc' },
     take: 60,
   });
 

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import OperationFeedback from '@/components/OperationFeedback';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
-export default function GenerateWorkout({ initialPreferences = null, selectedISO: selectedISOProp, onGenerated }) {
+export default function GenerateWorkout({ initialPreferences = null, selectedISO: selectedISOProp, onGenerated, compact = false }) {
   const { data: session, update } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -153,6 +153,23 @@ export default function GenerateWorkout({ initialPreferences = null, selectedISO
       setLoading(false);
       setLoadingMode(null);
     }
+  }
+
+  if (compact) {
+    return (
+      <div className="stack" style={{ gap: 8 }}>
+        <OperationFeedback
+          active={loading}
+          title={`Building ${selectedLabel}'s workout`}
+          steps={['Checking your preferences', 'Choosing the training focus', 'Balancing exercises and progression', 'Saving the finished plan']}
+          timeoutSeconds={195}
+        />
+        <button type="button" className="btn btn-primary" onClick={() => handleClick({ selectedOnly: true })} disabled={loading}>
+          {loadingMode === 'day' ? 'Building session…' : 'Build session'}
+        </button>
+        {result?.error && <div className="muted" style={{ color: 'var(--danger)' }}>{result.error}</div>}
+      </div>
+    );
   }
 
   return (
