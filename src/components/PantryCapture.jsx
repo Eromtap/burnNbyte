@@ -189,7 +189,6 @@ function ApplyToPlan({ meal, initialDateISO = null, onApplied }){
   const [date, setDate] = useState(initialDateISO || todayISO());
   const [type, setType] = useState((meal?.type || 'dinner').toLowerCase());
   const [mode, setMode] = useState('replace');
-  const [rebalance, setRebalance] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -199,9 +198,6 @@ function ApplyToPlan({ meal, initialDateISO = null, onApplied }){
       const res = await fetchWithTimeout('/api/mealPlans/apply', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ date, type, mode, meal }) }, 30000);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to apply meal');
-      if (rebalance){
-        await fetchWithTimeout('/api/mealPlans/replace', { method:'POST', headers:{ 'Content-Type': 'application/json' }, body: JSON.stringify({ items: [{ date, types: [] }], rebalance: true }) }, 100000);
-      }
       setOpen(false);
       if (onApplied) onApplied();
     } catch(e){ setError(e.message || 'Failed'); }
@@ -226,10 +222,6 @@ function ApplyToPlan({ meal, initialDateISO = null, onApplied }){
               <option value="add">Add as extra</option>
             </select>
           </div>
-          <label className="muted" style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <input type="checkbox" checked={rebalance} onChange={e=> setRebalance(e.target.checked)} />
-            Rebalance other meals for this day
-          </label>
           {error && <div className="list-row"><span className="muted">{String(error)}</span></div>}
           <div className="list-row" style={{ justifyContent:'flex-end' }}>
             <button className="btn btn-primary" disabled={loading} onClick={apply}>{loading ? 'Applying…' : 'Apply'}</button>

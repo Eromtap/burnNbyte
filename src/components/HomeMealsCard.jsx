@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import FoodLogCompletionToggle from '@/components/FoodLogCompletionToggle';
 import MealCompletionToggle from '@/components/MealCompletionToggle';
+import MealDeleteButton from '@/components/MealDeleteButton';
 import MobileDisclosure from '@/components/MobileDisclosure';
 import AddFoodPanel from '@/components/AddFoodPanel';
+import ReplaceMealButton from '@/components/ReplaceMealButton';
 import { formatMacro, portionGuidance, scaledMealValue } from '@/lib/macros';
 import { deriveNutritionTargets } from '@/lib/nutritionTargets';
 
@@ -133,11 +135,31 @@ export default function HomeMealsCard({
                         </div>
                       </Link>
                       <div className="home-meal-row-actions">
-                        {meal.entrySource === 'plan' ? <MealCompletionToggle
-                          mealId={meal.id}
-                          initialCompleted={meal.isCompleted}
-                          onUpdated={syncDashboard}
-                        /> : <FoodLogCompletionToggle
+                        {meal.entrySource === 'plan' ? <>
+                          <MealCompletionToggle
+                            mealId={meal.id}
+                            initialCompleted={meal.isCompleted}
+                            onUpdated={syncDashboard}
+                          />
+                          {isToday && (
+                            <>
+                              <ReplaceMealButton
+                                dateISO={todayISO}
+                                type={type}
+                                label="Swap"
+                                className="btn btn-secondary"
+                                allowGroceryList={false}
+                                defaultIncludeInGroceries={false}
+                                onReplaced={syncDashboard}
+                              />
+                              <MealDeleteButton
+                                mealId={meal.id}
+                                mealName={meal.name}
+                                onDeleted={syncDashboard}
+                              />
+                            </>
+                          )}
+                        </> : <FoodLogCompletionToggle
                           entryId={meal.id}
                           initialCompleted={meal.isCompleted}
                           onUpdated={(updatedMeal) => {

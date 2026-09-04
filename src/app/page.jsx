@@ -9,6 +9,7 @@ import { sumMealMacros } from "@/lib/macros";
 import { applyNutritionTargetOverride, deriveNutritionTargets } from "@/lib/nutritionTargets";
 import { getSessionUserProfile } from "@/lib/auth";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
+import GenerateWorkout from "@/components/GenerateWorkout";
 import CheatPlanner from "@/components/CheatPlanner";
 import HomeMealsCard from "@/components/HomeMealsCard";
 import DashboardSpotlightCarousel from "@/components/DashboardSpotlightCarousel";
@@ -42,6 +43,24 @@ function resolveTimeZone(candidate) {
     // fall through to UTC
   }
   return "UTC";
+}
+
+function countWorkoutMovements(instructions) {
+  if (!Array.isArray(instructions)) return 0;
+  const names = instructions
+    .map((step) => {
+      if (typeof step !== 'string') return null;
+      let cleaned = step.replace(/\s+/g, ' ').trim();
+      if (!cleaned) return null;
+      cleaned = cleaned.replace(/^\d+[\.\)]\s*/, '').trim();
+      cleaned = cleaned.split(':')[0].trim();
+      cleaned = cleaned.replace(/\s+-\s+\d.*$/i, '').trim();
+      cleaned = cleaned.replace(/\b\d+\s*(x|×)\s*\d+\b.*$/i, '').trim();
+      cleaned = cleaned.replace(/\b\d+\s*(reps?|sets?|secs?|seconds?|mins?|minutes?)\b.*$/i, '').trim();
+      return cleaned.length >= 2 && cleaned.length <= 80 ? cleaned : null;
+    })
+    .filter(Boolean);
+  return new Set(names).size;
 }
 
 function getWeightSignalMessage({ delta, initialWeight, goalWeight, fitnessGoal }) {
@@ -105,7 +124,10 @@ export default async function HomePage({ searchParams }) {
   const selectedDate = toUTCDateFromLocalYMD(selectedISO);
 
   const [workout, mealPlan, foodLogs, libraryItems, weightHistory, initialWeightEntry, targetOverride] = await Promise.all([
-    prisma.workout.findFirst({ where: { userId: session.user.id, date: selectedDate } }),
+    prisma.workout.findFirst({
+      where: { userId: session.user.id, date: selectedDate },
+      include: { exercises: { select: { id: true } } },
+    }),
     prisma.mealPlan.findFirst({ where: { userId: session.user.id, date: selectedDate }, include: { meals: true } }),
     prisma.foodLogEntry.findMany({ where: { userId: session.user.id, date: selectedDate }, orderBy: { createdAt: 'asc' } }),
     prisma.mealLibraryItem.findMany({
@@ -159,6 +181,7 @@ export default async function HomePage({ searchParams }) {
     goalWeight: profile.goalWeight,
     fitnessGoal: profile.fitnessGoal,
   });
+  const movementCount = countWorkoutMovements(workout?.instructions);
   return (
     <main className="bn-home-dashboard">
       <div className="dashboard-shell">
@@ -232,15 +255,17 @@ export default async function HomePage({ searchParams }) {
                 </div>
                 <div>
                   <Activity size={20} aria-hidden />
-                  <span><strong>{workout?.exercises?.length || "—"}</strong><small>movements</small></span>
+                  <span><strong>{workout ? movementCount : "—"}</strong><small>movements</small></span>
                 </div>
                 <div className="bn-home-next-action">
                   {workout ? (
                     <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />
                   ) : (
-                    <Link href={`/workouts?date=${selectedISO}`} className="btn btn-primary">
-                      Build session
-                    </Link>
+                    <GenerateWorkout
+                      initialPreferences={profile}
+                      selectedISO={selectedISO}
+                      compact
+                    />
                   )}
                 </div>
               </div>

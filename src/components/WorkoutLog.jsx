@@ -44,13 +44,13 @@ export default function WorkoutLog({ sessions = [] }) {
         <header className="card-head">
           <div>
             <h3>Workout log</h3>
-            <div className="sub">Your completed sessions and the performance details you logged.</div>
+            <div className="sub">Your logged sessions and the performance details you recorded.</div>
           </div>
           {sessions.length > 0 && <div className="section-badge section-badge-workout">{sessions.length} sessions</div>}
         </header>
 
         {sessions.length === 0 ? (
-          <div className="list-row"><span className="muted">Complete a workout to start your log. Lifting weights, sets, reps, distance, and pace will appear here.</span></div>
+          <div className="list-row"><span className="muted">Log an exercise to start your workout log. Lifting weights, sets, reps, distance, and pace will appear here.</span></div>
         ) : (
           <div className="stack">
             {sessions.map((session) => {
@@ -65,14 +65,16 @@ export default function WorkoutLog({ sessions = [] }) {
                     <>
                       <span>
                         <strong>{session.name}</strong>
-                        <small className="workout-log-date">{formatDate(session.completedAt || session.date)} · {logs.length} logged item{logs.length === 1 ? '' : 's'}</small>
+                        <small className="workout-log-date">
+                          {formatDate(session.completedAt || session.date)} · {logs.length} logged item{logs.length === 1 ? '' : 's'} · {session.isCompleted ? 'Completed' : 'Not completed'}
+                        </small>
                       </span>
                       <span className="mobile-disclosure-meta">{session.duration || 0} min</span>
                     </>
                   )}
                 >
                   {logs.length === 0 ? (
-                    <div className="list-row"><span className="muted">Completed with no exercise metrics logged.</span></div>
+                    <div className="list-row"><span className="muted">No exercise metrics logged.</span></div>
                   ) : (
                     <ul className="list">
                       {logs.map((log) => (

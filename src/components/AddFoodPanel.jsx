@@ -9,7 +9,7 @@ const MODES = [
   { id: 'text', label: 'Describe food' },
   { id: 'photo', label: 'Take photo' },
   { id: 'pantry', label: 'Pantry / fridge' },
-  { id: 'saved', label: 'Quick add saved' },
+  { id: 'saved', label: 'Add from library' },
 ];
 
 function emptyDraft(type = 'snack') {
