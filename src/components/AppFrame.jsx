@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import NavigationFeedback from '@/components/NavigationFeedback';
+import KeepScreenAwakeButton from '@/components/KeepScreenAwakeButton';
 
 const PRIMARY_NAV_ITEMS = [
   { href: '/', label: 'Today', icon: Home },
@@ -177,7 +178,7 @@ export default function AppFrame({ children, session }) {
             <span>{routeMeta.eyebrow}</span>
             <h1>{pathname === '/' ? `Good to see you, ${displayName}.` : routeMeta.title}</h1>
           </div>
-
+          <KeepScreenAwakeButton visible={pathname === '/'} />
         </header>
 
         <main className="bn-content">
