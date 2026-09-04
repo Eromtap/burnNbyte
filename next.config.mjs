@@ -7,9 +7,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   // Silence monorepo/lockfile root inference by pointing to the project root.
   outputFileTracingRoot: __dirname,
-  // Keep production builds from overwriting the development server's hot-reload
-  // artifacts when both are run locally.
-  distDir: process.env.NODE_ENV === 'development' ? '.next' : '.next-production',
   poweredByHeader: false,
   compress: true,
   async headers() {
