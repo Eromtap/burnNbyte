@@ -1472,6 +1472,37 @@ input:focus,select:focus,textarea:focus{
   box-shadow:0 2px 8px rgba(0,0,0,.18);
 }
 
+.keep-screen-awake-control{
+  display:grid;
+  gap:4px;
+}
+
+.keep-screen-awake-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  white-space:nowrap;
+}
+
+.keep-screen-awake-error{
+  max-width:220px;
+  color:var(--danger, #ff5b4d);
+  font-size:.72rem;
+  line-height:1.25;
+}
+
+.bn-topbar .keep-screen-awake-control{
+  justify-self:end;
+}
+
+@media (max-width:790px){
+  .bn-topbar .keep-screen-awake-control{
+    justify-self:center;
+    margin-top:10px;
+  }
+}
+
 .tracker-save-hint{
   max-width:260px;
   color:var(--muted);
