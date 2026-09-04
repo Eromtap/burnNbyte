@@ -8297,18 +8297,6 @@ body::before{
   text-transform:uppercase;
 }
 
-@property --dashboard-macro-progress {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
-@property --dashboard-macro-overage {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
 .dashboard-macro-circles{
   width:100%;
   display:grid;
@@ -8336,8 +8324,7 @@ body::before{
     color-mix(in oklab,var(--text) 11%,transparent) var(--dashboard-macro-progress) 360deg
   );
   box-shadow:0 0 24px color-mix(in oklab,var(--accent) 10%,transparent);
-  transition:--dashboard-macro-progress .52s cubic-bezier(.22,1,.36,1), box-shadow .52s ease;
-  will-change:--dashboard-macro-progress;
+  transition:box-shadow .52s ease;
 }
 
 .dashboard-macro-ring::before{
@@ -8352,8 +8339,6 @@ body::before{
   );
   -webkit-mask:radial-gradient(transparent 67%, #000 69%);
   mask:radial-gradient(transparent 67%, #000 69%);
-  transition:--dashboard-macro-overage .52s cubic-bezier(.22,1,.36,1);
-  will-change:--dashboard-macro-overage;
 }
 
 .dashboard-macro-ring>div{

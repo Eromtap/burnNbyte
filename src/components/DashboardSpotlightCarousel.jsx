@@ -12,6 +12,11 @@ function macroPct(value, target) {
   return Math.max(0, Math.round((value / target) * 100));
 }
 
+function macroProgress(value, target) {
+  if (!target) return 0;
+  return Math.max(0, (value / target) * 100);
+}
+
 function formatDateLabel(label) {
   try {
     const date = new Date(label);
@@ -52,23 +57,15 @@ function getStoredSpotlightIndex() {
   return 0;
 }
 
-function AnimatedMacroValue({ value }) {
-  const target = Number(value) || 0;
-  const [displayValue, setDisplayValue] = useState(target);
-  const displayRef = useRef(target);
+function AnimatedMacroRing({ label, value, target }) {
+  const numericValue = Number(value) || 0;
+  const [displayValue, setDisplayValue] = useState(numericValue);
+  const displayRef = useRef(numericValue);
 
   useEffect(() => {
     const startValue = displayRef.current;
-    const difference = target - startValue;
+    const difference = numericValue - startValue;
     if (!difference) return undefined;
-    const prefersReducedMotion = typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      displayRef.current = target;
-      setDisplayValue(target);
-      return undefined;
-    }
-
     const duration = 520;
     const startTime = performance.now();
     let frameId;
@@ -82,12 +79,28 @@ function AnimatedMacroValue({ value }) {
     };
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [target]);
+  }, [numericValue]);
 
-  const rounded = Number.isInteger(target)
+  const rounded = Number.isInteger(numericValue)
     ? Math.round(displayValue)
     : Math.round(displayValue * 10) / 10;
-  return <>{rounded.toLocaleString()}</>;
+  const percent = macroPct(displayValue, target);
+  const exactPercent = macroProgress(displayValue, target);
+  const progress = Math.min(100, exactPercent);
+  const overage = Math.min(100, Math.max(0, exactPercent - 100));
+
+  return (
+    <div
+      className={`dashboard-macro-ring${overage ? ' dashboard-macro-ring-over' : ''}`}
+      style={{ '--dashboard-macro-progress': `${progress * 3.6}deg`, '--dashboard-macro-overage': `${overage * 3.6}deg` }}
+      aria-label={`${label}: ${percent}% of target`}
+    >
+      <div>
+        <strong>{rounded.toLocaleString()}</strong>
+        <span>{percent}%</span>
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardSpotlightCarousel({
@@ -256,29 +269,15 @@ export default function DashboardSpotlightCarousel({
         >
           <section className="dashboard-spotlight-panel">
             <div className="dashboard-macro-circles">
-              {nutritionMetrics.map(({ label, value, target, unit }) => {
-                const percent = macroPct(value, target);
-                const progress = Math.min(100, percent);
-                const overage = Math.min(100, Math.max(0, percent - 100));
-                return (
-                  <div className="dashboard-macro-circle-card" key={label}>
-                    <div
-                      className={`dashboard-macro-ring${overage ? ' dashboard-macro-ring-over' : ''}`}
-                      style={{ '--dashboard-macro-progress': `${progress * 3.6}deg`, '--dashboard-macro-overage': `${overage * 3.6}deg` }}
-                      aria-label={`${label}: ${percent}% of target`}
-                    >
-                      <div>
-                        <strong><AnimatedMacroValue value={value} /></strong>
-                        <span>{percent}%</span>
-                      </div>
-                    </div>
-                    <div className="dashboard-macro-circle-copy">
-                      <span>{label}</span>
-                      <small>{target?.toLocaleString?.() ?? 0} {unit}</small>
-                    </div>
+              {nutritionMetrics.map(({ label, value, target, unit }) => (
+                <div className="dashboard-macro-circle-card" key={label}>
+                  <AnimatedMacroRing label={label} value={value} target={target} />
+                  <div className="dashboard-macro-circle-copy">
+                    <span>{label}</span>
+                    <small>{target?.toLocaleString?.() ?? 0} {unit}</small>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </section>
 
