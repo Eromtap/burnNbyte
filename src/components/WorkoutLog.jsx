@@ -43,7 +43,6 @@ export default function WorkoutLog({ sessions = [] }) {
       <article className="card span-full">
         <header className="card-head">
           <div>
-            <h3>Workout log</h3>
             <div className="sub">Your logged sessions and the performance details you recorded.</div>
           </div>
           {sessions.length > 0 && <div className="section-badge section-badge-workout">{sessions.length} sessions</div>}
@@ -61,6 +60,7 @@ export default function WorkoutLog({ sessions = [] }) {
                   className="mobile-disclosure detail-disclosure workout-log-session"
                   summaryClassName="mobile-disclosure-summary detail-disclosure-summary"
                   panelClassName="mobile-disclosure-panel"
+                  collapseOnDesktop
                   summary={(
                     <>
                       <span>

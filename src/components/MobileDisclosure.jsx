@@ -9,6 +9,7 @@ export default function MobileDisclosure({
   summary,
   children,
   defaultOpenMobile = false,
+  collapseOnDesktop = false,
   anchorId = '',
 }) {
   const [isMobile, setIsMobile] = useState(false);
@@ -58,7 +59,7 @@ export default function MobileDisclosure({
     return () => window.removeEventListener('hashchange', syncToHash);
   }, [mounted, isMobile, anchorId, defaultOpenMobile]);
 
-  if (!mounted || !isMobile) {
+  if (!collapseOnDesktop && (!mounted || !isMobile)) {
     return (
       <div className={className} id={anchorId || undefined}>
         <div className={panelClassName}>{children}</div>

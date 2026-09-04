@@ -3611,6 +3611,64 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   grid-template-columns:repeat(5, minmax(0, 1fr));
 }
 
+/* Workout history stays compact on desktop too: show the session summary first,
+   then reveal the logged exercise details on demand. */
+@media (min-width:721px){
+  .workout-log-session.mobile-disclosure{
+    display:grid;
+    gap:10px;
+  }
+
+  .workout-log-session.mobile-disclosure>.mobile-disclosure-summary{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    gap:10px;
+    align-items:center;
+    padding:12px 14px;
+    border:1px solid var(--edge);
+    border-radius:16px;
+    background:var(--surface-soft);
+    cursor:pointer;
+  }
+
+  .workout-log-session.mobile-disclosure>.mobile-disclosure-summary::after{
+    content:"";
+    width:8px;
+    height:8px;
+    border-right:2px solid color-mix(in oklab,var(--text) 96%,white 14%);
+    border-bottom:2px solid color-mix(in oklab,var(--text) 96%,white 14%);
+    transform:rotate(45deg) translateY(-1px);
+    transform-origin:center;
+    opacity:.95;
+  }
+
+  .workout-log-session.mobile-disclosure[open]{
+    gap:0;
+  }
+
+  .workout-log-session.mobile-disclosure[open]>.mobile-disclosure-summary{
+    border-bottom-left-radius:0;
+    border-bottom-right-radius:0;
+  }
+
+  .workout-log-session.mobile-disclosure[open]>.mobile-disclosure-summary::after{
+    transform:rotate(225deg) translateY(-1px);
+  }
+
+  .workout-log-session.mobile-disclosure:not([open])>.mobile-disclosure-panel{
+    display:none !important;
+  }
+
+  .workout-log-session.mobile-disclosure[open]>.mobile-disclosure-panel{
+    display:block !important;
+    padding:12px 14px 14px;
+    border:1px solid var(--edge);
+    border-top:0;
+    border-radius:0 0 16px 16px;
+    background:var(--surface-soft);
+  }
+}
+
 .home-meal-row-actions{
   display:flex;
   align-items:center;
@@ -4021,7 +4079,7 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   overflow:hidden;
   color:var(--text);
   font-size:clamp(1.35rem,1.1rem + .7vw,1.85rem);
-  line-height:1.05;
+  line-height:1.2;
   letter-spacing:-.045em;
   text-overflow:ellipsis;
   white-space:nowrap;
