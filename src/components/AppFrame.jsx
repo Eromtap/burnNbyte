@@ -56,6 +56,8 @@ const ROUTE_META = {
   '/admin/access': { eyebrow: 'ADMIN', title: 'Access control' },
   '/expired': { eyebrow: 'PLAN ACCESS', title: 'Your plan is paused' },
   '/terms': { eyebrow: 'POLICY', title: 'Terms and conditions' },
+  '/privacy': { eyebrow: 'POLICY', title: 'Privacy and health data' },
+  '/kroger': { eyebrow: 'GROCERY HANDOFF', title: 'Connect Kroger' },
 };
 
 function NavLink({ item, active, className = '', onClick }) {
@@ -151,6 +153,11 @@ export default function AppFrame({ children, session }) {
               />
             ))}
           </nav>
+        </div>
+
+        <div className="bn-rail-legal" aria-label="Legal information">
+          <Link href="/privacy">Privacy &amp; health data</Link>
+          <Link href="/terms">Terms</Link>
         </div>
 
         <div className="bn-rail-profile">
@@ -255,6 +262,10 @@ export default function AppFrame({ children, session }) {
             <LogOut size={18} />
             <span>Log out</span>
           </button>
+          <div className="bn-drawer-legal">
+            <Link href="/privacy" onClick={() => setDrawerOpen(false)}>Privacy</Link>
+            <Link href="/terms" onClick={() => setDrawerOpen(false)}>Terms</Link>
+          </div>
         </aside>
       </div>
     </div>

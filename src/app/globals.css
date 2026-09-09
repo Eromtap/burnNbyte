@@ -5,6 +5,35 @@
   --font-geist-mono: "SFMono-Regular", "Cascadia Code", "Fira Code", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+.bn-legal-copy{
+  gap:24px;
+}
+
+.bn-legal-copy section{
+  display:grid;
+  gap:10px;
+}
+
+.bn-legal-list{
+  display:grid;
+  gap:8px;
+  padding-left:20px;
+}
+
+.bn-legal-copy a,
+.bn-drawer-legal a{
+  color:var(--accent);
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+
+.bn-drawer-legal{
+  display:flex;
+  gap:14px;
+  padding:12px 18px 18px;
+  font-size:.72rem;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -3992,6 +4021,28 @@ html[data-theme="slate"] .spotlight-card .metric-detail{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
   gap:6px;
+}
+
+.bn-rail-legal{
+  margin-top:auto;
+  padding:12px 7px 8px;
+  border-top:1px solid var(--edge);
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 12px;
+}
+
+.bn-rail-legal a{
+  color:color-mix(in oklab,var(--text) 55%,transparent);
+  font-size:.62rem;
+}
+
+.bn-rail-legal a:hover{
+  color:var(--text);
+}
+
+.bn-rail-legal + .bn-rail-profile{
+  margin-top:0;
 }
 
 .bn-rail-profile>a{

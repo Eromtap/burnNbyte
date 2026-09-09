@@ -103,7 +103,8 @@ export default function SignUpPage() {
                 disabled={submitting}
               />
               <span>
-                I agree to the <Link href="/terms">Terms &amp; Conditions</Link>.
+                I agree to the <Link href="/terms">Terms &amp; Conditions</Link> and acknowledge the{" "}
+                <Link href="/privacy">Privacy and Consumer Health Data Policy</Link>.
               </span>
             </label>
 

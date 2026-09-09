@@ -75,3 +75,45 @@ npm run mobile:sync
 ```
 
 Set `CAPACITOR_SERVER_URL` in `apps/mobile/.env` to your deployed app URL for device builds.
+
+## Kroger OAuth
+
+The Kroger integration currently connects and disconnects a customer account only. It does not
+submit a cart, select fulfillment, perform checkout, or place an order.
+
+Configure these server-only values in `.env` and in the deployment environment:
+
+```bash
+KROGER_CLIENT_ID=...
+KROGER_CLIENT_SECRET=...
+KROGER_REDIRECT_URI=https://burn-nbyte.vercel.app/api/kroger/callback
+RETAILER_TOKEN_ENCRYPTION_KEY=...
+KROGER_OAUTH_ENABLED=false
+LEGAL_ENTITY_NAME=...
+PRIVACY_CONTACT_EMAIL=...
+LEGAL_MAILING_ADDRESS=...
+```
+
+`RETAILER_TOKEN_ENCRYPTION_KEY` must be either a base64-encoded 32-byte key or 64 hexadecimal
+characters. Keep it stable and secret; changing it makes existing encrypted Kroger tokens
+unreadable. Register `KROGER_REDIRECT_URI` exactly as written in the Kroger developer console.
+
+Keep `KROGER_OAUTH_ENABLED=false` until the OAuth migration and all Kroger secrets are deployed.
+Set it to `true` only when the integration is ready for users.
+
+Kroger callback route hosted by the Vercel application:
+
+- `https://burn-nbyte.vercel.app/api/kroger/callback`
+
+Public Wix legal URLs (currently configured as exact redirects to the Vercel legal pages):
+
+- `https://www.burnnbyte.com/privacy`
+- `https://www.burnnbyte.com/terms`
+
+The database schema for OAuth credentials is introduced by
+`20260908120000_add_retailer_oauth`. Review and deploy that migration before enabling the Connect
+Kroger link in a deployed environment.
+
+Retailer credentials and OAuth state are stored in provider-neutral tables keyed by user and
+provider. Provider-specific authorization, scopes, token exchange, refresh behavior, and
+capabilities live under `src/lib/retailers/`; Kroger is the only implemented adapter today.

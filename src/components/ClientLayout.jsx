@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 
 export default function ClientLayout({ children, session }) {
   const pathname = usePathname();
-  const bareRoutes = ["/signin", "/signup", "/onboarding", "/design-lab"]; // render without app frame
+  const bareRoutes = ["/signin", "/signup", "/onboarding", "/design-lab", "/kroger/complete"]; // render without app frame
   const isBare = !session || bareRoutes.some((p) => pathname?.startsWith(p));
   return (
     <SessionProvider session={session}>

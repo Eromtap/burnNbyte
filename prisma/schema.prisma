@@ -66,6 +66,8 @@ model User {
   suggestions      AppSuggestion[]
   accessGrants     UserAccessGrant[]
   subscriptionEvents SubscriptionEvent[]
+  retailerConnections RetailerConnection[]
+  retailerOAuthStates RetailerOAuthState[]
 }
 
 model UserProfile {
@@ -461,6 +463,43 @@ model UserAccessGrant {
 
   @@index([userId, accessLevel, source])
   @@index([userId, startsAt, expiresAt])
+}
+
+model RetailerConnection {
+  id                     String   @id @default(uuid())
+  userId                 String
+  provider               String
+  accessTokenCiphertext  String
+  refreshTokenCiphertext String?
+  tokenType              String   @default("Bearer")
+  scope                  String
+  expiresAt              DateTime
+  providerProfileId      String?
+  connectedAt            DateTime @default(now())
+  lastRefreshedAt        DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([provider])
+  @@index([expiresAt])
+}
+
+model RetailerOAuthState {
+  id        String   @id @default(uuid())
+  userId    String
+  provider  String
+  stateHash String   @unique
+  returnTo  String   @default("/groceries")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, provider, expiresAt])
+  @@index([expiresAt])
 }
 
 // GroceryOrder - grocery delivery orders
