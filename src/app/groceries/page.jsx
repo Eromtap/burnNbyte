@@ -2,6 +2,7 @@ import { requireAppSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getSessionUserProfile } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import DateStrip from '@/components/DateStrip';
 import GroceryListView from '@/components/GroceryListView';
 
@@ -102,6 +103,11 @@ export default async function GroceriesPage({ searchParams }) {
               <div className="eyebrow">Weekly provisions</div>
               <h1>Shop the week,<br /><em>not the aisle.</em></h1>
               <p>Everything your meal plan needs, consolidated into one practical store run.</p>
+              {process.env.KROGER_OAUTH_ENABLED === 'true' ? (
+                <div className="grocery-inline-actions">
+                  <Link className="btn btn-outline" href="/kroger">Connect Kroger</Link>
+                </div>
+              ) : null}
             </div>
             <aside>
               <span>Current window</span>
