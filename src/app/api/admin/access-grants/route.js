@@ -20,13 +20,53 @@ function parseExpiresAt(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function parsePage(value) {
+  const page = Number.parseInt(value || "1", 10);
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
+
 export async function GET(req) {
   const session = await getServerSession(authOptions);
   if (!(await isAdminSession(session))) return unauthorized();
 
   const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("mode");
   const email = searchParams.get("email")?.trim().toLowerCase();
   const userId = searchParams.get("userId")?.trim();
+
+  if (mode === "list") {
+    const query = searchParams.get("q")?.trim() || "";
+    const page = parsePage(searchParams.get("page"));
+    const pageSize = 20;
+    const where = query
+      ? {
+          OR: [
+            { email: { contains: query, mode: "insensitive" } },
+            { name: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : {};
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        select: { id: true, email: true, name: true, isAdmin: true, createdAt: true },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+
+    return NextResponse.json({
+      users,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    });
+  }
 
   if (!email && !userId) {
     return NextResponse.json({ error: "email or userId is required" }, { status: 400 });
