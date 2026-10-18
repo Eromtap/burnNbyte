@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function formatDateTime(value) {
   if (!value) return 'Never';
@@ -12,7 +12,10 @@ function formatDateTime(value) {
 export default function AdminAccessPageClient() {
   const [email, setEmail] = useState('');
   const [lookup, setLookup] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [grantForm, setGrantForm] = useState({
@@ -21,13 +24,14 @@ export default function AdminAccessPageClient() {
     expiresAt: '',
   });
 
-  async function searchUser(event) {
-    event.preventDefault();
+  async function loadUser({ email: lookupEmail, userId }) {
     setLoading(true);
     setMessage(null);
 
     try {
-      const query = new URLSearchParams({ email: email.trim().toLowerCase() });
+      const query = new URLSearchParams();
+      if (lookupEmail) query.set('email', lookupEmail.trim().toLowerCase());
+      if (userId) query.set('userId', userId);
       const res = await fetch(`/api/admin/access-grants?${query.toString()}`);
       const data = await res.json().catch(() => ({}));
 
@@ -39,6 +43,51 @@ export default function AdminAccessPageClient() {
       setMessage({ type: 'error', text: error.message || 'Lookup failed' });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function searchUser(event) {
+    event.preventDefault();
+    await loadUser({ email });
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setUsersLoading(true);
+      try {
+        const query = new URLSearchParams({ mode: 'list', q: email.trim(), page: '1' });
+        const res = await fetch(`/api/admin/access-grants?${query.toString()}`, { signal: controller.signal });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Unable to load users');
+        setUsers(data.users || []);
+        setPagination(data.pagination || null);
+      } catch (error) {
+        if (error.name !== 'AbortError') setMessage({ type: 'error', text: error.message || 'Unable to load users' });
+      } finally {
+        if (!controller.signal.aborted) setUsersLoading(false);
+      }
+    }, 200);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [email]);
+
+  async function changePage(page) {
+    setUsersLoading(true);
+    try {
+      const query = new URLSearchParams({ mode: 'list', q: email.trim(), page: String(page) });
+      const res = await fetch(`/api/admin/access-grants?${query.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Unable to load users');
+      setUsers(data.users || []);
+      setPagination(data.pagination || null);
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message || 'Unable to load users' });
+    } finally {
+      setUsersLoading(false);
     }
   }
 
@@ -160,6 +209,48 @@ export default function AdminAccessPageClient() {
             {message.text}
           </div>
         ) : null}
+
+        <div className="admin-user-browser">
+          <div className="admin-user-browser-head">
+            <div>
+              <h4>{email.trim() ? 'Matching users' : 'Users'}</h4>
+              <div className="sub">{email.trim() ? 'Matches update as you type.' : 'Newest accounts first.'}</div>
+            </div>
+            {pagination ? <div className="muted">{pagination.total} total</div> : null}
+          </div>
+
+          {usersLoading ? (
+            <div className="muted">Loading users…</div>
+          ) : users.length ? (
+            <div className="admin-user-list">
+              {users.map((user) => (
+                <button
+                  className="admin-user-option"
+                  key={user.id}
+                  type="button"
+                  onClick={() => loadUser({ userId: user.id })}
+                  disabled={loading}
+                >
+                  <span>
+                    <strong>{user.name || user.email}</strong>
+                    {user.name ? <small>{user.email}</small> : null}
+                  </span>
+                  <span className="admin-user-role">{user.isAdmin ? 'Admin' : 'User'}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="muted">No users match that search.</div>
+          )}
+
+          {pagination?.totalPages > 1 ? (
+            <div className="admin-user-pagination">
+              <button className="btn btn-outline" type="button" onClick={() => changePage(pagination.page - 1)} disabled={usersLoading || pagination.page === 1}>Previous</button>
+              <span className="muted">Page {pagination.page} of {pagination.totalPages}</span>
+              <button className="btn btn-outline" type="button" onClick={() => changePage(pagination.page + 1)} disabled={usersLoading || pagination.page === pagination.totalPages}>Next</button>
+            </div>
+          ) : null}
+        </div>
       </article>
 
       {lookup?.user ? (

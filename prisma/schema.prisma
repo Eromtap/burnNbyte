@@ -66,6 +66,8 @@ model User {
   suggestions      AppSuggestion[]
   accessGrants     UserAccessGrant[]
   subscriptionEvents SubscriptionEvent[]
+
+  @@index([createdAt])
 }
 
 model UserProfile {
