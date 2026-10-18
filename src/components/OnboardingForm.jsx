@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { signOut } from '@/lib/signOut';
 import Image from 'next/image';
 import { ArrowLeft, ArrowRight, LoaderCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { useOnboarding } from '@/lib/formState';
@@ -101,6 +102,7 @@ export default function OnboardingForm() {
   const [stepErrors, setStepErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [buildState, setBuildState] = useState(EMPTY_BUILD_STATE);
   const profileSavedRef = useRef(false);
   const progress = Math.round((currentStep / 5) * 100);
@@ -290,6 +292,21 @@ export default function OnboardingForm() {
       ? 'Continue'
       : buildState.phase === 'partial' ? 'Retry unfinished plans' : 'Build my first week';
 
+  async function logOut() {
+    if (loggingOut || submitting) return;
+    setLoggingOut(true);
+    setSubmitError('');
+    try {
+      await signOut({ redirect: false });
+      // Reload to clear this account's in-memory onboarding form state.
+      // The existing account-specific device draft remains for their return.
+      window.location.assign('/signin');
+    } catch {
+      setSubmitError('Unable to log out. Please try again.');
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <main className="onboard-native-page">
       <div className="onboard-native-shell">
@@ -298,7 +315,9 @@ export default function OnboardingForm() {
             <Image src="/logo.png" alt="" width={42} height={42} priority />
             <div><strong>burnNbyte</strong><span>Fuel smart. Train hard.</span></div>
           </div>
-          <div className="onboard-native-badge">PLAN SETUP</div>
+          <button type="button" className="btn btn-outline" onClick={logOut} disabled={loggingOut || submitting}>
+            {loggingOut ? 'Logging out…' : 'Log out'}
+          </button>
         </header>
 
         <section className="onboard-native-frame">
@@ -317,7 +336,7 @@ export default function OnboardingForm() {
             </div>
           </div>
 
-          <form className="form onboard-form onboard-native-form" onSubmit={onSubmitNext} noValidate aria-busy={submitting}>
+          <form className="form onboard-form onboard-native-form" onSubmit={onSubmitNext} noValidate aria-busy={submitting || loggingOut}>
             {StepComponent ? (
               <StepComponent formData={formData} updateForm={updateForm} errors={stepErrors} onEdit={goToStep} buildState={buildState} />
             ) : <p className="muted">Loading...</p>}
@@ -332,7 +351,7 @@ export default function OnboardingForm() {
                   <ArrowLeft size={17} aria-hidden /> Back
                 </button>
               )}
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
+              <button type="submit" className="btn btn-primary" disabled={submitting || loggingOut}>
                 {submitting ? <LoaderCircle className="onboard-spin" size={17} aria-hidden /> : currentStep === 5 ? (buildState.phase === 'partial' ? <RefreshCw size={17} aria-hidden /> : <Sparkles size={17} aria-hidden />) : null}
                 {primaryLabel}
                 {!submitting && currentStep < 5 ? <ArrowRight size={17} aria-hidden /> : null}

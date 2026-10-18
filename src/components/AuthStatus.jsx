@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
+import { signOut } from '@/lib/signOut';
 import { labelForFitnessGoal } from '@/constants/fitnessGoals';
 
 export default function AuthStatus() {

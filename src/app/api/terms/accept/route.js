@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { requireAppApiSession } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 
 export async function POST() {
   try {
-    const auth = await requireAppApiSession({ allowWithoutTerms: true });
-    if (auth.response) return auth.response;
-    const { session } = auth;
+    // Accepting terms requires identity, not an active trial/subscription.
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: String(session.user.id) },

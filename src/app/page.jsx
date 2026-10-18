@@ -1,13 +1,11 @@
 ﻿// app/page.jsx (server component)
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { sumMealMacros } from "@/lib/macros";
 import { applyNutritionTargetOverride, deriveNutritionTargets } from "@/lib/nutritionTargets";
-import { getSessionUserProfile } from "@/lib/auth";
+import { getSessionUserProfile, requireAuth } from "@/lib/auth";
 import WorkoutCompletionToggle from "@/components/WorkoutCompletionToggle";
 import GenerateWorkout from "@/components/GenerateWorkout";
 import CheatPlanner from "@/components/CheatPlanner";
@@ -108,8 +106,7 @@ export default async function HomePage({ searchParams }) {
     "UTC";
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/signin");
+  const session = await requireAuth();
 
   const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");

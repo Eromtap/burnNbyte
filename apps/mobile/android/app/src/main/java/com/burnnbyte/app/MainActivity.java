@@ -28,6 +28,7 @@ public class MainActivity extends BridgeActivity {
             }
         });
 
+        registerPlugin(BurnNByteGoogleAuthPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Keep the launch artwork up until the hosted app has rendered its first page. The
