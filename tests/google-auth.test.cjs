@@ -86,8 +86,18 @@ test('native identity requires a valid challenge, trusted audience and matching 
     } },
   }, { process: { env: { GOOGLE_CLIENT_ID: 'web-client-id', NEXTAUTH_SECRET: secret } } });
   const challenge = await encode({ secret, token: { purpose: 'google-native', nonce: 'nonce' }, maxAge: 300 });
+  // This is the actual shape NextAuth v4 passes to CredentialsProvider.authorize:
+  // query, body, headers, method -- no cookies property.
+  const request = { method: 'POST', headers: { cookie: `other=value; bn-google-nonce=${challenge}; last=1` } };
+  const extractedChallenge = mod.readNativeGoogleChallenge(request);
+  assert.equal(extractedChallenge, challenge);
+  assert.equal(await mod.verifyNativeGoogleIdentity('id-token', extractedChallenge), claims);
+  assert.equal(mod.readNativeGoogleChallenge({ headers: { get: name => name === 'cookie' ? `bn-google-nonce=${challenge}` : null } }), challenge);
+  assert.equal(mod.readNativeGoogleChallenge({ headers: { cookie: 'bn-google-nonce-other=wrong' } }), null);
+  assert.equal(mod.readNativeGoogleChallenge({ headers: { cookie: 'bn-google-nonce=%invalid' } }), null);
+  assert.equal(mod.readNativeGoogleChallenge({ headers: {} }), null);
   assert.equal(await mod.verifyNativeGoogleIdentity('id-token', null), null);
-  assert.equal(verified, 0);
+  assert.equal(verified, 1);
   assert.equal(await mod.verifyNativeGoogleIdentity('id-token', challenge), claims);
   claims = { ...profile, nonce: 'different' };
   assert.equal(await mod.verifyNativeGoogleIdentity('id-token', challenge), null);
