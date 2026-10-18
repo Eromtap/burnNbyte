@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { LoaderCircle } from "lucide-react";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -78,6 +79,7 @@ export default function SignUpPage() {
             <p>Your plan gets personal after this.</p>
           </div>
           <form onSubmit={handleSubmit} className="form bn-auth-form" aria-busy={submitting}>
+            <GoogleSignInButton />
             <label>
               <span>Name</span>
               <input type="text" autoComplete="name" value={name} onChange={e => setName(e.target.value)} required maxLength={80} disabled={submitting} />

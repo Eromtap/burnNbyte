@@ -40,7 +40,8 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
-  password  String // Hashed password
+  password  String? // Hashed password; absent for Google-only accounts
+  googleSubject String? @unique
   isAdmin   Boolean  @default(false)
   termsAcceptedAt DateTime?
   createdAt DateTime @default(now())

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
@@ -41,6 +42,12 @@ async function withPrismaRetry(operation, { retries = 2, delayMs = 750 } = {}) {
 
 export const authOptions = {
   providers: [
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      }),
+    ] : []),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -76,11 +83,43 @@ export const authOptions = {
       },
     }),
   ],
-  pages: { signIn: "/signin" },
+  pages: { signIn: "/signin", error: "/signin" },
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
   
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google") return true;
+      if (profile?.email_verified !== true || !profile?.sub || !profile?.email) return false;
+
+      const email = profile.email.trim().toLowerCase();
+      const subject = profile.sub;
+      try {
+        let dbUser = await withPrismaRetry(() => prisma.user.findUnique({
+          where: { googleSubject: subject },
+        }));
+        if (!dbUser) {
+          // Matching email alone must not attach Google to an existing,
+          // potentially unverified password account.
+          const existing = await prisma.user.findFirst({
+            where: { email: { equals: email, mode: "insensitive" } },
+            select: { id: true },
+          });
+          if (existing) return "/signin?error=GoogleAccountExists";
+          dbUser = await prisma.user.create({
+            data: { email, name: profile.name || null, googleSubject: subject },
+          });
+        }
+        user.id = String(dbUser.id);
+        user.name = dbUser.name;
+        user.email = dbUser.email;
+        return true;
+      } catch (error) {
+        if (error.code === "P2002") return "/signin?error=GoogleAccountExists";
+        console.error("Google sign-in failed", error.name);
+        return "/signin?error=GoogleSignInFailed";
+      }
+    },
     async jwt({ token, user, trigger }) {
       // establish a stable user id in the token
       const userId = user?.id ?? token.id ?? token.sub ?? null;

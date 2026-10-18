@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LoaderCircle } from "lucide-react";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -81,6 +82,7 @@ export default function SignInPage() {
             <p>Pick up exactly where you left off.</p>
           </div>
           <form onSubmit={handleSubmit} className="form bn-auth-form" aria-busy={submitting}>
+            <GoogleSignInButton />
             <label>
               <span>Email</span>
               <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={submitting} />
