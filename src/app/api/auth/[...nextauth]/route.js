@@ -94,6 +94,7 @@ export const authOptions = {
 
       const email = profile.email.trim().toLowerCase();
       const subject = profile.sub;
+      let operation = "findGoogleAccount";
       try {
         let dbUser = await withPrismaRetry(() => prisma.user.findUnique({
           where: { googleSubject: subject },
@@ -101,11 +102,13 @@ export const authOptions = {
         if (!dbUser) {
           // Matching email alone must not attach Google to an existing,
           // potentially unverified password account.
+          operation = "findExistingEmail";
           const existing = await prisma.user.findFirst({
             where: { email: { equals: email, mode: "insensitive" } },
             select: { id: true },
           });
           if (existing) return "/signin?error=GoogleAccountExists";
+          operation = "createGoogleAccount";
           dbUser = await prisma.user.create({
             data: { email, name: profile.name || null, googleSubject: subject },
           });
@@ -116,7 +119,21 @@ export const authOptions = {
         return true;
       } catch (error) {
         if (error.code === "P2002") return "/signin?error=GoogleAccountExists";
-        console.error("Google sign-in failed", error.name);
+        let databaseHost = "unavailable";
+        try {
+          databaseHost = new URL(process.env.DATABASE_URL).hostname;
+        } catch {
+          // Do not log connection strings or credentials when parsing fails.
+        }
+        console.error("Google sign-in failed", {
+          name: error.name,
+          code: error.code,
+          operation,
+          databaseHost,
+          model: error.meta?.modelName,
+          column: error.meta?.column,
+          clientVersion: error.clientVersion,
+        });
         return "/signin?error=GoogleSignInFailed";
       }
     },
