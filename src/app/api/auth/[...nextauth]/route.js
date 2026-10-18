@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
+import { resolveGoogleAccount } from "@/lib/googleAccount";
+import { GOOGLE_NONCE_COOKIE, verifyNativeGoogleIdentity } from "@/lib/googleNative";
 
 function isRetryablePrismaError(error) {
   if (!error) return false;
@@ -42,6 +44,23 @@ async function withPrismaRetry(operation, { retries = 2, delayMs = 750 } = {}) {
 
 export const authOptions = {
   providers: [
+    ...(process.env.GOOGLE_CLIENT_ID ? [CredentialsProvider({
+      id: 'google-native',
+      name: 'Google on Android',
+      credentials: { idToken: { type: 'text' } },
+      async authorize(credentials, req) {
+        try {
+          const profile = await verifyNativeGoogleIdentity(credentials?.idToken, req.cookies?.[GOOGLE_NONCE_COOKIE]);
+          if (!profile) return null;
+          const user = await withPrismaRetry(() => resolveGoogleAccount(profile));
+          return { id: String(user.id), name: user.name, email: user.email };
+        } catch (error) {
+          if (error.message === 'GoogleAccountExists') throw new Error('GoogleAccountExists');
+          console.error('Native Google sign-in failed', { name: error.name, code: error.code });
+          return null;
+        }
+      },
+    })] : []),
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
       GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID,
@@ -92,33 +111,15 @@ export const authOptions = {
       if (account?.provider !== "google") return true;
       if (profile?.email_verified !== true || !profile?.sub || !profile?.email) return false;
 
-      const email = profile.email.trim().toLowerCase();
-      const subject = profile.sub;
-      let operation = "findGoogleAccount";
+      const operation = "resolveGoogleAccount";
       try {
-        let dbUser = await withPrismaRetry(() => prisma.user.findUnique({
-          where: { googleSubject: subject },
-        }));
-        if (!dbUser) {
-          // Matching email alone must not attach Google to an existing,
-          // potentially unverified password account.
-          operation = "findExistingEmail";
-          const existing = await prisma.user.findFirst({
-            where: { email: { equals: email, mode: "insensitive" } },
-            select: { id: true },
-          });
-          if (existing) return "/signin?error=GoogleAccountExists";
-          operation = "createGoogleAccount";
-          dbUser = await prisma.user.create({
-            data: { email, name: profile.name || null, googleSubject: subject },
-          });
-        }
+        const dbUser = await withPrismaRetry(() => resolveGoogleAccount(profile));
         user.id = String(dbUser.id);
         user.name = dbUser.name;
         user.email = dbUser.email;
         return true;
       } catch (error) {
-        if (error.code === "P2002") return "/signin?error=GoogleAccountExists";
+        if (error.message === "GoogleAccountExists") return "/signin?error=GoogleAccountExists";
         let databaseHost = "unavailable";
         try {
           databaseHost = new URL(process.env.DATABASE_URL).hostname;
@@ -187,4 +188,11 @@ export const authOptions = {
 };
 
 const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export { handler as GET };
+export async function POST(request, context) {
+  const response = await handler(request, context);
+  if (new URL(request.url).pathname.endsWith('/callback/google-native')) {
+    response.headers.append('Set-Cookie', `${GOOGLE_NONCE_COOKIE}=; Path=/api/auth; HttpOnly; SameSite=Strict; Max-Age=0${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+  }
+  return response;
+}
