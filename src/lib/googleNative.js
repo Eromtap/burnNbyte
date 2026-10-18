@@ -4,6 +4,22 @@ import { decode } from 'next-auth/jwt';
 export const GOOGLE_NONCE_COOKIE = 'bn-google-nonce';
 const googleClient = new OAuth2Client();
 
+export function readNativeGoogleChallenge(request) {
+  // NextAuth v4 CredentialsProvider forwards headers, not req.cookies.
+  const header = typeof request?.headers?.get === 'function'
+    ? request.headers.get('cookie')
+    : request?.headers?.cookie;
+  if (typeof header !== 'string') return null;
+  const prefix = `${GOOGLE_NONCE_COOKIE}=`;
+  const entry = header.split(';').map(value => value.trim()).find(value => value.startsWith(prefix));
+  if (!entry) return null;
+  try {
+    return decodeURIComponent(entry.slice(prefix.length)) || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function verifyNativeGoogleIdentity(idToken, challenge) {
   if (typeof idToken !== 'string' || idToken.length > 16000 || !challenge) return null;
   const audience = process.env.GOOGLE_CLIENT_ID;

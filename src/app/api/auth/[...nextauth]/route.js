@@ -4,7 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
 import { resolveGoogleAccount } from "@/lib/googleAccount";
-import { GOOGLE_NONCE_COOKIE, verifyNativeGoogleIdentity } from "@/lib/googleNative";
+import { GOOGLE_NONCE_COOKIE, readNativeGoogleChallenge, verifyNativeGoogleIdentity } from "@/lib/googleNative";
 
 function isRetryablePrismaError(error) {
   if (!error) return false;
@@ -50,8 +50,16 @@ export const authOptions = {
       credentials: { idToken: { type: 'text' } },
       async authorize(credentials, req) {
         try {
-          const profile = await verifyNativeGoogleIdentity(credentials?.idToken, req.cookies?.[GOOGLE_NONCE_COOKIE]);
-          if (!profile) return null;
+          const challenge = readNativeGoogleChallenge(req);
+          if (!challenge) {
+            console.warn('Native Google sign-in rejected', { reason: 'missing_challenge_cookie' });
+            return null;
+          }
+          const profile = await verifyNativeGoogleIdentity(credentials?.idToken, challenge);
+          if (!profile) {
+            console.warn('Native Google sign-in rejected', { reason: 'invalid_identity_or_challenge' });
+            return null;
+          }
           const user = await withPrismaRetry(() => resolveGoogleAccount(profile));
           return { id: String(user.id), name: user.name, email: user.email };
         } catch (error) {
