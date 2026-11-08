@@ -1,3 +1,18 @@
+.bn-privacy-page{
+  padding:32px 16px;
+  line-height:1.7;
+}
+.bn-privacy-page .page-shell{max-width:900px;margin-inline:auto}
+.bn-privacy-page .bn-legal-card{padding:clamp(20px,4vw,40px)}
+.bn-privacy-page .bn-legal-card>.stack{gap:28px}
+.bn-privacy-page h1{font-size:clamp(1.6rem,4vw,2.3rem);line-height:1.2}
+.bn-privacy-page h2{font-size:1.2rem;line-height:1.4;margin-bottom:10px}
+.bn-privacy-page p+p,.bn-privacy-page ul+p{margin-top:12px}
+.bn-privacy-page ul{padding-left:24px}
+.bn-privacy-page li+li{margin-top:10px}
+.bn-privacy-page a:not(.btn){text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.bn-privacy-page section{scroll-margin-top:24px}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

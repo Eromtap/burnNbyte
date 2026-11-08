@@ -5,6 +5,7 @@ import ThemePreferencesCard from "@/components/ThemePreferencesCard";
 import { redirect } from "next/navigation";
 import StripeBillingButton from "@/components/StripeBillingButton";
 import prisma from "@/lib/prisma";
+import Link from "next/link";
 
 export default async function ProfilePage(){
   const { session } = await requireAppSession();
@@ -28,6 +29,15 @@ export default async function ProfilePage(){
         </section>
 
         <ThemePreferencesCard />
+
+        <article className="card bn-route-stage">
+          <header className="card-head"><div><h3>Privacy and terms</h3><div className="sub">How your information is handled and how to request deletion.</div></div></header>
+          <div className="admin-user-count-actions">
+            <Link className="btn btn-outline" href="/privacy">Privacy Policy</Link>
+            <Link className="btn btn-outline" href="/privacy#deletion">Account and data requests</Link>
+            <Link className="btn btn-outline" href="/terms">Terms &amp; Conditions</Link>
+          </div>
+        </article>
 
         <article className="card bn-route-stage">
           <header className="card-head"><div><h3>Billing</h3><div className="sub">Manage your BurnNByte web subscription and payment method.</div></div></header>

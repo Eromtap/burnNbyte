@@ -98,6 +98,7 @@ export default function SignInPage() {
               {submitting ? <><LoaderCircle size={16} aria-hidden /> Signing in…</> : "Sign in"}
             </button>
             <div className="bn-auth-switch">Don&apos;t have an account? <Link href="/signup">Create one</Link></div>
+            <div className="bn-auth-switch"><Link href="/privacy">Privacy Policy</Link> · <Link href="/terms">Terms &amp; Conditions</Link></div>
           </form>
         </div>
       </section>
