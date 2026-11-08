@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import prisma from "@/lib/prisma";
 import TermsAcceptForm from "@/components/TermsAcceptForm";
+import Link from "next/link";
 
 export default async function TermsPage() {
   const session = await getServerSession(authOptions);
@@ -35,6 +36,7 @@ export default async function TermsPage() {
             </header>
 
             <div className="stack">
+              <p>For information about personal data, see our <Link href="/privacy">Privacy Policy</Link>.</p>
               <section>
                 <div className="planner-head">AI-generated content</div>
                 <p className="muted">

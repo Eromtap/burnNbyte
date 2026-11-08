@@ -114,6 +114,7 @@ export default function SignUpPage() {
               {submitting ? <><LoaderCircle size={16} aria-hidden /> Creating account…</> : "Create account"}
             </button>
             <div className="bn-auth-switch">Already have an account? <Link href="/signin">Sign in</Link></div>
+            <div className="bn-auth-switch"><Link href="/privacy">Privacy Policy</Link></div>
           </form>
         </div>
       </section>
