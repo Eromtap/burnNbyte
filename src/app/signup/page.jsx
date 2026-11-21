@@ -30,10 +30,16 @@ export default function SignUpPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data?.accountCreated) {
+          sessionStorage.setItem("burnnbyte:verification-email", email.trim().toLowerCase());
+          router.replace("/verify-email?delivery=failed");
+          return;
+        }
         setError(data?.error || "We couldn’t create your account. Please try again.");
         return;
       }
-      router.replace("/signin");
+      sessionStorage.setItem("burnnbyte:verification-email", email.trim().toLowerCase());
+      router.replace("/verify-email");
     } catch {
       setError("The account service is temporarily unavailable. Please try again.");
     } finally {

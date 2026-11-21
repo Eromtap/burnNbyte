@@ -9,7 +9,7 @@ import { getUserAppAccess } from "@/lib/access";
 export async function requireAuth(options = {}) {
   const { allowWithoutTerms = false } = options;
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/signin");
+  if (!session?.user?.id) redirect("/signin");
   if (!allowWithoutTerms && session.user?.authzHydrated) {
     if (!session.user.termsAcceptedAt) redirect("/terms");
   } else if (!allowWithoutTerms) {

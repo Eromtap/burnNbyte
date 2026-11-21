@@ -62,6 +62,19 @@ APP_URL=https://your-domain.example
 
 Register `https://your-domain.example/api/stripe/webhook` as a Stripe webhook destination and select `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`.
 
+## Email verification
+
+New accounts must verify their email before signing in, and their 14-day trial begins when verification succeeds. Transactional email is sent through Resend; its free tier currently includes 3,000 emails per month, with a 100-email daily limit. Set these server-only values in `.env`:
+
+```bash
+RESEND_EMAIL_API_KEY=re_...
+EMAIL_FROM="BurnnByte <verify@auth.your-domain.example>"
+EMAIL_REPLY_TO=support@your-domain.example
+APP_URL=https://your-domain.example
+```
+
+Add and verify the sending domain (a dedicated subdomain such as `auth.your-domain.example` is recommended) in Resend, then add its DNS records at your DNS host. This can coexist with Proton Mail: leave existing Proton MX records unchanged and add only the records Resend requests. `EMAIL_REPLY_TO` can point to the Proton inbox that should receive customer replies. Deploy the migrations with `npm run migrate:deploy`.
+
 ## Mobile Wrapper
 
 The mobile app lives in `apps/mobile` and wraps the hosted web app with Capacitor.
@@ -74,4 +87,4 @@ npm run mobile:add:ios
 npm run mobile:sync
 ```
 
-Set `CAPACITOR_SERVER_URL` in `apps/mobile/.env` to your deployed app URL for device builds.
+Set `CAPACITOR_SERVER_URL` in `apps/mobile/.env` to the same public HTTPS origin used by production `APP_URL`. Verification and password-reset links open safely in a desktop or mobile browser and update the shared account in the database; mobile users can then return to the app and sign in.

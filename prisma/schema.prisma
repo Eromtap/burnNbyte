@@ -9,8 +9,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
@@ -37,68 +37,96 @@ enum SuggestionKind {
 
 // User model - core user data
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String? // Hashed password; absent for Google-only accounts
-  googleSubject String? @unique
-  isAdmin   Boolean  @default(false)
+  id              String    @id @default(cuid())
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  name            String?
+  password        String? // Hashed password; absent for Google-only accounts
+  googleSubject   String?   @unique
+  authVersion     Int       @default(0)
+  isAdmin         Boolean   @default(false)
   termsAcceptedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Relations
-  profile          UserProfile?
-  workouts         Workout[]
-  exerciseLogs     ExerciseLog[]
-  mealFeedback     MealFeedback[]
-  mealPlans        MealPlan[]
-  foodLogs         FoodLogEntry[]
+  profile                  UserProfile?
+  workouts                 Workout[]
+  exerciseLogs             ExerciseLog[]
+  mealFeedback             MealFeedback[]
+  mealPlans                MealPlan[]
+  foodLogs                 FoodLogEntry[]
   nutritionTargetOverrides NutritionTargetOverride[]
-  socialPosts      SocialPost[]
-  subscription     Subscription?
-  groceryOrders    GroceryOrder[]
-  grocerySummaries GrocerySummary[]
-  likes            Like[]
-  comments         Comment[]
-  followers        Follow[]         @relation("following")
-  following        Follow[]         @relation("follower")
-  mealLibraryItems MealLibraryItem[]
-  suggestions      AppSuggestion[]
-  accessGrants     UserAccessGrant[]
-  subscriptionEvents SubscriptionEvent[]
+  socialPosts              SocialPost[]
+  subscription             Subscription?
+  groceryOrders            GroceryOrder[]
+  grocerySummaries         GrocerySummary[]
+  likes                    Like[]
+  comments                 Comment[]
+  followers                Follow[]                  @relation("following")
+  following                Follow[]                  @relation("follower")
+  mealLibraryItems         MealLibraryItem[]
+  suggestions              AppSuggestion[]
+  accessGrants             UserAccessGrant[]
+  subscriptionEvents       SubscriptionEvent[]
+  emailVerificationTokens  EmailVerificationToken[]
+  passwordResetTokens      PasswordResetToken[]
 
   @@index([createdAt])
 }
 
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
 model UserProfile {
-  id                 String    @id @default(cuid())
-  userId             String    @unique
-  firstName          String
-  lastName           String
-  birthday           DateTime?
-  gender             String?
-  heightFt           Float?
-  heightIn           Float?
-  weight             Float?
-  goalWeight         Float?
-  activityLevel      String?
-  fitnessGoal        String?
-  fitnessGoals       String[] @default([])
-  dietaryPreferences String[]
-  dislikedFoods      String[] @default([])
-  mealPrepMode       Boolean  @default(false)
-  defaultCookServings Int @default(1)
-  macroTargetMode    String?   @default("grams")
-  calorieTarget      Int?
-  proteinTarget      Float?
-  carbsTarget        Float?
-  fatTarget          Float?
-  proteinPctTarget   Float?
-  carbsPctTarget     Float?
-  fatPctTarget       Float?
-  workoutPreference  String?
-  workoutDuration    Int?      @default(30) // minutes
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  firstName           String
+  lastName            String
+  birthday            DateTime?
+  gender              String?
+  heightFt            Float?
+  heightIn            Float?
+  weight              Float?
+  goalWeight          Float?
+  activityLevel       String?
+  fitnessGoal         String?
+  fitnessGoals        String[]  @default([])
+  dietaryPreferences  String[]
+  dislikedFoods       String[]  @default([])
+  mealPrepMode        Boolean   @default(false)
+  defaultCookServings Int       @default(1)
+  macroTargetMode     String?   @default("grams")
+  calorieTarget       Int?
+  proteinTarget       Float?
+  carbsTarget         Float?
+  fatTarget           Float?
+  proteinPctTarget    Float?
+  carbsPctTarget      Float?
+  fatPctTarget        Float?
+  workoutPreference   String?
+  workoutDuration     Int?      @default(30) // minutes
 
   // NEW: explicit days user plans to work out
   workoutDays DayOfWeek[] @default([])
@@ -146,8 +174,8 @@ model Workout {
   equipment    String[]
 
   // Relations
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exercises WorkoutExercise[]
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises    WorkoutExercise[]
   exerciseLogs ExerciseLog[]
 
   @@unique([userId, date]) // <-- Enforce one workout per user per date
@@ -202,7 +230,7 @@ model ExerciseLog {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   workout Workout? @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 
   @@index([userId, exerciseName, createdAt])
@@ -226,23 +254,23 @@ model MealPlan {
 
 // Meal - individual meals
 model Meal {
-  id          String   @id @default(uuid())
-  mealPlanId  String
-  name        String
-  type        String // breakfast, lunch, dinner, snack
-  calories    Int?
-  costPerServing Float?
-  protein     Float? // in grams
-  carbs       Float? // in grams
-  fat         Float? // in grams
-  ingredients String[]
-  recipe      String?
-  recipeYield Int?
-  cookServings Int @default(1)
-  isCompleted Boolean  @default(false)
-  completedAt DateTime?
-  includeInGroceries Boolean @default(true)
-  portionMultiplier Float @default(1)
+  id                    String    @id @default(uuid())
+  mealPlanId            String
+  name                  String
+  type                  String // breakfast, lunch, dinner, snack
+  calories              Int?
+  costPerServing        Float?
+  protein               Float? // in grams
+  carbs                 Float? // in grams
+  fat                   Float? // in grams
+  ingredients           String[]
+  recipe                String?
+  recipeYield           Int?
+  cookServings          Int       @default(1)
+  isCompleted           Boolean   @default(false)
+  completedAt           DateTime?
+  includeInGroceries    Boolean   @default(true)
+  portionMultiplier     Float     @default(1)
   portionAdjustmentNote String?
 
   // Relations
@@ -250,22 +278,22 @@ model Meal {
 }
 
 model FoodLogEntry {
-  id                 String   @id @default(uuid())
-  userId             String
-  date               DateTime
-  type               String
-  name               String
-  calories           Int?
-  costPerServing     Float?
-  protein            Float?
-  carbs              Float?
-  fat                Float?
-  ingredients        String[] @default([])
-  recipe             String?
-  isCompleted        Boolean  @default(true)
-  completedAt        DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id             String    @id @default(uuid())
+  userId         String
+  date           DateTime
+  type           String
+  name           String
+  calories       Int?
+  costPerServing Float?
+  protein        Float?
+  carbs          Float?
+  fat            Float?
+  ingredients    String[]  @default([])
+  recipe         String?
+  isCompleted    Boolean   @default(true)
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -421,7 +449,7 @@ model Subscription {
   updatedAt              DateTime  @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   events SubscriptionEvent[]
 
   @@index([provider, providerSubscriptionId])
@@ -439,26 +467,26 @@ model SubscriptionEvent {
   payload        Json?
   createdAt      DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
+  @@unique([provider, eventId])
   @@index([userId, occurredAt])
   @@index([provider, eventType, occurredAt])
-  @@unique([provider, eventId])
 }
 
 model UserAccessGrant {
-  id            String   @id @default(uuid())
-  userId        String
-  accessLevel   String // free, premium
-  source        String // manual
-  reason        String? // family, friend, qa, support, promo
-  startsAt      DateTime @default(now())
-  expiresAt     DateTime?
-  grantedById   String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String    @id @default(uuid())
+  userId      String
+  accessLevel String // free, premium
+  source      String // manual
+  reason      String? // family, friend, qa, support, promo
+  startsAt    DateTime  @default(now())
+  expiresAt   DateTime?
+  grantedById String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -496,18 +524,18 @@ model GroceryItem {
 
 // GrocerySummary - cached, store-ready list for a date range
 model GrocerySummary {
-  id         String   @id @default(uuid())
-  userId     String
-  start      DateTime
-  end        DateTime
-  unitSystem String // 'imperial' | 'metric'
-  items      Json // array of { id, name, quantity, unit, packageSize, notes, checked }
+  id            String    @id @default(uuid())
+  userId        String
+  start         DateTime
+  end           DateTime
+  unitSystem    String // 'imperial' | 'metric'
+  items         Json // array of { id, name, quantity, unit, packageSize, notes, checked }
   archivedItems Json?
-  note       String?
-  clearedAt  DateTime?
-  archivedAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  note          String?
+  clearedAt     DateTime?
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

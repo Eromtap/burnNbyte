@@ -89,9 +89,9 @@ export const authOptions = {
 
           const user = await withPrismaRetry(() => prisma.user.findFirst({
             where: { email: { equals: email, mode: "insensitive" } },
-            select: { id: true, name: true, email: true, password: true, isAdmin: true, termsAcceptedAt: true },
+            select: { id: true, name: true, email: true, password: true, authVersion: true, isAdmin: true, termsAcceptedAt: true, emailVerifiedAt: true },
           }));
-          if (!user?.password) return null;
+          if (!user?.password || !user.emailVerifiedAt) return null;
 
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) return null;
@@ -100,6 +100,7 @@ export const authOptions = {
             id: String(user.id),
             name: user.name,
             email: user.email,
+            authVersion: user.authVersion,
             isAdmin: Boolean(user.isAdmin),
             termsAcceptedAt: user.termsAcceptedAt,
           };
@@ -155,14 +156,31 @@ export const authOptions = {
         token.authzHydrated = false;
         return token;
       }
+      if (token.authInvalidated && !user) return token;
 
-      const shouldHydrate = Boolean(user) || trigger === "update" || !token.authzHydrated;
-      if (!shouldHydrate) return token;
+      const shouldHydrate =
+        Boolean(user) ||
+        trigger === "update" ||
+        !token.authzHydrated ||
+        !Number.isInteger(token.authVersion);
+
+      if (!shouldHydrate) {
+        const dbAuth = await withPrismaRetry(() => prisma.user.findUnique({
+          where: { id: String(userId) },
+          select: { authVersion: true },
+        }));
+        if (!dbAuth || dbAuth.authVersion !== token.authVersion) {
+          token.id = null;
+          token.authInvalidated = true;
+          token.authzHydrated = false;
+        }
+        return token;
+      }
 
       const [dbUser, profile] = await Promise.all([
         withPrismaRetry(() => prisma.user.findUnique({
           where: { id: String(userId) },
-          select: { isAdmin: true, termsAcceptedAt: true },
+          select: { authVersion: true, isAdmin: true, termsAcceptedAt: true },
         })),
         withPrismaRetry(() => prisma.userProfile.findUnique({
           where: { userId: String(userId) },
@@ -170,6 +188,8 @@ export const authOptions = {
       ]);
 
       token.isAdmin = Boolean(dbUser?.isAdmin ?? user?.isAdmin);
+      token.authVersion = dbUser?.authVersion ?? user?.authVersion ?? 0;
+      token.authInvalidated = !dbUser;
       token.termsAcceptedAt = dbUser?.termsAcceptedAt ?? user?.termsAcceptedAt ?? null;
       token.preferences = profile ?? null;
       token.authzHydrated = true;
@@ -179,6 +199,11 @@ export const authOptions = {
 
     async session({ session, token }) {
       if (session?.user) {
+        if (token.authInvalidated) {
+          session.user = null;
+          session.authInvalidated = true;
+          return session;
+        }
         session.user.id = token.id ?? token.sub ?? null;
         session.user.isAdmin = Boolean(token.isAdmin);
         session.user.termsAcceptedAt = token.termsAcceptedAt ?? null;

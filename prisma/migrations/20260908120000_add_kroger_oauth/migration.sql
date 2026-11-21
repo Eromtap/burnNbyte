@@ -1,0 +1,3 @@
+-- Kroger OAuth uses environment-backed credentials and did not require a
+-- database schema change. Keep this migration as an explicit no-op so later
+-- migrations can be deployed in order.

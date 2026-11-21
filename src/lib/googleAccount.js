@@ -13,7 +13,12 @@ export async function resolveGoogleAccount(profile) {
   if (existingEmail) throw new Error('GoogleAccountExists');
   try {
     return await prisma.user.create({
-      data: { email, name: profile.name || null, googleSubject: profile.sub },
+      data: {
+        email,
+        emailVerifiedAt: new Date(),
+        name: profile.name || null,
+        googleSubject: profile.sub,
+      },
     });
   } catch (error) {
     if (error.code !== 'P2002') throw error;

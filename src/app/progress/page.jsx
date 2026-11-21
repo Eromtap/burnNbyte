@@ -45,7 +45,7 @@ export default async function ProgressPage() {
   const timeZone = resolveTimeZone(timeZoneCandidate);
 
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/signin");
+  if (!session?.user?.id) redirect("/signin");
 
   const profile = await getSessionUserProfile(session);
   if (!profile) redirect("/onboarding/1");

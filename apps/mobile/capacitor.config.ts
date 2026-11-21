@@ -7,7 +7,6 @@ const config: CapacitorConfig = {
   appId: 'com.burnnbyte.app',
   appName: 'BurnnByte',
   webDir: 'www',
-  bundledWebRuntime: false,
   server: serverUrl
     ? {
         url: serverUrl,

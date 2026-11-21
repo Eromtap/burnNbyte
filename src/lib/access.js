@@ -26,6 +26,7 @@ export async function getUserAppAccess(userId, now = new Date()) {
     select: {
       id: true,
       createdAt: true,
+      emailVerifiedAt: true,
       isAdmin: true,
       subscription: true,
       accessGrants: {
@@ -92,14 +93,18 @@ export async function getUserAppAccess(userId, now = new Date()) {
     };
   }
 
-  const trialEndsAt = addDays(user.createdAt, TRIAL_LENGTH_DAYS);
+  // Existing users are backfilled with their original creation time by the
+  // email-verification migration. New users begin their trial only after they
+  // prove ownership of the address.
+  const trialStartedAt = user.emailVerifiedAt ?? user.createdAt;
+  const trialEndsAt = addDays(trialStartedAt, TRIAL_LENGTH_DAYS);
   if (trialEndsAt > now) {
     return {
       hasAppAccess: true,
       accessState: "trialing",
       source: "system",
       reason: "trial",
-      startedAt: user.createdAt,
+      startedAt: trialStartedAt,
       expiresAt: trialEndsAt,
       trialEndsAt,
       trialLengthDays: TRIAL_LENGTH_DAYS,
@@ -111,7 +116,7 @@ export async function getUserAppAccess(userId, now = new Date()) {
     accessState: "expired",
     source: "none",
     reason: "trial_expired",
-    startedAt: user.createdAt,
+    startedAt: trialStartedAt,
     expiresAt: trialEndsAt,
     trialEndsAt,
     trialLengthDays: TRIAL_LENGTH_DAYS,
