@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# BurnnByte requires every change to reach protected branches through a pull request.
+protected_push=0
+
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/master)
+      protected_push=1
+      ;;
+  esac
+done
+
+if [ "$protected_push" -eq 1 ]; then
+  echo "ERROR: Direct pushes to main/master are prohibited." >&2
+  echo "Push a working branch and open a pull request instead." >&2
+  exit 1
+fi
+
+exit 0
