@@ -242,18 +242,18 @@ export default async function HomePage({ searchParams }) {
               </header>
 
               <div className="bn-home-next-row">
-                <div>
+                {workout ? <div>
                   <Dumbbell size={20} aria-hidden />
-                  <span><strong>{workout?.duration || 0}</strong><small>minutes</small></span>
-                </div>
-                <div>
+                  <span><strong>{workout.duration || '—'}</strong><small>minutes</small></span>
+                </div> : null}
+                {workout ? <div>
                   <Flame size={20} aria-hidden />
-                  <span><strong>{workoutCalories || 0}</strong><small>estimated burn</small></span>
-                </div>
-                <div>
+                  <span><strong>{workoutCalories ?? '—'}</strong><small>estimated burn</small></span>
+                </div> : null}
+                {workout ? <div>
                   <Activity size={20} aria-hidden />
-                  <span><strong>{workout ? movementCount : "—"}</strong><small>movements</small></span>
-                </div>
+                  <span><strong>{movementCount}</strong><small>movements</small></span>
+                </div> : <p className="bn-home-workout-empty">No workout planned for this day.</p>}
                 <div className="bn-home-next-action">
                   {workout ? (
                     <WorkoutCompletionToggle workoutId={workout.id} initialCompleted={workout.isCompleted} />

@@ -2954,6 +2954,11 @@ input:focus,select:focus,textarea:focus{
 .onboard-spin{animation:onboard-spin .8s linear infinite}
 @keyframes onboard-spin{to{transform:rotate(360deg)}}
 .onboard-submit-error{margin-top:0}
+.onboard-do-it-myself{
+  width:100%;
+  min-height:44px;
+  margin-top:4px;
+}
 
 .bn-onboarding-result{
   display:grid;
@@ -7291,6 +7296,26 @@ body::before{
   background:transparent;
 }
 
+.bn-content .brand-feed-empty-row .btn-outline{
+  min-height:44px;
+  padding:9px 14px;
+  border:1px solid var(--edge-strong);
+  border-radius:10px;
+  background:var(--surface);
+  color:var(--text);
+  font-weight:600;
+}
+
+.bn-content .brand-feed-empty-row .btn-outline:hover{
+  border-color:var(--accent);
+  background:color-mix(in oklab, var(--accent) 8%, var(--surface));
+}
+
+.bn-content .brand-feed-empty-row .btn-outline:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
 .bn-home-primary .brand-feed-meta{
   font-size:.65rem;
 }
@@ -8320,6 +8345,7 @@ body::before{
 }
 
 /* Home dashboard: the daily summary lives where the hero used to be. */
+.bn-home-workout-empty{color:var(--muted);font-size:.85rem;line-height:1.5}
 .bn-home-primary>.dashboard-today-spotlight-card{
   margin:0;
   padding:18px 0 24px;

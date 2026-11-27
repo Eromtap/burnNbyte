@@ -50,7 +50,7 @@ export default function Step5({ formData, onEdit, buildState }) {
       stepNumber={5}
       totalSteps={5}
       title="Your starting setup"
-      description="Review the plan inputs below. burnNbyte will use them to create your first seven days."
+      description="Review your plan inputs below. Build a personalized first week now, or save your setup and create it yourself later."
     >
       <div className="onboard-review">
         <section>

@@ -250,6 +250,34 @@ export default function OnboardingForm() {
     }
   };
 
+  const finishWithoutGenerating = async () => {
+    for (const stepNumber of [1, 2, 3, 4]) {
+      const errors = validateStep(stepNumber, formData);
+      if (Object.keys(errors).length) {
+        setStepErrors(errors);
+        setSubmitError('Finish the highlighted details before saving your setup.');
+        router.push(`/onboarding/${stepNumber}`);
+        focusFirstError();
+        return;
+      }
+    }
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      setBuildState({ phase: 'saving', workouts: 'idle', meals: 'idle' });
+      await requestJson('/api/onboarding', profilePayload());
+      profileSavedRef.current = true;
+      if (draftKey) window.localStorage.removeItem(draftKey);
+      router.replace('/?onboarding=self-setup');
+      router.refresh();
+    } catch (error) {
+      setBuildState(EMPTY_BUILD_STATE);
+      setSubmitError(error.message || 'We could not save your setup. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const retryGeneration = async () => {
     setSubmitting(true);
     try {
@@ -342,6 +370,12 @@ export default function OnboardingForm() {
             ) : <p className="muted">Loading...</p>}
 
             {submitError ? <div className="alert alert-error onboard-submit-error" role="alert">{submitError}</div> : null}
+
+            {currentStep === 5 && buildState.phase === 'idle' ? (
+              <button type="button" className="btn btn-outline onboard-do-it-myself" onClick={finishWithoutGenerating} disabled={submitting || loggingOut}>
+                Do it myself
+              </button>
+            ) : null}
 
             <div className="onboard-actions onboard-native-actions">
               {buildState.phase === 'partial' ? (
