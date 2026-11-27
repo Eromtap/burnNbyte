@@ -2954,11 +2954,6 @@ input:focus,select:focus,textarea:focus{
 .onboard-spin{animation:onboard-spin .8s linear infinite}
 @keyframes onboard-spin{to{transform:rotate(360deg)}}
 .onboard-submit-error{margin-top:0}
-.onboard-do-it-myself{
-  width:100%;
-  min-height:44px;
-  margin-top:4px;
-}
 
 .bn-onboarding-result{
   display:grid;
@@ -8164,6 +8159,24 @@ body::before{
   box-shadow:none;
 }
 
+.onboard-native-actions .onboard-do-it-myself{
+  margin-left:auto;
+  padding-inline:20px;
+  border:1px solid var(--edge-strong);
+  border-radius:12px;
+  background:var(--surface);
+}
+
+.onboard-native-actions .onboard-do-it-myself:hover{
+  border-color:var(--accent);
+  background:color-mix(in oklab,var(--accent) 8%,var(--surface));
+}
+
+.onboard-native-actions .onboard-do-it-myself:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
 .onboard-native-actions .btn-primary{
   border:0;
   border-radius:12px;
@@ -8221,6 +8234,9 @@ body::before{
   .onboard-duration button:nth-child(n+3){border-top:1px solid var(--edge)}
   .onboard-native-actions{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr)}
   .onboard-native-actions .btn{min-width:0;padding-inline:10px}
+  .onboard-native-actions.has-manual-option{grid-template-columns:1fr 1fr}
+  .onboard-native-actions.has-manual-option>.btn-secondary{grid-column:1/-1;order:3}
+  .onboard-native-actions .onboard-do-it-myself{margin-left:0}
   .onboard-native-footer{padding-inline:0}
 }
 

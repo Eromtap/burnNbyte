@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.webkit.WebView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.splashscreen.SplashScreen;
 
 import com.getcapacitor.BridgeActivity;
@@ -30,6 +31,21 @@ public class MainActivity extends BridgeActivity {
 
         registerPlugin(BurnNByteGoogleAuthPlugin.class);
         super.onCreate(savedInstanceState);
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+                if (webView != null && webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    // At the first screen, preserve Android's normal back behavior.
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                    setEnabled(true);
+                }
+            }
+        });
 
         // Keep the launch artwork up until the hosted app has rendered its first page. The
         // timeout prevents a permanently stuck splash screen if the remote page cannot load.

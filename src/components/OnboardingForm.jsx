@@ -7,6 +7,7 @@ import { signOut } from '@/lib/signOut';
 import Image from 'next/image';
 import { ArrowLeft, ArrowRight, LoaderCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { useOnboarding } from '@/lib/formState';
+import { isValidBirthday } from '@/lib/birthday';
 import Step1 from './onboardingSteps/Step1';
 import Step2 from './onboardingSteps/Step2';
 import Step3 from './onboardingSteps/Step3';
@@ -53,6 +54,7 @@ function validateStep(step, formData) {
     if (!String(formData.firstName || '').trim()) errors.firstName = 'Enter your first name.';
     if (!String(formData.lastName || '').trim()) errors.lastName = 'Enter your last name.';
     if (!formData.birthday) errors.birthday = 'Enter your birthday.';
+    else if (!isValidBirthday(formData.birthday)) errors.birthday = 'Enter a valid birthday in MM/DD/YYYY format.';
     else if (new Date(`${formData.birthday}T00:00:00`) > new Date()) errors.birthday = 'Birthday cannot be in the future.';
     if (!formData.gender) errors.gender = 'Choose the option used for calorie estimates.';
     if (!formData.activityLevel) errors.activityLevel = 'Choose your typical activity level.';
@@ -371,13 +373,7 @@ export default function OnboardingForm() {
 
             {submitError ? <div className="alert alert-error onboard-submit-error" role="alert">{submitError}</div> : null}
 
-            {currentStep === 5 && buildState.phase === 'idle' ? (
-              <button type="button" className="btn btn-outline onboard-do-it-myself" onClick={finishWithoutGenerating} disabled={submitting || loggingOut}>
-                Do it myself
-              </button>
-            ) : null}
-
-            <div className="onboard-actions onboard-native-actions">
+            <div className={`onboard-actions onboard-native-actions${currentStep === 5 && buildState.phase === 'idle' ? ' has-manual-option' : ''}`}>
               {buildState.phase === 'partial' ? (
                 <button type="button" className="btn btn-secondary" onClick={() => router.replace('/?onboarding=partial')} disabled={submitting}>Continue to dashboard</button>
               ) : (
@@ -385,6 +381,11 @@ export default function OnboardingForm() {
                   <ArrowLeft size={17} aria-hidden /> Back
                 </button>
               )}
+              {currentStep === 5 && buildState.phase === 'idle' ? (
+                <button type="button" className="btn btn-outline onboard-do-it-myself" onClick={finishWithoutGenerating} disabled={submitting || loggingOut}>
+                  Do it myself
+                </button>
+              ) : null}
               <button type="submit" className="btn btn-primary" disabled={submitting || loggingOut}>
                 {submitting ? <LoaderCircle className="onboard-spin" size={17} aria-hidden /> : currentStep === 5 ? (buildState.phase === 'partial' ? <RefreshCw size={17} aria-hidden /> : <Sparkles size={17} aria-hidden />) : null}
                 {primaryLabel}

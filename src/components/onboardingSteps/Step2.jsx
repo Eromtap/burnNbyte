@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import StepLayout, { FieldError } from './StepLayout';
+import { isValidBirthday } from '@/lib/birthday';
 
 const ACTIVITY_LEVELS = [
   { id: 'sedentary', label: 'Mostly seated', description: 'Little intentional movement outside daily tasks' },
@@ -13,7 +14,7 @@ const ACTIVITY_LEVELS = [
 ];
 
 function calculateAge(birthday) {
-  if (!birthday) return '';
+  if (!isValidBirthday(birthday)) return '';
   const birthDate = new Date(`${birthday}T00:00:00`);
   if (Number.isNaN(birthDate.getTime())) return '';
   const today = new Date();
@@ -25,6 +26,20 @@ function calculateAge(birthday) {
 
 export default function Step2({ formData, updateForm, errors = {} }) {
   const age = useMemo(() => calculateAge(formData.birthday), [formData.birthday]);
+  const birthday = formData.birthday || '';
+  const displayBirthday = /^\d{4}-\d{2}-\d{2}$/.test(birthday)
+    ? `${birthday.slice(5, 7)}/${birthday.slice(8, 10)}/${birthday.slice(0, 4)}`
+    : birthday;
+
+  function updateBirthday(value) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      updateForm({ birthday: value });
+      return;
+    }
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    const formatted = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join('/');
+    updateForm({ birthday: digits.length === 8 ? `${digits.slice(4)}-${digits.slice(0, 2)}-${digits.slice(2, 4)}` : formatted });
+  }
 
   return (
     <StepLayout
@@ -49,8 +64,8 @@ export default function Step2({ formData, updateForm, errors = {} }) {
       <div className="onboard-grid onboard-grid-2">
         <label>
           <span>Birthday</span>
-          <input type="date" className="input" value={formData.birthday || ''} onChange={(event) => updateForm({ birthday: event.target.value })} aria-invalid={Boolean(errors.birthday)} aria-describedby={errors.birthday ? 'birthday-error' : 'birthday-help'} />
-          <small id="birthday-help" className="onboard-field-help">Used to estimate age-specific pacing.</small>
+          <input type="text" inputMode="numeric" autoComplete="bday" className="input" placeholder="MM/DD/YYYY" value={displayBirthday} onChange={(event) => updateBirthday(event.target.value)} aria-invalid={Boolean(errors.birthday)} aria-describedby={errors.birthday ? 'birthday-error' : 'birthday-help'} />
+          <small id="birthday-help" className="onboard-field-help">Enter month, day, and four-digit year.</small>
           <FieldError id="birthday-error">{errors.birthday}</FieldError>
         </label>
         <div className="onboard-signal">
